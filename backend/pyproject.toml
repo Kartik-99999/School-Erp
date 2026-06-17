@@ -1,0 +1,28 @@
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+extend-exclude = '''
+/(
+  | venv
+  | \.venv
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = ["venv", ".venv"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+extend-exclude = ["venv", ".venv"]
+
+[tool.ruff.lint]
+# E/W = pycodestyle, F = pyflakes, I = isort. Line length is handled by black.
+select = ["E", "F", "I"]
+ignore = [
+    "E501",  # line length — black owns this
+    "E712",  # `== True/False` is the required SQLAlchemy filter idiom, not a bug
+    "E402",  # module-level imports placed after code = intentional lazy imports here
+]

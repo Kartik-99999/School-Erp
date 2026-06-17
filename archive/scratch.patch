@@ -1,0 +1,55 @@
+--- frontend/src/app/parent/notices/page.tsx
++++ frontend/src/app/parent/notices/page.tsx
+@@ -2,12 +2,15 @@
+ import React, { useState, useEffect } from "react";
+ import { Bell, Calendar, Megaphone, Search, Filter, MessageCircle, Heart, Share2, Image as ImageIcon, FileText, Download } from "lucide-react";
++import api from "@/lib/axios";
+ 
+ export default function ParentFeedPage() {
+   const [activeTag, setActiveTag] = useState("All");
+   const tags = ["All", "Notice", "Circular", "Resources", "Announcement", "Gallery"];
++  const [feedItems, setFeedItems] = useState<any[]>([]);
++  const [loading, setLoading] = useState(true);
+ 
+-  // Mock Feed Data
+-  const feedItems = [
++  // Fallback Mock Feed Data for testing if API is empty
++  const fallbackItems = [
+     { 
+       id: 1,
+       type: "Announcement", 
+@@ -69,6 +72,27 @@
+     }
+   ];
+ 
++  useEffect(() => {
++    const fetchNotices = async () => {
++      try {
++        const res = await api.get('/communication/notices?target=Parents');
++        if (res.data.success && res.data.data.length > 0) {
++          const mapped = res.data.data.map((notice: any) => ({
++            id: notice.id,
++            type: notice.notice_type || "Notice",
++            author: "School Admin",
++            date: new Date(notice.created_at).toLocaleDateString(),
++            title: notice.title,
++            desc: notice.content,
++            likes: 0,
++            comments: 0
++          }));
++          setFeedItems(mapped);
++        } else {
++          setFeedItems(fallbackItems);
++        }
++      } catch (err) {
++        setFeedItems(fallbackItems);
++      } finally {
++        setLoading(false);
++      }
++    };
++    fetchNotices();
++  }, []);
++
+   const filteredFeed = activeTag === "All" ? feedItems : feedItems.filter(item => item.type === activeTag);
+ 
+   const getTagColor = (type: string) => {

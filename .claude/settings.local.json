@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=. ./venv/bin/python -c \"import app.api.v1.endpoints.admissions as m; print\\('admissions import OK'\\); print\\('convert route present:', any\\('convert' in getattr\\(r,'path',''\\) for r in []\\) or 'convert' in open\\('app/api/v1/endpoints/admissions.py'\\).read\\(\\)\\)\")"
+    ]
+  }
+}

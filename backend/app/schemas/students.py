@@ -1,0 +1,151 @@
+from datetime import date
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
+
+
+# Parent
+class ParentBase(BaseModel):
+    father_name: Optional[str] = None
+    father_phone: Optional[str] = None
+    father_email: Optional[str] = None
+    father_occupation: Optional[str] = None
+    father_religion: Optional[str] = None
+    father_category: Optional[str] = None
+    father_nationality: Optional[str] = None
+    father_aadhaar: Optional[str] = None
+    mother_name: Optional[str] = None
+    mother_phone: Optional[str] = None
+    mother_email: Optional[str] = None
+    mother_occupation: Optional[str] = None
+    mother_religion: Optional[str] = None
+    mother_category: Optional[str] = None
+    mother_nationality: Optional[str] = None
+    mother_aadhaar: Optional[str] = None
+    guardian_name: Optional[str] = None
+    guardian_phone: Optional[str] = None
+    guardian_email: Optional[str] = None
+    guardian_relation: Optional[str] = None
+    guardian_religion: Optional[str] = None
+    guardian_category: Optional[str] = None
+    guardian_nationality: Optional[str] = None
+    guardian_aadhaar: Optional[str] = None
+    primary_contact_email: Optional[str] = None  # used for the Parent portal login
+    address: Optional[str] = None
+
+
+class ParentCreate(ParentBase):
+    pass
+
+
+class ParentResponse(ParentBase):
+    id: UUID
+    school_id: UUID
+    user_id: Optional[UUID] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Medical
+class StudentMedicalBase(BaseModel):
+    allergies: Optional[str] = None
+    chronic_conditions: Optional[str] = None
+    doctor_name: Optional[str] = None
+    doctor_phone: Optional[str] = None
+
+
+class StudentMedicalCreate(StudentMedicalBase):
+    pass
+
+
+class StudentMedicalResponse(StudentMedicalBase):
+    id: UUID
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Student
+class StudentBase(BaseModel):
+    first_name: str
+    last_name: str
+    dob: date
+    date_of_joining: Optional[date] = None
+    gender: Optional[str] = None
+    blood_group: Optional[str] = None
+    nationality: Optional[str] = "Indian"
+    religion: Optional[str] = None
+    category: Optional[str] = None
+    mother_tongue: Optional[str] = None
+    apaar_id: Optional[str] = None
+    aadhaar_no: Optional[str] = None
+    pen_number: Optional[str] = None
+    photo_url: Optional[str] = None
+    current_class_id: Optional[UUID] = None
+    current_section_id: Optional[UUID] = None
+    academic_year_id: Optional[UUID] = None
+    status: Optional[str] = "Active"
+
+
+class StudentCreate(StudentBase):
+    parent: ParentCreate
+    medical: Optional[StudentMedicalCreate] = None
+
+
+class StudentUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    dob: Optional[date] = None
+    date_of_joining: Optional[date] = None
+    gender: Optional[str] = None
+    blood_group: Optional[str] = None
+    nationality: Optional[str] = None
+    religion: Optional[str] = None
+    category: Optional[str] = None
+    mother_tongue: Optional[str] = None
+    apaar_id: Optional[str] = None
+    aadhaar_no: Optional[str] = None
+    pen_number: Optional[str] = None
+    photo_url: Optional[str] = None
+    current_class_id: Optional[UUID] = None
+    current_section_id: Optional[UUID] = None
+    status: Optional[str] = None
+
+    parent: Optional[ParentCreate] = None
+    medical: Optional[StudentMedicalCreate] = None
+
+
+class StudentResponse(StudentBase):
+    id: UUID
+    school_id: UUID
+    parent_id: UUID
+    user_id: Optional[UUID] = None
+    admission_number: Optional[str] = None
+    roll_number: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentProfileResponse(StudentResponse):
+    parent: Optional[ParentResponse] = None
+    medical: Optional[StudentMedicalResponse] = None
+    class_name: Optional[str] = None
+    section_name: Optional[str] = None
+
+
+class StudentPage(BaseModel):
+    items: List[StudentResponse]
+    total: int
+    skip: int
+    limit: int
+
+
+class BulkImportResult(BaseModel):
+    success_count: int
+    failed_count: int
+    errors: List[dict]
+
+
+class BulkPromoteRequest(BaseModel):
+    student_ids: List[UUID]
+    next_class_id: UUID
+    next_section_id: UUID
+    academic_year_id: UUID

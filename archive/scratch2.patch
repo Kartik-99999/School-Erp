@@ -1,0 +1,15 @@
+--- frontend/src/app/admin/admissions/page.tsx
++++ frontend/src/app/admin/admissions/page.tsx
+@@ -40,7 +40,11 @@
+     e.preventDefault();
+     setSubmitting(true);
+     try {
+-      await api.post("/enquiries", formData);
++      const payload = { ...formData };
++      if (!payload.email) delete payload.email;
++      if (!payload.notes) delete payload.notes;
++      
++      await api.post("/enquiries", payload);
+       setShowNewModal(false);
+       setFormData({ student_name: "", parent_name: "", contact_number: "", email: "", notes: "" });
+       fetchEnquiries();

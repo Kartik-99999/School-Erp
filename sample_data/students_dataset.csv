@@ -1,0 +1,11 @@
+first_name,last_name,dob,gender,father_name,father_phone,parent_email
+Aarav,Sharma,2012-05-14,Male,Rajesh Sharma,9876543210,rajesh.sharma@example.com
+Diya,Patel,2013-08-22,Female,Sanjay Patel,9876543211,sanjay.patel@example.com
+Arjun,Singh,2012-01-30,Male,Vikram Singh,9876543212,vikram.singh@example.com
+Ananya,Gupta,2011-11-05,Female,Amit Gupta,9876543213,amit.gupta@example.com
+Vihaan,Kumar,2014-03-17,Male,Sunil Kumar,9876543214,sunil.kumar@example.com
+Ishita,Joshi,2013-07-09,Female,Prakash Joshi,9876543215,prakash.joshi@example.com
+Rohan,Mehta,2012-12-25,Male,Deepak Mehta,9876543216,deepak.mehta@example.com
+Kavya,Nair,2014-02-18,Female,Ramesh Nair,9876543217,ramesh.nair@example.com
+Dhruv,Verma,2013-09-30,Male,Anil Verma,9876543218,anil.verma@example.com
+Riya,Das,2012-04-12,Female,Subhash Das,9876543219,subhash.das@example.com
