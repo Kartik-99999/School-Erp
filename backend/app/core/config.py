@@ -57,6 +57,15 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: str = "demo_token"
     TWILIO_WHATSAPP_NUMBER: str = "whatsapp:+14155238886"
 
+    # Email (SMTP). Leave SMTP_HOST blank to run in dev "mock" mode where emails are
+    # logged instead of sent (so password reset / notices don't fail locally).
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM: Optional[str] = None
+    SMTP_USE_TLS: bool = True
+
     @property
     def async_database_uri(self) -> str:
         """Owner connection (POSTGRES_USER) — used by migrations/DDL scripts."""
