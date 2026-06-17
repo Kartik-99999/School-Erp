@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 from uuid import UUID
 
@@ -45,6 +46,8 @@ from app.schemas.setup import (
 from app.utils.razorpay import create_order, verify_payment
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 async def _resolve_payable_student_ids(db: AsyncSession, token_data: deps.TokenData) -> set:
@@ -350,8 +353,14 @@ async def generate_bulk_dues(
             db, UUID(school_id), req.class_id, req.academic_year_id, req.due_date
         )
         return APIResponse(success=True, message=f"Successfully generated {count} due records.")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Bulk dues generation failed")
+        raise HTTPException(
+            status_code=400,
+            detail="Could not generate dues. Verify the class and academic year, then retry.",
+        )
 
 
 @router.get("/dues", response_model=APIResponse[List[FeeScheduleResponse]])
@@ -421,8 +430,11 @@ async def record_offline_payment(
         )
         await db.commit()
         return APIResponse(success=True, data=receipt, message="Payment recorded successfully.")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Recording offline payment failed")
+        raise HTTPException(status_code=400, detail="Could not record the payment.")
 
 
 @router.post(
@@ -544,8 +556,11 @@ async def verify_online_payment(
     )
     try:
         receipt = await crud_fee_payment.process_payment(db, UUID(school_id), payment_in, None)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Processing online payment failed")
+        raise HTTPException(status_code=400, detail="Could not process the payment.")
     return APIResponse(success=True, data=receipt, message="Payment successful.")
 
 

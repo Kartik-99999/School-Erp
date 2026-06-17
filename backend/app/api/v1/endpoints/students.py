@@ -1,4 +1,5 @@
 import io
+import logging
 from datetime import datetime
 from typing import Any, List, Optional
 from uuid import UUID
@@ -31,6 +32,8 @@ from app.utils.cloudinary import upload_file
 from app.utils.pdf import generate_pdf
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 def _cell(row, key):
@@ -179,8 +182,11 @@ async def create_student(
             data=student,
             message="Student created successfully and credentials sent to parent.",
         )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Creating student failed")
+        raise HTTPException(status_code=400, detail="Could not create the student.")
 
 
 @router.get("/me", response_model=APIResponse[StudentProfileResponse])
@@ -444,9 +450,15 @@ async def bulk_import_students(
                 db=db, obj_in=student_in, school_id=school_id
             )
             success_count += 1
-        except Exception as e:
+        except Exception:
             await db.rollback()
-            errors.append({"row": index + 2, "error": str(e)})  # +2 for header and 0-index
+            logger.exception("Bulk import row %s failed", index + 2)
+            errors.append(
+                {
+                    "row": index + 2,
+                    "error": "Row could not be imported (duplicate or invalid data).",
+                }
+            )
 
     return APIResponse(
         success=True,

@@ -1,4 +1,5 @@
 import io
+import logging
 from typing import List, Optional
 from uuid import UUID
 
@@ -37,6 +38,8 @@ from app.schemas.exams import (
 )
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 # --- SETUP (Grade Scales & Types) ---
@@ -161,8 +164,11 @@ async def bulk_enter_marks(
             db, UUID(school_id), marks_in.exam_schedule_id, marks_in
         )
         return APIResponse(success=True, message="Marks successfully saved.")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Saving exam marks failed")
+        raise HTTPException(status_code=400, detail="Could not save marks.")
 
 
 @router.post("/schedules/{schedule_id}/marks/import")
@@ -189,8 +195,14 @@ async def import_marks_csv(
         marks_in = StudentMarkBulkCreate(exam_schedule_id=schedule_id, marks=marks_list)
         await crud_student_mark.bulk_upsert(db, UUID(school_id), schedule_id, marks_in)
         return APIResponse(success=True, message="Marks imported successfully")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"CSV Import failed: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Marks CSV import failed")
+        raise HTTPException(
+            status_code=400,
+            detail="Could not import marks from the file. Check the format and try again.",
+        )
 
 
 # --- RESULTS PROCESSING ---
@@ -203,8 +215,11 @@ async def process_exam_results(
     try:
         await crud_result.process_results(db, UUID(school_id), exam_id)
         return APIResponse(success=True, message="Results processed and published successfully.")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Processing failed: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Processing exam results failed")
+        raise HTTPException(status_code=400, detail="Could not process results.")
 
 
 @router.get("/{exam_id}/results", response_model=APIResponse[List[ResultResponse]])

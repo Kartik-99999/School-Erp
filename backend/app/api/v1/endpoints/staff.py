@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from typing import Any, List, Optional
 from uuid import UUID
@@ -21,6 +22,8 @@ from app.schemas.staff import (
 from app.utils.cloudinary import upload_file
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 import io
 from datetime import datetime
@@ -69,8 +72,14 @@ async def bulk_import_staff(
             )
             await crud_staff.create_with_user(db=db, obj_in=staff_in, school_id=school_id)
             success_count += 1
-        except Exception as e:
-            errors.append({"row": index + 2, "error": str(e)})
+        except Exception:
+            logger.exception("Bulk import row %s failed", index + 2)
+            errors.append(
+                {
+                    "row": index + 2,
+                    "error": "Row could not be imported (duplicate or invalid data).",
+                }
+            )
 
     return APIResponse(
         success=True,
@@ -126,8 +135,9 @@ async def create_staff(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Creating staff member failed")
+        raise HTTPException(status_code=400, detail="Could not create the staff member.")
 
 
 @router.get("/{id}", response_model=APIResponse[StaffResponse])

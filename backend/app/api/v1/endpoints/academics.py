@@ -1,4 +1,5 @@
 import io
+import logging
 import random
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -46,6 +47,8 @@ from app.schemas.base import APIResponse
 from app.schemas.students import BulkImportResult
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 # --- TIMETABLE ---
@@ -623,9 +626,15 @@ async def bulk_import_timetable(
 
             await db.commit()
             success_count += 1
-        except Exception as e:
+        except Exception:
             await db.rollback()
-            errors.append({"row": index + 2, "error": str(e)})
+            logger.exception("Bulk import row %s failed", index + 2)
+            errors.append(
+                {
+                    "row": index + 2,
+                    "error": "Row could not be imported (duplicate or invalid data).",
+                }
+            )
 
     return APIResponse(
         success=True,
