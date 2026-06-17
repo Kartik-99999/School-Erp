@@ -126,9 +126,9 @@ RLS is bypassed (manual `school_id` filters only). Migrations always use
 3. **JWT** 8-day lifetime, HS256, no refresh/rotation/revocation.
 4. **Integrations are mock/unconfigured:** email just prints; Razorpay/Twilio/Cloudinary need real keys; no Razorpay webhook (synchronous verify only).
 5. **PII:** Aadhaar/APAAR stored in plaintext — should be masked on display + encrypted at rest (compliance risk for minors' data).
-6. **Money** handled as Python `float` with epsilon hacks → use `Decimal`.
-7. **Error handling:** ~20 `except Exception → HTTPException(400, str(e))` sites leak internals.
-8. **Tests** are DB-less (guards + pure logic); no integration tests (need a throwaway Postgres). **No CI. Not a git repo** (no version control yet).
+6. ~~**Money** as `float` with epsilon hacks~~ → **DONE.** Fee schemas + `crud_fees` payment/dues math use `Decimal` end-to-end (DB columns were already `Numeric`); the `0.01`-paisa tolerances are gone. Covered by a DB-backed payment-math test. *Remaining:* subscription-plan pricing in `super_admin` is still `float` (lower stakes).
+7. ~~**Error handling** leaking internals~~ → **DONE.** All 11 `HTTPException(400, str(e))` / bulk-import `str(e)` sites now log server-side and return sanitized messages (fees, exams, students, staff, academics).
+8. **Tests** are DB-less by default (guards + pure logic) **plus** new DB-backed tests for RLS isolation and payment math that auto-skip without a local Postgres; broader integration coverage + **CI** still TODO. **Now a git repo** (initialized this session; baseline + hardening commits).
 9. **Stub dashboards:** teacher classes/assignments, accountant transactions, student-dashboard previews are placeholder `[].map`s.
 10. **India-only:** single currency ₹, Razorpay, CBSE defaults, WhatsApp-first.
 
