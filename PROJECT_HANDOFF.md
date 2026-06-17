@@ -124,18 +124,18 @@ RLS is bypassed (manual `school_id` filters only). Migrations always use
 1. ~~**RLS NOT enforced**~~ → **DONE (this session).** Postgres RLS is enforced via `enable_rls.py` (66 tables, fail-closed `tenant_isolation` policy, non-owner `educore_app` role) + an isolation test; hand-written `school_id` filters now act as defense-in-depth. *Remaining:* rotate the `educore_app` password for non-local envs; consider isolating the `schools` registry table (currently no RLS — read cross-tenant by login/lookup by design); audit any future raw-SQL endpoints for tenant context.
 2. ~~**No rate limiting**~~ → **DONE (this session)** for login/signup/enquiry/password-reset/payments via slowapi (in-memory, per-IP). *Remaining:* point `storage_uri` at Redis for multi-instance deployments; tune limits per route.
 3. **JWT** 8-day lifetime, HS256, no refresh/rotation/revocation.
-4. **Integrations are mock/unconfigured:** email just prints; Razorpay/Twilio/Cloudinary need real keys; no Razorpay webhook (synchronous verify only).
+4. **Integrations partly mock/unconfigured:** email now sends via **SMTP when configured** (`SMTP_*` env; logs in dev if `SMTP_HOST` unset). *Remaining:* Razorpay/Twilio/Cloudinary need real keys; no Razorpay webhook (synchronous verify only).
 5. **PII:** Aadhaar/APAAR stored in plaintext — should be masked on display + encrypted at rest (compliance risk for minors' data).
 6. ~~**Money** as `float` with epsilon hacks~~ → **DONE.** Fee schemas + `crud_fees` payment/dues math use `Decimal` end-to-end (DB columns were already `Numeric`); the `0.01`-paisa tolerances are gone. Covered by a DB-backed payment-math test. *Remaining:* subscription-plan pricing in `super_admin` is still `float` (lower stakes).
 7. ~~**Error handling** leaking internals~~ → **DONE.** All 11 `HTTPException(400, str(e))` / bulk-import `str(e)` sites now log server-side and return sanitized messages (fees, exams, students, staff, academics).
-8. **Tests** are DB-less by default (guards + pure logic) **plus** new DB-backed tests for RLS isolation and payment math that auto-skip without a local Postgres; broader integration coverage + **CI** still TODO. **Now a git repo** (initialized this session; baseline + hardening commits).
+8. **Tests** are DB-less by default (guards + pure logic) **plus** DB-backed tests for RLS isolation and payment math that auto-skip without a local Postgres. **CI added** (`.github/workflows/ci.yml`: backend ruff/black/isort + pytest, frontend `tsc`). **Now a git repo.** *Remaining:* broader integration coverage; add a Postgres service to CI so the DB-backed tests actually run there.
 9. **Stub dashboards:** teacher classes/assignments, accountant transactions, student-dashboard previews are placeholder `[].map`s.
 10. **India-only:** single currency ₹, Razorpay, CBSE defaults, WhatsApp-first.
 
 ## 7. Feature roadmap — what to add (prioritized)
 **Quick wins**
 - Wire audit into remaining actions (activities, documents, student edit, deletions).
-- Real email (SMTP/SendGrid) so password-reset/credential emails actually send.
+- ~~Real email (SMTP)~~ **DONE** — `send_email` uses SMTP when configured; password-reset/notice emails send for real (SendGrid/API provider optional).
 - Inline toasts instead of blocking `alert()`s; global loading/error patterns.
 - Aadhaar/APAAR validation + masking.
 
@@ -171,7 +171,7 @@ RLS is bypassed (manual `school_id` filters only). Migrations always use
 | **Attendance** | Biometric/RFID/face, geo | Manual mark | Medium |
 | **Transport** | Real GPS, parent live track, SOS | Placeholder tracking | Medium |
 | **RBAC** | Granular per-permission, custom roles | Free-text role names, permissions unused | Medium |
-| **Reliability** | Tests, CI/CD, monitoring, backups, SLAs | 46 unit tests, no CI, no git | **Large** (process) |
+| **Reliability** | Tests, CI/CD, monitoring, backups, SLAs | 50 tests (incl. RLS + payment), **CI (new)**, **git (new)**; no monitoring/backups | Medium (was Large) |
 | **Onboarding/billing** | Self-serve signup→trial→paid, usage metering | Self-serve signup (new), manual billing | Medium |
 | **Analytics** | BI dashboards, predictive insights | Basic stat cards | Medium |
 | **i18n / global** | Multi-language, multi-currency, locale | India-only ₹/CBSE/WhatsApp | Medium |
