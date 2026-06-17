@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Dict
 from uuid import UUID
 
@@ -27,7 +28,7 @@ from app.utils.twilio import send_whatsapp_message
 async def create_adhoc_due(db, school_id, student_id, amount, label, due_date=None):
     """Create a one-off fee due (e.g. hostel/transport) not tied to a class fee structure.
     Stages the row (the caller commits). Returns None if amount<=0 or no active year."""
-    if amount is None or float(amount) <= 0:
+    if amount is None or amount <= 0:
         return None
     from datetime import date as _date
 
@@ -176,20 +177,16 @@ class CRUDFeeSchedule(CRUDBase[FeeSchedule, FeeScheduleCreate, dict]):
                     continue
 
                 # Calc Concession (simplified: apply max applicable concession)
-                conc_amount = 0
+                conc_amount = Decimal("0")
                 for c in concessions:
-                    amt = (
-                        float(struct.amount) * float(c.value) / 100
-                        if c.type == "Percentage"
-                        else float(c.value)
-                    )
+                    amt = struct.amount * c.value / 100 if c.type == "Percentage" else c.value
                     if amt > conc_amount:
                         conc_amount = amt
 
-                if conc_amount > float(struct.amount):
-                    conc_amount = float(struct.amount)
+                if conc_amount > struct.amount:
+                    conc_amount = struct.amount
 
-                net_due = float(struct.amount) - conc_amount
+                net_due = struct.amount - conc_amount
 
                 new_due = FeeSchedule(
                     school_id=school_id,
@@ -229,7 +226,7 @@ class CRUDFeePayment(CRUDBase[FeeReceipt, dict, dict]):
             "".join([word[0] for word in school.name.split()[:3]]).upper() if school else "SCH"
         )
 
-        total_paid = round(sum(float(alloc.amount) for alloc in payment_in.allocations), 2)
+        total_paid = sum((alloc.amount for alloc in payment_in.allocations), Decimal("0"))
 
         receipt = FeeReceipt(
             school_id=school_id,
@@ -271,14 +268,14 @@ class CRUDFeePayment(CRUDBase[FeeReceipt, dict, dict]):
             ):
                 raise ValueError("Invalid fee schedule in allocations.")
 
-            remaining_due = float(sched.net_due_amount) - float(sched.amount_paid)
-            if float(alloc.amount) - remaining_due > 0.01:  # tolerate 1-paisa float error
+            remaining_due = sched.net_due_amount - sched.amount_paid
+            if alloc.amount > remaining_due:
                 raise ValueError(
                     f"Allocated amount {alloc.amount} exceeds the remaining due balance of {remaining_due} for this fee schedule."
                 )
 
-            sched.amount_paid = round(float(sched.amount_paid) + float(alloc.amount), 2)
-            if float(sched.amount_paid) >= float(sched.net_due_amount) - 0.01:
+            sched.amount_paid = sched.amount_paid + alloc.amount
+            if sched.amount_paid >= sched.net_due_amount:
                 sched.status = "Paid"
             else:
                 sched.status = "Partial"

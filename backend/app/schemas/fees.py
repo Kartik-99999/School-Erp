@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
@@ -9,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 class FeeConcessionBase(BaseModel):
     name: str
     type: str  # 'Percentage' or 'Fixed'
-    value: float
+    value: Decimal
 
 
 class FeeConcessionCreate(FeeConcessionBase):
@@ -42,12 +43,12 @@ class FeeScheduleBase(BaseModel):
     label: Optional[str] = None
     academic_year_id: UUID
     due_date: date
-    base_amount: float
-    concession_amount: float = 0
-    net_due_amount: float
-    amount_paid: float = 0
+    base_amount: Decimal
+    concession_amount: Decimal = Decimal("0")
+    net_due_amount: Decimal
+    amount_paid: Decimal = Decimal("0")
     status: str = "Pending"
-    late_fine_applied: float = 0
+    late_fine_applied: Decimal = Decimal("0")
 
 
 class FeeScheduleCreate(FeeScheduleBase):
@@ -69,7 +70,7 @@ class BulkGenerateDuesRequest(BaseModel):
 # Payments & Receipts
 class PaymentAllocation(BaseModel):
     fee_schedule_id: UUID
-    amount: float
+    amount: Decimal
 
 
 class OfflinePaymentCreate(BaseModel):
@@ -83,7 +84,7 @@ class OfflinePaymentCreate(BaseModel):
 class FeePaymentResponse(BaseModel):
     id: UUID
     fee_schedule_id: UUID
-    amount_allocated: float
+    amount_allocated: Decimal
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -91,7 +92,7 @@ class FeeReceiptResponse(BaseModel):
     id: UUID
     student_id: UUID
     receipt_number: str
-    total_amount: float
+    total_amount: Decimal
     payment_mode: str
     transaction_reference: Optional[str]
     payment_date: datetime
