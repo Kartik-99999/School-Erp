@@ -1,5 +1,3 @@
-import os
-
 modules = {
     "homework": {
         "model": """
