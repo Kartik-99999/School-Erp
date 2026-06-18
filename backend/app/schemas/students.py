@@ -2,7 +2,9 @@ from datetime import date
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
+
+from app.utils.masking import mask_pii
 
 
 # Parent
@@ -44,6 +46,10 @@ class ParentResponse(ParentBase):
     school_id: UUID
     user_id: Optional[UUID] = None
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("father_aadhaar", "mother_aadhaar", "guardian_aadhaar")
+    def _mask_aadhaar(self, v: Optional[str]) -> Optional[str]:
+        return mask_pii(v)
 
 
 # Medical
@@ -122,6 +128,10 @@ class StudentResponse(StudentBase):
     roll_number: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("apaar_id", "aadhaar_no", "pen_number")
+    def _mask_ids(self, v: Optional[str]) -> Optional[str]:
+        return mask_pii(v)
 
 
 class StudentProfileResponse(StudentResponse):

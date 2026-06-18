@@ -29,6 +29,7 @@ from app.schemas.students import (
     StudentUpdate,
 )
 from app.utils.cloudinary import upload_file
+from app.utils.masking import drop_masked_pii
 from app.utils.pdf import generate_pdf
 
 router = APIRouter()
@@ -273,8 +274,10 @@ async def update_student(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    data = student_in.model_dump(exclude_unset=True)
+    data = drop_masked_pii(student_in.model_dump(exclude_unset=True))
     parent_data = data.pop("parent", None)
+    if parent_data:
+        parent_data = drop_masked_pii(parent_data)
     medical_data = data.pop("medical", None)
 
     for k, v in data.items():
