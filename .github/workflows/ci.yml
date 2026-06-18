@@ -8,6 +8,31 @@ jobs:
   backend:
     name: Backend (lint + tests)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_erp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # The app + scripts read these (settings); a real DB means the DB-backed
+      # tests (RLS isolation, payment math) actually run instead of skipping.
+      POSTGRES_SERVER: localhost
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: school_erp
+      POSTGRES_PORT: "5432"
+      APP_DB_USER: educore_app
+      APP_DB_PASSWORD: educore_app
+      PYTHONPATH: .
     defaults:
       run:
         working-directory: backend
@@ -30,12 +55,22 @@ jobs:
         run: black --check app tests *.py
       - name: isort (import order)
         run: isort --check-only app tests *.py
-      - name: Pytest
-        # DB-backed tests (RLS isolation, payment math) auto-skip without Postgres;
-        # the rest of the suite is DB-less.
+      - name: Set up database (schema + scripts + RLS)
+        run: |
+          psql "postgresql://postgres:postgres@localhost:5432/school_erp" -v ON_ERROR_STOP=1 -f ../db/schema.sql
+          python create_academics_tables.py
+          python create_student_portal_tables.py
+          python create_messaging_tables.py
+          python create_activities_tables.py
+          python create_feature_tables.py
+          python migrate_student_fields.py
+          python migrate_db_hardening.py
+          python migrate_class.py
+          python migrate_fee_schedule.py
+          python migrate_admissions_enquiry.py
+          python enable_rls.py
+      - name: Pytest (incl. DB-backed RLS + payment tests)
         run: pytest
-        env:
-          PYTHONPATH: .
 
   frontend:
     name: Frontend (type check)
