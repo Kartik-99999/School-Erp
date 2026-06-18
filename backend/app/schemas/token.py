@@ -10,6 +10,8 @@ class Token(BaseModel):
     role: str
     school_id: Optional[str] = None
     subdomain: Optional[str] = None
+    refresh_token: Optional[str] = None
+    expires_in: Optional[int] = None  # access-token lifetime in seconds
 
 
 class TokenPayload(BaseModel):

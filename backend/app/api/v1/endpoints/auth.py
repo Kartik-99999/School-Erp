@@ -11,11 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api import deps
+from app.core.config import settings
 from app.core.jwt import create_access_token
 from app.core.limiter import limiter
 from app.core.security import get_password_hash, verify_password
 from app.crud.crud_audit import record_audit
-from app.models.auth_tokens import PasswordResetToken
+from app.models.auth_tokens import PasswordResetToken, RefreshToken
 from app.models.users import Role, User
 from app.schemas.token import Token
 from app.utils.email import send_email
@@ -25,6 +26,21 @@ RESET_TOKEN_TTL_MINUTES = 60
 
 def _hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+async def _new_refresh_token(db: AsyncSession, user_id) -> str:
+    """Issue a refresh token: return the raw token, persist only its sha256 hash."""
+    raw = secrets.token_urlsafe(48)
+    db.add(
+        RefreshToken(
+            user_id=user_id,
+            token_hash=_hash_token(raw),
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+    )
+    await db.commit()
+    return raw
 
 
 class PasswordResetRequest(BaseModel):
@@ -40,6 +56,14 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordConfirm(BaseModel):
     token: str
     new_password: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
 
 
 router = APIRouter()
@@ -136,8 +160,9 @@ async def login_access_token(
         if school:
             subdomain = school.subdomain
 
-    # 4. Create Token
+    # 4. Create tokens (short-lived access + rotating refresh)
     access_token = create_access_token(subject=user.id, role=role_name, school_id=user.school_id)
+    refresh_token = await _new_refresh_token(db, user.id)
 
     # Record the sign-in (best-effort: last_login + audit). The token is already
     # issued, so bookkeeping must never block a valid login.
@@ -168,7 +193,90 @@ async def login_access_token(
         "role": role_name,
         "school_id": str(user.school_id) if user.school_id else None,
         "subdomain": subdomain,
+        "refresh_token": refresh_token,
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("30/minute")
+async def refresh_access_token(
+    req: RefreshRequest,
+    request: Request,
+    db: AsyncSession = Depends(deps.get_db),
+) -> Any:
+    """Exchange a valid refresh token for a new access token, rotating the refresh
+    token (the presented one is revoked). 401 if unknown / expired / revoked."""
+    token_hash = _hash_token(req.refresh_token.strip())
+    rt = (
+        (await db.execute(select(RefreshToken).filter(RefreshToken.token_hash == token_hash)))
+        .scalars()
+        .first()
+    )
+    now = datetime.now(timezone.utc)
+    expires_at = rt.expires_at if rt else None
+    if expires_at is not None and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if not rt or rt.revoked_at is not None or expires_at < now:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    user = (
+        (await db.execute(select(User).filter(User.id == rt.user_id, User.is_deleted == False)))
+        .scalars()
+        .first()
+    )
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    # Rotate: revoke the presented token, then issue a fresh one (single commit).
+    rt.revoked_at = now
+    db.add(rt)
+    new_refresh = await _new_refresh_token(db, user.id)
+
+    role = (await db.execute(select(Role).filter(Role.id == user.role_id))).scalars().first()
+    role_name = role.name if role else "Student"
+    subdomain = None
+    if user.school_id:
+        from app.models.school import School
+
+        school = (
+            (await db.execute(select(School).filter(School.id == user.school_id))).scalars().first()
+        )
+        subdomain = school.subdomain if school else None
+
+    access_token = create_access_token(subject=user.id, role=role_name, school_id=user.school_id)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": str(user.id),
+        "role": role_name,
+        "school_id": str(user.school_id) if user.school_id else None,
+        "subdomain": subdomain,
+        "refresh_token": new_refresh,
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    }
+
+
+@router.post("/logout")
+@limiter.limit("30/minute")
+async def logout(
+    req: LogoutRequest,
+    request: Request,
+    db: AsyncSession = Depends(deps.get_db),
+) -> Any:
+    """Revoke a refresh token (idempotent). The short-lived access token simply
+    expires on its own."""
+    token_hash = _hash_token(req.refresh_token.strip())
+    rt = (
+        (await db.execute(select(RefreshToken).filter(RefreshToken.token_hash == token_hash)))
+        .scalars()
+        .first()
+    )
+    if rt and rt.revoked_at is None:
+        rt.revoked_at = datetime.now(timezone.utc)
+        db.add(rt)
+        await db.commit()
+    return {"success": True}
 
 
 @router.post("/forgot-password")

@@ -123,9 +123,9 @@ RLS is bypassed (manual `school_id` filters only). Migrations always use
 ## 6. Known issues / tech debt (honest)
 1. ~~**RLS NOT enforced**~~ → **DONE (this session).** Postgres RLS is enforced via `enable_rls.py` (66 tables, fail-closed `tenant_isolation` policy, non-owner `educore_app` role) + an isolation test; hand-written `school_id` filters now act as defense-in-depth. *Remaining:* rotate the `educore_app` password for non-local envs; consider isolating the `schools` registry table (currently no RLS — read cross-tenant by login/lookup by design); audit any future raw-SQL endpoints for tenant context.
 2. ~~**No rate limiting**~~ → **DONE (this session)** for login/signup/enquiry/password-reset/payments via slowapi (in-memory, per-IP). *Remaining:* point `storage_uri` at Redis for multi-instance deployments; tune limits per route.
-3. **JWT** 8-day lifetime, HS256, no refresh/rotation/revocation.
+3. ~~**JWT** 8-day, no refresh/rotation/revocation~~ → **DONE.** 60-min access token + DB-backed **rotating refresh tokens** (`/auth/refresh`) + **revocation** (`/auth/logout`); login returns `refresh_token`+`expires_in`; NextAuth refreshes transparently. *Remaining:* still HS256 (consider asymmetric RS256); no 2FA. ⚠️ The frontend refresh flow is type-checked but needs a browser smoke test (log in, idle past 60 min, confirm auto-refresh).
 4. **Integrations partly mock/unconfigured:** email now sends via **SMTP when configured** (`SMTP_*` env; logs in dev if `SMTP_HOST` unset). *Remaining:* Razorpay/Twilio/Cloudinary need real keys; no Razorpay webhook (synchronous verify only).
-5. **PII:** Aadhaar/APAAR stored in plaintext — should be masked on display + encrypted at rest (compliance risk for minors' data).
+5. **PII:** Aadhaar/APAAR/PEN are now **masked on display** (last 4 only; `app/utils/masking.py` + Response field_serializers, with an update-guard so masked values can't overwrite stored IDs). *Remaining:* still stored **plaintext at rest** — encrypt + add input validation (compliance risk for minors' data).
 6. ~~**Money** as `float` with epsilon hacks~~ → **DONE.** Fee schemas + `crud_fees` payment/dues math use `Decimal` end-to-end (DB columns were already `Numeric`); the `0.01`-paisa tolerances are gone. Covered by a DB-backed payment-math test. *Remaining:* subscription-plan pricing in `super_admin` is still `float` (lower stakes).
 7. ~~**Error handling** leaking internals~~ → **DONE.** All 11 `HTTPException(400, str(e))` / bulk-import `str(e)` sites now log server-side and return sanitized messages (fees, exams, students, staff, academics).
 8. **Tests** are DB-less by default (guards + pure logic) **plus** DB-backed tests for RLS isolation and payment math (auto-skip without a local Postgres). **CI** (`.github/workflows/ci.yml`) runs backend ruff/black/isort + pytest **with a Postgres service** (applies schema + scripts + `enable_rls.py`, so the RLS-isolation and payment-math tests actually execute — verified locally: 50 passed, 0 skipped) plus frontend `tsc`. **Now a git repo.** *Remaining:* broader integration/endpoint coverage; CI runs only once a GitHub remote exists + you push.
@@ -137,7 +137,7 @@ RLS is bypassed (manual `school_id` filters only). Migrations always use
 - Wire audit into remaining actions (activities, documents, student edit, deletions).
 - ~~Real email (SMTP)~~ **DONE** — `send_email` uses SMTP when configured; password-reset/notice emails send for real (SendGrid/API provider optional).
 - Inline toasts instead of blocking `alert()`s; global loading/error patterns.
-- Aadhaar/APAAR validation + masking.
+- ~~Aadhaar/APAAR masking~~ **DONE** (display masking + update-guard); validation + encryption-at-rest still TODO.
 
 **Core product**
 - **LMS:** assignments with submissions + grading, lesson content, quizzes, online classes (Zoom/Meet/BBB).
@@ -167,7 +167,7 @@ RLS is bypassed (manual `school_id` filters only). Migrations always use
 | **LMS / online classes** | Assignments+submission, content, video classes, quizzes | Timetable/syllabus only | **Large** |
 | **Payments** | Multi-gateway, installments, auto late-fee, reconciliation, webhooks | Razorpay sync verify, manual | Medium-Large |
 | **Report cards** | Board-compliant formats, CCE, customizable | Basic % + grade scale | Medium |
-| **Security/compliance** | RLS/row-level multi-tenancy, 2FA, SOC2/ISO, encryption, audit | **RLS enforced (new)**, audit, rate limiting (new); still plaintext PII, no 2FA/encryption | Medium (was Large) |
+| **Security/compliance** | RLS/row-level multi-tenancy, 2FA, SOC2/ISO, encryption, audit | **RLS**, audit, rate limiting, **refresh tokens+revocation (new)**, **PII masked on display (new)**; still plaintext-at-rest PII, no 2FA | Medium |
 | **Attendance** | Biometric/RFID/face, geo | Manual mark | Medium |
 | **Transport** | Real GPS, parent live track, SOS | Placeholder tracking | Medium |
 | **RBAC** | Granular per-permission, custom roles | Free-text role names, permissions unused | Medium |

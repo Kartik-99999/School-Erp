@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     # Generated per-process if not supplied via environment. Set SECRET_KEY in
     # the environment / .env to keep issued tokens valid across restarts.
     SECRET_KEY: str = secrets.token_urlsafe(48)
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # short-lived; clients refresh via /auth/refresh
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 8
 
     # Comma-separated list of allowed browser origins for CORS.
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001,http://127.0.0.1:3001"
