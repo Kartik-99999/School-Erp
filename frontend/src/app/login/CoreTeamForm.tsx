@@ -1,19 +1,23 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { clearTokenCache } from "@/lib/axios";
+import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
 
 export default function CoreTeamForm() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    // Component mounted successfully
-  }, []);
+
+  const resetTwoFactor = () => {
+    setTwoFactorRequired(false);
+    setOtp("");
+    setError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,47 +28,56 @@ export default function CoreTeamForm() {
       const result = await signIn("credentials", {
         email,
         password,
+        otp: twoFactorRequired ? otp : "",
         redirect: false,
       });
 
-      if (result?.error) {
-        setError(result.error);
+      const authErr = parseAuthError(result);
+      if (authErr === TWO_FACTOR_REQUIRED) {
+        // Password OK — step up to the 2FA code.
+        setTwoFactorRequired(true);
+        setError("");
         setLoading(false);
-      } else {
-        // New user session — drop any token cached for a previous user in this tab.
-        clearTokenCache();
-        // Fetch fresh session directly from NextAuth to bypass client cache
-        const sessionRes = await fetch("/api/auth/session");
-        const sessionData = await sessionRes.json();
-        const role = sessionData?.user?.role || sessionData?.role;
-        const subdomain = sessionData?.user?.subdomain || sessionData?.subdomain;
-
-        let path = "/";
-        if (role === "Super Admin") path = "/super-admin/dashboard";
-        else if (role === "School Admin") path = "/admin/dashboard";
-        else if (role === "Teacher") path = "/teacher/dashboard";
-        else if (role === "Student") path = "/student/dashboard";
-        else if (role === "Parent") path = "/parent/dashboard";
-        else if (role === "Accountant") path = "/accountant/dashboard";
-
-        const currentHost = window.location.host;
-        const isBaseDomain =
-          currentHost.startsWith("localhost:") ||
-          currentHost === "localhost" ||
-          currentHost.split(".").length === 2;
-
-        if (isBaseDomain && role !== "Super Admin") {
-          // If a school user tries to login on the base domain, tell them they must use their subdomain
-          await fetch("/api/auth/signout", { method: "POST" }); // clear the invalid session
-          setError(
-            `Access Denied: Please log in from your school's specific subdomain (e.g., ${subdomain}.${currentHost})`
-          );
-          setLoading(false);
-          return;
-        }
-
-        window.location.href = path;
+        return;
       }
+      if (authErr) {
+        setError(prettyAuthError(authErr));
+        setLoading(false);
+        return;
+      }
+
+      // Success — drop any token cached for a previous user in this tab.
+      clearTokenCache();
+      const sessionRes = await fetch("/api/auth/session");
+      const sessionData = await sessionRes.json();
+      const role = sessionData?.user?.role || sessionData?.role;
+      const subdomain = sessionData?.user?.subdomain || sessionData?.subdomain;
+
+      let path = "/";
+      if (role === "Super Admin") path = "/super-admin/dashboard";
+      else if (role === "School Admin") path = "/admin/dashboard";
+      else if (role === "Teacher") path = "/teacher/dashboard";
+      else if (role === "Student") path = "/student/dashboard";
+      else if (role === "Parent") path = "/parent/dashboard";
+      else if (role === "Accountant") path = "/accountant/dashboard";
+
+      const currentHost = window.location.host;
+      const isBaseDomain =
+        currentHost.startsWith("localhost:") ||
+        currentHost === "localhost" ||
+        currentHost.split(".").length === 2;
+
+      if (isBaseDomain && role !== "Super Admin") {
+        // A school user logging in on the base domain — bounce them to their subdomain.
+        await fetch("/api/auth/signout", { method: "POST" });
+        setError(
+          `Access Denied: Please log in from your school's specific subdomain (e.g., ${subdomain}.${currentHost})`
+        );
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = path;
     } catch (err) {
       setError("An unexpected error occurred. Please ensure the backend is running.");
       setLoading(false);
@@ -87,36 +100,71 @@ export default function CoreTeamForm() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-ink mb-1">Super Admin Email</label>
-              <input
-                required
-                type="text"
-                className="w-full border border-border-strong rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                placeholder="e.g. admin@educore.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+            {!twoFactorRequired ? (
+              <>
+                <div>
+                  <label className="block text-sm font-bold text-ink mb-1">Super Admin Email</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full border border-border-strong rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                    placeholder="e.g. admin@educore.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-bold text-ink mb-1">Password</label>
-              <input
-                required
-                type="password"
-                className="w-full border border-border-strong rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+                <div>
+                  <label className="block text-sm font-bold text-ink mb-1">Password</label>
+                  <input
+                    required
+                    type="password"
+                    className="w-full border border-border-strong rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-bold text-ink mb-1">Two-factor code</label>
+                <p className="text-xs text-ink-muted mb-2">
+                  Enter the 6-digit code from your authenticator app, or a recovery code.
+                </p>
+                <input
+                  required
+                  autoFocus
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="w-full border border-border-strong rounded-lg p-3 text-center tracking-widest focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  placeholder="123456"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={resetTwoFactor}
+                  className="mt-2 text-xs text-primary-600 hover:underline"
+                >
+                  ← Use a different account
+                </button>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className={`w-full bg-primary-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-primary-700 transform hover:-translate-y-0.5 active:scale-95 transition-all ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
-              {loading ? "Authenticating..." : "Sign In"}
+              {loading
+                ? twoFactorRequired
+                  ? "Verifying..."
+                  : "Authenticating..."
+                : twoFactorRequired
+                  ? "Verify"
+                  : "Sign In"}
             </button>
           </form>
 

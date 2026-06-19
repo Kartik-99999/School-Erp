@@ -7,6 +7,7 @@ import { Input, Textarea, Label } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import TwoFactorSettings from "@/components/security/TwoFactorSettings";
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -157,6 +158,8 @@ export default function AdminSettingsPage() {
             })}
           </div>
         </section>
+
+        <TwoFactorSettings />
       </div>
     </div>
   );

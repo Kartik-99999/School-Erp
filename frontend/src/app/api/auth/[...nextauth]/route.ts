@@ -38,9 +38,22 @@ const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email", placeholder: "jsmith@school.edu" },
         password: { label: "Password", type: "password" },
+        otp: { label: "2FA code", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        const otp = (credentials as any).otp as string | undefined;
+
+        const toUser = (data: any) => ({
+          id: data.user_id,
+          email: credentials.email,
+          role: data.role,
+          school_id: data.school_id,
+          subdomain: data.subdomain,
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          expiresIn: data.expires_in,
+        });
 
         try {
           const res = await fetch(`${API_URL}/auth/login`, {
@@ -51,27 +64,29 @@ const authOptions: NextAuthOptions = {
             }),
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
           });
+          const data = await res.json().catch(() => ({}));
 
           if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            console.error("Backend login failed:", res.status, errData);
-            throw new Error(errData.detail || `Backend returned ${res.status}`);
+            console.error("Backend login failed:", res.status, data);
+            throw new Error(data.detail || `Backend returned ${res.status}`);
           }
 
-          const user = await res.json();
-
-          if (user && user.access_token) {
-            return {
-              id: user.user_id,
-              email: credentials.email,
-              role: user.role,
-              school_id: user.school_id,
-              subdomain: user.subdomain,
-              accessToken: user.access_token,
-              refreshToken: user.refresh_token,
-              expiresIn: user.expires_in,
-            };
+          // Account has 2FA enabled: don't establish a session until a code is
+          // verified. The short-lived mfa_token stays server-side here; the client
+          // just re-submits email+password+otp, and we re-derive it.
+          if (data.requires_2fa) {
+            if (!otp) throw new Error("2FA_REQUIRED");
+            const vres = await fetch(`${API_URL}/auth/2fa/verify`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mfa_token: data.mfa_token, code: otp }),
+            });
+            const vdata = await vres.json().catch(() => ({}));
+            if (!vres.ok || !vdata.access_token) throw new Error("INVALID_2FA");
+            return toUser(vdata);
           }
+
+          if (data.access_token) return toUser(data);
           throw new Error("Invalid response format from backend");
         } catch (error: any) {
           console.error("Auth error:", error.message);

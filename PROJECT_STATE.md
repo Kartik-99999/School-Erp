@@ -70,7 +70,10 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     have no `school_id` → no RLS (refresh-token precedent); `educore_app` granted via
     `enable_rls.py` default privileges. `pyotp` added. Tests: `tests/test_2fa.py` (pure
     logic + auth guards + DB-backed e2e). Verified live on `:8000`.
-    **Backend done; the enroll/verify UI (frontend) is still TODO.**
+    Frontend (DONE): the NextAuth login **2FA challenge** (both `CoreTeamForm` +
+    `SchoolForm`) and a `TwoFactorSettings` card on the admin settings page — QR enroll
+    (`qrcode.react`) + manual secret, code confirm → one-time recovery codes, and a
+    password-gated disable. `tsc` clean; login challenge + verify proven against `:3001`.
 
 ## 4. Run / verify
 ```bash
@@ -79,7 +82,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 51 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 60 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -110,13 +113,14 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 3. **Browser-test the auth refresh** (still pending — needs a browser): log in, idle past
    60 min, confirm it stays logged in. Fallback if it misbehaves: raise
    `ACCESS_TOKEN_EXPIRE_MINUTES` in `.env`.
-4. **Build the 2FA enroll/verify UI** (frontend): `/auth/2fa/setup` (render
-   `provisioning_uri` as a QR) → `/enable`; and handle the login `requires_2fa` challenge
-   → `/auth/2fa/verify`. Backend is done + verified (§3.11).
+4. ~~Build the 2FA enroll/verify UI (frontend)~~ — **DONE** (§3.11). Only manual check
+   left: click through enroll/verify in a real **browser** (headless can't exercise the
+   React button clicks); the NextAuth login challenge + the `/auth/2fa/*` endpoints are
+   already proven.
 
 ## 7. What's NEXT (prioritized)
 **Bounded hardening (pick one):**
-- ✅ **2FA (TOTP)** — backend DONE (§3.11). Remaining: the enroll/verify **frontend UI**.
+- ✅ **2FA (TOTP)** — DONE, backend + frontend (§3.11).
 - **Aadhaar/APAAR input validation** (format/checksum) — small, finishes the PII story.
 - **RS256** (asymmetric JWT) instead of HS256.
 - **Razorpay webhook** (async payment confirm) + real Twilio/Cloudinary keys (needs
@@ -128,8 +132,7 @@ table already exists) · board-compliant report cards · communication hub · an
 granular RBAC (`roles.permissions` JSON is unused) · native mobile · the stub dashboards
 (teacher/accountant/student previews).
 
-**Recommended next:** 2FA **frontend UI** (backend shipped, §3.11), then Aadhaar/APAAR
-input validation or RS256.
+**Recommended next:** Aadhaar/APAAR input validation (finishes the PII story) or RS256.
 
 ## 8. Key file map
 - RLS: `backend/enable_rls.py`, `app/db/session.py` (after_begin), `app/api/deps.py`
@@ -140,6 +143,9 @@ input validation or RS256.
   (pyotp + recovery codes), `app/models/two_factor.py`, `app/schemas/two_factor.py`,
   `app/core/jwt.py` (`create_mfa_token`/`verify_mfa_token`), login gate +
   `_issue_login_tokens` in `auth.py`. Tables in `db/schema.sql`; tests `tests/test_2fa.py`.
+  Frontend: `frontend/src/components/security/TwoFactorSettings.tsx`,
+  `frontend/src/lib/api/twoFactor.ts`, `frontend/src/lib/authError.ts`, the NextAuth route
+  + `login/CoreTeamForm.tsx` / `login/SchoolForm.tsx`, embedded in `admin/settings/page.tsx`.
 - PII: `app/core/crypto.py` (EncryptedString), `app/utils/masking.py`, `app/schemas/students.py`.
 - Money: `app/crud/crud_fees.py`, `app/schemas/fees.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.

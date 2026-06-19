@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
 
 interface SchoolInfo {
   id?: string;
@@ -14,8 +15,16 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const resetTwoFactor = () => {
+    setTwoFactorRequired(false);
+    setOtp("");
+    setError("");
+  };
   useEffect(() => {
     // Component mounted successfully
   }, []);
@@ -44,6 +53,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
           body: new URLSearchParams({
             email,
             password,
+            otp: twoFactorRequired ? otp : "",
             csrfToken,
             redirect: "false",
             json: "true",
@@ -54,49 +64,58 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
         throw new Error("Failed at Login POST: " + err.message);
       }
 
-      if (result?.error) {
-        setError(result.error);
+      const authErr = parseAuthError(result);
+      if (authErr === TWO_FACTOR_REQUIRED) {
+        // Password OK — step up to the 2FA code.
+        setTwoFactorRequired(true);
+        setError("");
         setLoading(false);
-      } else {
-        let sessionData;
-        try {
-          const sessionRes = await fetch("/api/auth/session", { credentials: "include" });
-          sessionData = await sessionRes.json();
-        } catch (err: any) {
-          throw new Error("Failed at Session fetch: " + err.message);
-        }
-
-        const role = sessionData?.user?.role || sessionData?.role;
-        const subdomain = sessionData?.user?.subdomain || sessionData?.subdomain;
-
-        let path = "/";
-        if (role === "Super Admin") path = "/super-admin/dashboard";
-        else if (role === "School Admin") path = "/admin/dashboard";
-        else if (role === "Teacher") path = "/teacher/dashboard";
-        else if (role === "Student") path = "/student/dashboard";
-        else if (role === "Parent") path = "/parent/dashboard";
-        else if (role === "Accountant") path = "/accountant/dashboard";
-
-        const currentHost = window.location.host;
-        const hostname = window.location.hostname;
-        const isBaseDomain =
-          hostname === "localhost" ||
-          hostname === "127.0.0.1" ||
-          hostname === process.env.NEXT_PUBLIC_BASE_DOMAIN ||
-          hostname === "educore.com";
-
-        if (isBaseDomain && role !== "Super Admin" && role !== "super_admin") {
-          // If a school user tries to login on the base domain, tell them they must use their subdomain
-          await fetch("/api/auth/signout", { method: "POST" }); // clear the invalid session
-          setError(
-            `Access Denied: Please log in from your school's specific subdomain (e.g., ${subdomain}.${currentHost})`
-          );
-          setLoading(false);
-          return;
-        }
-
-        window.location.href = path;
+        return;
       }
+      if (authErr) {
+        setError(prettyAuthError(authErr));
+        setLoading(false);
+        return;
+      }
+
+      let sessionData;
+      try {
+        const sessionRes = await fetch("/api/auth/session", { credentials: "include" });
+        sessionData = await sessionRes.json();
+      } catch (err: any) {
+        throw new Error("Failed at Session fetch: " + err.message);
+      }
+
+      const role = sessionData?.user?.role || sessionData?.role;
+      const subdomain = sessionData?.user?.subdomain || sessionData?.subdomain;
+
+      let path = "/";
+      if (role === "Super Admin") path = "/super-admin/dashboard";
+      else if (role === "School Admin") path = "/admin/dashboard";
+      else if (role === "Teacher") path = "/teacher/dashboard";
+      else if (role === "Student") path = "/student/dashboard";
+      else if (role === "Parent") path = "/parent/dashboard";
+      else if (role === "Accountant") path = "/accountant/dashboard";
+
+      const currentHost = window.location.host;
+      const hostname = window.location.hostname;
+      const isBaseDomain =
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === process.env.NEXT_PUBLIC_BASE_DOMAIN ||
+        hostname === "educore.com";
+
+      if (isBaseDomain && role !== "Super Admin" && role !== "super_admin") {
+        // If a school user tries to login on the base domain, tell them they must use their subdomain
+        await fetch("/api/auth/signout", { method: "POST" }); // clear the invalid session
+        setError(
+          `Access Denied: Please log in from your school's specific subdomain (e.g., ${subdomain}.${currentHost})`
+        );
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = path;
     } catch (err: any) {
       setError(`Crash error: ${err?.message || JSON.stringify(err)}`);
       setLoading(false);
@@ -184,56 +203,91 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-ink mb-1">Username</label>
-                <input
-                  required
-                  type="text"
-                  className="w-full border border-primary-500 rounded px-3 py-2 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-all text-sm"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+              {!twoFactorRequired ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-ink mb-1">Username</label>
+                    <input
+                      required
+                      type="text"
+                      className="w-full border border-primary-500 rounded px-3 py-2 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-all text-sm"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-ink mb-1">Password</label>
-                <input
-                  required
-                  type="password"
-                  className="w-full border border-border-strong rounded px-3 py-2 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none transition-all text-sm"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-ink mb-1">Password</label>
+                    <input
+                      required
+                      type="password"
+                      className="w-full border border-border-strong rounded px-3 py-2 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none transition-all text-sm"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  className="rounded border-border-strong text-primary-700 focus:ring-blue-800"
-                />
-                <label htmlFor="remember" className="text-xs text-ink">
-                  Remember Password
-                </label>
-              </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="remember"
+                      className="rounded border-border-strong text-primary-700 focus:ring-blue-800"
+                    />
+                    <label htmlFor="remember" className="text-xs text-ink">
+                      Remember Password
+                    </label>
+                  </div>
 
-              <div className="text-xs text-primary-700 pt-1">
-                <a href="#" className="hover:underline">
-                  Privacy Policy
-                </a>{" "}
-                |{" "}
-                <a href="#" className="hover:underline">
-                  Terms of Use
-                </a>
-                .
-              </div>
+                  <div className="text-xs text-primary-700 pt-1">
+                    <a href="#" className="hover:underline">
+                      Privacy Policy
+                    </a>{" "}
+                    |{" "}
+                    <a href="#" className="hover:underline">
+                      Terms of Use
+                    </a>
+                    .
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-ink mb-1">Two-factor code</label>
+                  <p className="text-xs text-ink-muted mb-2">
+                    Enter the 6-digit code from your authenticator app, or a recovery code.
+                  </p>
+                  <input
+                    required
+                    autoFocus
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    className="w-full border border-primary-500 rounded px-3 py-2 text-center tracking-widest focus:ring-1 focus:ring-blue-600 focus:outline-none transition-all text-sm"
+                    placeholder="123456"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={resetTwoFactor}
+                    className="mt-2 text-xs text-primary-700 hover:underline"
+                  >
+                    ← Use a different account
+                  </button>
+                </div>
+              )}
 
               <button
                 type="submit"
                 disabled={loading}
                 className={`w-full bg-[#0a2387] text-white font-bold py-2.5 rounded shadow-sm hover:bg-blue-900 transition-colors mt-2 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading
+                  ? twoFactorRequired
+                    ? "Verifying..."
+                    : "Signing in..."
+                  : twoFactorRequired
+                    ? "Verify"
+                    : "Sign In"}
               </button>
             </form>
 
