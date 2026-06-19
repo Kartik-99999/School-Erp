@@ -133,13 +133,17 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 2. ~~Reseed the empty dev DB~~ — **DONE**: Super Admin `admin@educore.com`/`admin123`;
    school `demo` with School Admin `admin@demo.edu`/`demo1234`. `:8000` confirmed
    connecting as `educore_app` (RLS enforced) — no restart needed.
-3. **Browser-test the auth refresh** (still pending — needs a browser): log in, idle past
-   60 min, confirm it stays logged in. Fallback if it misbehaves: raise
-   `ACCESS_TOKEN_EXPIRE_MINUTES` in `.env`.
-4. ~~Build the 2FA enroll/verify UI (frontend)~~ — **DONE** (§3.11). Only manual check
-   left: click through enroll/verify in a real **browser** (headless can't exercise the
-   React button clicks); the NextAuth login challenge + the `/auth/2fa/*` endpoints are
-   already proven.
+3. ~~Browser-test the auth refresh~~ — **DONE & verified** (2026-06-19): logged in via the real
+   NextAuth flow as Super Admin, idled the full ~63 min past the 60-min access TTL. The old
+   access token then returns **401** (genuinely expired) while `GET /api/auth/session` still
+   returns the user with **no error** and a freshly **rotated** RS256 access token that works
+   against the backend (**200**) — i.e. the jwt-callback `/auth/refresh` path keeps the user
+   logged in transparently. Done over HTTP (cookie jar); no `.env`/server changes.
+4. ~~Build the 2FA enroll/verify UI (frontend)~~ — **DONE** (§3.11), and the UI click-through is
+   now **verified** (2026-06-19), end-to-end in **headless Chrome** (`puppeteer-core` driving the
+   real React components — so headless *can* exercise the button clicks): enable → confirm a
+   computed TOTP → 10 recovery codes → re-login through the 2FA challenge (recovery-code path) →
+   password-gated disable. Self-cleaning, so the demo account is left 2FA-off.
 
 ## 7. What's NEXT (prioritized)
 **Bounded hardening (pick one):**
