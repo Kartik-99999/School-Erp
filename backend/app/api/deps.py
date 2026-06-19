@@ -3,11 +3,12 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.jwt import decode_token
 from app.db.session import get_db
 from app.models.users import User
 
@@ -28,7 +29,7 @@ async def get_current_user_token_data(token: str = Depends(oauth2_scheme)) -> To
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        payload = decode_token(token)
         user_id: str = payload.get("sub")
         school_id: Optional[str] = payload.get("school_id")
         role: str = payload.get("role")

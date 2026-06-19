@@ -9,7 +9,7 @@ Multi-tenant **School ERP SaaS**. One deployment serves many schools (tenants), 
 on a subdomain; a platform Super Admin onboards schools. India-flavored (₹, Razorpay,
 WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
 - **Stack:** Backend = FastAPI (async) · SQLAlchemy 2.0 + asyncpg · PostgreSQL 15 ·
-  Pydantic v2 · JWT (python-jose HS256) + passlib/bcrypt. ~201 routes. Frontend =
+  Pydantic v2 · JWT (python-jose **RS256**, asymmetric) + passlib/bcrypt. ~201 routes. Frontend =
   Next.js 14 (App Router) · React 18 · TS · Tailwind · NextAuth v4 (Credentials) ·
   axios. ~90 pages.
 - **Location:** `/Users/kartikbhardwaj/school-erp` → `backend/`, `frontend/`, `db/schema.sql`
@@ -81,6 +81,18 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     unvalidated so legacy/imported rows still read + mask. Normalizes (strips spaces/
     hyphens), blank → None. Tests `tests/test_pii_validation.py`; live: bad → 422,
     valid → 201 on `:8000`.
+13. **RS256 (asymmetric JWT)** — JWT signing migrated HS256 → **RS256**. `generate_jwt_keys.py`
+    mints a 2048-bit RSA keypair (`--env` prints the `\n`-escaped `JWT_*` lines for `.env`
+    or `$GITHUB_ENV`). `config.py`: `JWT_ALGORITHM` (default RS256) + `JWT_PRIVATE_KEY` /
+    `JWT_PUBLIC_KEY`, with `jwt_private_key` / `jwt_public_key` properties (un-escape `\n`;
+    HS256 falls back to `SECRET_KEY`). `app/core/jwt.py` signs access **and** the 2FA
+    `mfa_token` with the private key (`_sign`) and verifies with the public key
+    (`decode_token`); `app/api/deps.py` verifies via `decode_token`. Refresh tokens (opaque,
+    DB-backed) untouched. CI mints an ephemeral keypair per run. **Design = hard cutover**
+    (no HS256+RS256 window): in-flight HS256 access tokens are rejected post-deploy, but the
+    DB refresh tokens transparently mint new RS256 ones, so users aren't logged out.
+    `SECRET_KEY` kept for non-JWT use. Tests `tests/test_jwt_rs256.py` (6); live RS256 login
+    proven on `:8000` (header alg=RS256, verifies w/ public key, HS256-forged → 401).
 
 ## 4. Run / verify
 ```bash
@@ -89,7 +101,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 68 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 74 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -108,7 +120,11 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
   PII. For existing plaintext rows, re-save them after setting the key.
 - **RLS:** restart the backend after changing `APP_DB_USER` in `.env`. A backend started
   before activation keeps connecting as owner (RLS inert) until restarted.
-- `SECRET_KEY` in `.env` must be stable across restarts or JWTs invalidate.
+- **JWT keys must be stable across restarts.** Tokens are RS256-signed with
+  `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` (in `.env`); rotating them invalidates all in-flight
+  access/MFA tokens (DB refresh tokens still mint new ones, so users aren't logged out).
+  Generate with `python generate_jwt_keys.py --env >> .env`. The private key is a vault
+  secret — `.env` is gitignored; **never commit it**. `SECRET_KEY` is retained for non-JWT use.
 - Deps use `>=` (unpinned) — newer versions can break CI (bcrypt was one). Consider a
   lockfile / pinning.
 
@@ -129,7 +145,7 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 **Bounded hardening (pick one):**
 - ✅ **2FA (TOTP)** — DONE, backend + frontend (§3.11).
 - ✅ **Aadhaar/APAAR/PEN input validation** — DONE (§3.12): Verhoeff + format on the input schemas.
-- **RS256** (asymmetric JWT) instead of HS256.
+- ✅ **RS256** (asymmetric JWT) — DONE (§3.13): RSA keypair, sign-private/verify-public, CI ephemeral keys.
 - **Razorpay webhook** (async payment confirm) + real Twilio/Cloudinary keys (needs
   real accounts to fully test).
 - Rotate `educore_app` password for non-local; Redis-backed rate limiter for multi-instance.
@@ -139,14 +155,18 @@ table already exists) · board-compliant report cards · communication hub · an
 granular RBAC (`roles.permissions` JSON is unused) · native mobile · the stub dashboards
 (teacher/accountant/student previews).
 
-**Recommended next:** RS256 (asymmetric JWT), or wire the 2FA card into the
-teacher/accountant settings areas.
+**Recommended next:** wire the 2FA card into the teacher/accountant settings areas, or the
+Razorpay webhook (needs real keys to fully test).
 
 ## 8. Key file map
 - RLS: `backend/enable_rls.py`, `app/db/session.py` (after_begin), `app/api/deps.py`
   (set_tenant_context), `app/api/v1/endpoints/super_admin.py` (bypass).
 - Auth: `app/api/v1/endpoints/auth.py`, `app/core/jwt.py`, `app/core/security.py`,
   `app/models/auth_tokens.py` (RefreshToken), frontend `src/app/api/auth/[...nextauth]/route.ts`.
+- JWT RS256: `backend/generate_jwt_keys.py` (keygen), `app/core/jwt.py` (`_sign` /
+  `decode_token`), `app/core/config.py` (`JWT_ALGORITHM` + `jwt_private_key` /
+  `jwt_public_key`), verify in `app/api/deps.py`, CI keygen step in `.github/workflows/ci.yml`,
+  tests `tests/test_jwt_rs256.py` + the key fixture in `tests/conftest.py`.
 - 2FA: `app/api/v1/endpoints/two_factor.py` (routes `/auth/2fa/*`), `app/core/twofa.py`
   (pyotp + recovery codes), `app/models/two_factor.py`, `app/schemas/two_factor.py`,
   `app/core/jwt.py` (`create_mfa_token`/`verify_mfa_token`), login gate +

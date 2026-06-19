@@ -74,6 +74,39 @@ class Settings(BaseSettings):
     # Label shown in authenticator apps when enrolling 2FA (the otpauth:// issuer).
     TOTP_ISSUER: str = "Educore School ERP"
 
+    # JWT signing. RS256 (asymmetric) by default: sign with the RSA private key, verify
+    # with the public key. Generate a keypair via `python generate_jwt_keys.py` and set
+    # JWT_PRIVATE_KEY / JWT_PUBLIC_KEY (PEM; env newlines may be \n-escaped). SECRET_KEY is
+    # kept for non-JWT use and as the HS256 fallback when JWT_ALGORITHM=HS256.
+    JWT_ALGORITHM: str = "RS256"
+    JWT_PRIVATE_KEY: Optional[str] = None
+    JWT_PUBLIC_KEY: Optional[str] = None
+
+    @property
+    def jwt_private_key(self) -> str:
+        """Key used to SIGN JWTs: the RSA private key PEM for RS256 (env newlines may be
+        \\n-escaped), or the symmetric SECRET_KEY when JWT_ALGORITHM=HS256."""
+        if self.JWT_ALGORITHM == "HS256":
+            return self.SECRET_KEY
+        if not self.JWT_PRIVATE_KEY:
+            raise RuntimeError(
+                "JWT_PRIVATE_KEY is required when JWT_ALGORITHM=RS256 — run "
+                "`python generate_jwt_keys.py --env >> .env` and restart."
+            )
+        return self.JWT_PRIVATE_KEY.replace("\\n", "\n")
+
+    @property
+    def jwt_public_key(self) -> str:
+        """Key used to VERIFY JWTs: the RSA public key PEM for RS256, or SECRET_KEY for HS256."""
+        if self.JWT_ALGORITHM == "HS256":
+            return self.SECRET_KEY
+        if not self.JWT_PUBLIC_KEY:
+            raise RuntimeError(
+                "JWT_PUBLIC_KEY is required when JWT_ALGORITHM=RS256 — run "
+                "`python generate_jwt_keys.py --env >> .env` and restart."
+            )
+        return self.JWT_PUBLIC_KEY.replace("\\n", "\n")
+
     @property
     def async_database_uri(self) -> str:
         """Owner connection (POSTGRES_USER) — used by migrations/DDL scripts."""

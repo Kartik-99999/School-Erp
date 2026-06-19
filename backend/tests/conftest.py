@@ -17,6 +17,20 @@ from app.main import app
 limiter.enabled = False
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _ensure_jwt_keys():
+    """Ensure RS256 signing keys exist for the whole test session. Local runs read them
+    from .env and CI exports an ephemeral pair; if neither is present (a bare checkout),
+    mint a throwaway keypair so the JWT-signing tests still run."""
+    from app.core.config import settings
+
+    if settings.JWT_ALGORITHM == "RS256" and not settings.JWT_PRIVATE_KEY:
+        from generate_jwt_keys import generate_pem
+
+        settings.JWT_PRIVATE_KEY, settings.JWT_PUBLIC_KEY = generate_pem()
+    yield
+
+
 async def _no_db():
     # Endpoints under test return (401/400/422) before touching the session.
     yield None
