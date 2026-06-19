@@ -8,6 +8,7 @@ import {
   Megaphone,
   MessageSquare,
   Trophy,
+  FolderOpen,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -20,6 +21,7 @@ const nav: NavGroup[] = [
       { name: "Live Bus Tracking", href: "/parent/tracking", icon: MapPin },
       { name: "Noticeboard", href: "/parent/notices", icon: Megaphone },
       { name: "Messages", href: "/parent/messages", icon: MessageSquare },
+      { name: "Resources", href: "/parent/resources", icon: FolderOpen },
     ],
   },
 ];

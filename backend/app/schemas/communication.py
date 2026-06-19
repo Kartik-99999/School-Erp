@@ -10,6 +10,7 @@ class NoticeBase(BaseModel):
     body: str
     attachment_url: Optional[str] = None
     is_pinned: bool = False
+    category: str = "Notice"  # Notice | Circular
     target_audience: str
     target_class_id: Optional[UUID] = None
 

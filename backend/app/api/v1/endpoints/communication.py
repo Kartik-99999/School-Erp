@@ -47,12 +47,15 @@ async def create_notice(
 @router.get("/notices", response_model=APIResponse[List[NoticeResponse]])
 async def get_notices(
     target: Optional[str] = None,
+    category: Optional[str] = None,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
 ):
     query = select(Notice).filter(Notice.school_id == UUID(school_id))
     if target:
         query = query.filter(Notice.target_audience.in_(["All", target]))
+    if category:
+        query = query.filter(Notice.category == category)
     query = query.order_by(Notice.is_pinned.desc(), Notice.created_at.desc())
     notices = (await db.execute(query)).scalars().all()
     return APIResponse(success=True, data=notices)

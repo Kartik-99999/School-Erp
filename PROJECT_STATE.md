@@ -145,6 +145,22 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     `student/fees` renders Razorpay Pay-Now / an external "Pay on school portal" link (new tab)
     / a bank-details panel / a "contact the school" message when none are enabled. Default OFF
     for all. Tests `tests/test_fee_options.py`. Proven live on `:8000`.
+17. **Resources / documents library (per-school, audience-targeted) + Notice "Circular" category**.
+    New `resources` table — `app/models/resources.py` + `db/schema.sql` + `migrate_resources.py`
+    (in CI; covered by enable_rls's tenant_isolation — now 68 school_id tables). Columns: title,
+    description, category (Study Material|Syllabus|Circular|Other), file_url/file_name/file_type,
+    external_url (≥1 of file/url), target_audience (All|Staff|Parents|Students|Specific Class) +
+    target_class_id/target_section_id/subject_id FKs, uploaded_by, is_deleted. Endpoints
+    `app/api/v1/endpoints/resources.py` (prefix /resources): POST (multipart, Teacher/School Admin;
+    file whitelist pdf/doc(x)/ppt(x)/xls(x)/img/txt/zip + 15 MB → 400; reuses
+    `cloudinary.upload_file` folder `school_erp/{school_id}/resources`), GET list (tenant-scoped +
+    role audience filter: Student → All/Students/own-class, Parent → All/Parents/child-class, staff
+    → all; ?category), GET /{id}, DELETE soft (Admin or uploading Teacher). Notices gained a
+    `category` ('Notice'|'Circular') + ?category filter (additive). Frontend: shared `ResourcesPanel`
+    (manage for teacher/admin, view for student/parent) at /{admin,teacher,student,parent}/resources
+    + sidebar nav + `lib/api/resources.ts` (multipart). Tests `tests/test_resources.py` (mocked
+    Cloudinary). Proven live on `:8000`. **Live file storage needs real Cloudinary keys in
+    backend/.env** (the util fail-closes 502 otherwise).
 
 ## 4. Run / verify
 ```bash
@@ -153,7 +169,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 92 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 97 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -213,6 +229,8 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
   a gated, best-effort sender across all 4 call sites.
 - ✅ **External-URL + bank-transfer fee options** — DONE (§3.16): per-school, display/redirect
   only, alongside Razorpay (external/bank reconciled via the offline-payment flow).
+- ✅ **Resources / documents library** — DONE (§3.17): per-school, audience-targeted file/doc
+  library (Cloudinary, foldered by school) + a Circular category on notices.
 - Rotate `educore_app` password for non-local; Redis-backed rate limiter for multi-instance.
 
 **Product depth (bigger):** LMS (assignments/submissions/grading — `homework_submissions`
@@ -265,5 +283,12 @@ board-compliant report cards / the LMS (product depth).
   `src/components/settings/FeePaymentOptionsSettings.tsx` + `src/lib/api/settings.ts` + student
   render in `src/app/student/fees/page.tsx` (`src/lib/api/studentPortal.ts`); tests
   `tests/test_fee_options.py`.
+- Resources library: `app/models/resources.py` + `db/schema.sql` + `migrate_resources.py`;
+  endpoints `app/api/v1/endpoints/resources.py` (registered in `api.py`, prefix /resources);
+  reuses `app/utils/cloudinary.py`; Notice `category` in `app/models/communication.py` +
+  `app/schemas/communication.py` + `communication.py`; frontend
+  `src/components/resources/ResourcesPanel.tsx` + `src/lib/api/resources.ts` + four
+  `{admin,teacher,student,parent}/resources/page.tsx` + nav in the role layouts; tests
+  `tests/test_resources.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.
 - CI: `.github/workflows/ci.yml`. Schema: `db/schema.sql`. Tests: `backend/tests/`.

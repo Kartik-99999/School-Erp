@@ -13,6 +13,7 @@ class Notice(Base):
     body = Column(Text, nullable=False)
     attachment_url = Column(Text)
     is_pinned = Column(Boolean, default=False)
+    category = Column(String(50), nullable=False, server_default="Notice")  # Notice | Circular
     target_audience = Column(String(50), nullable=False)  # All, Staff, Parents, Specific Class
     target_class_id = Column(
         UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), nullable=True

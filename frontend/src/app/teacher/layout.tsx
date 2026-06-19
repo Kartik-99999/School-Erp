@@ -1,7 +1,15 @@
 "use client";
 import React from "react";
 import DashboardShell, { NavGroup } from "@/components/layout/DashboardShell";
-import { LayoutDashboard, Calendar, Users, BookOpen, ClipboardList, Megaphone } from "lucide-react";
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  BookOpen,
+  ClipboardList,
+  Megaphone,
+  FolderOpen,
+} from "lucide-react";
 
 const nav: NavGroup[] = [
   {
@@ -13,6 +21,7 @@ const nav: NavGroup[] = [
       { name: "Assignments", href: "/teacher/assignments", icon: BookOpen },
       { name: "Attendance", href: "/teacher/attendance", icon: ClipboardList },
       { name: "Feed & Resources", href: "/teacher/feed", icon: Megaphone },
+      { name: "Resources", href: "/teacher/resources", icon: FolderOpen },
     ],
   },
 ];

@@ -752,3 +752,28 @@ CREATE INDEX idx_student_marks_student ON student_marks(student_id);
 -- POST /fees/structures and prevents duplicate rows under concurrency.
 CREATE UNIQUE INDEX uq_fee_structure_class_head_year
     ON fee_structures(school_id, class_id, fee_head_id, academic_year_id);
+
+
+-- ==========================================
+-- RESOURCES / DOCUMENTS LIBRARY (per-school, audience-targeted; also created via the ORM)
+-- ==========================================
+CREATE TABLE resources (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(50) NOT NULL, -- Study Material | Syllabus | Circular | Other
+    file_url TEXT,
+    file_name VARCHAR(255),
+    file_type VARCHAR(100),
+    external_url TEXT,
+    target_audience VARCHAR(50) NOT NULL DEFAULT 'All', -- All|Staff|Parents|Students|Specific Class
+    target_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    target_section_id UUID REFERENCES sections(id) ON DELETE SET NULL,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    uploaded_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE
+);
+CREATE INDEX idx_resources_school ON resources(school_id);

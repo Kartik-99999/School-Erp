@@ -11,6 +11,7 @@ import {
   Library,
   FileSpreadsheet,
   Megaphone,
+  FolderOpen,
   Bus,
   BookOpenCheck,
   Home,
@@ -60,6 +61,7 @@ const nav: NavGroup[] = [
     label: "Operations",
     items: [
       { name: "Communication", href: "/admin/communication", icon: Megaphone },
+      { name: "Resources", href: "/admin/resources", icon: FolderOpen },
       { name: "Messages", href: "/admin/messages", icon: MessageSquare },
       { name: "Transport", href: "/admin/transport", icon: Bus },
       { name: "Library", href: "/admin/library", icon: BookOpenCheck },

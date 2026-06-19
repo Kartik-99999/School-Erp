@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     messaging,
     payroll,
     reports,
+    resources,
     schools,
     settings,
     staff,
@@ -49,6 +50,7 @@ api_router.include_router(library.router, prefix="/library", tags=["library"])
 api_router.include_router(hostel.router, prefix="/hostel", tags=["hostel"])
 api_router.include_router(communication.router, prefix="/communication", tags=["communication"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
+api_router.include_router(resources.router, prefix="/resources", tags=["resources"])
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["super_admin"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
 api_router.include_router(student_portal.router, prefix="/student-portal", tags=["student-portal"])
