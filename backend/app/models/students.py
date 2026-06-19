@@ -2,6 +2,7 @@ from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Str
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
+from app.core.crypto import EncryptedString
 from app.models.base import Base
 
 
@@ -17,7 +18,7 @@ class Parent(Base):
     father_religion = Column(String(50))
     father_category = Column(String(50))
     father_nationality = Column(String(50))
-    father_aadhaar = Column(String(20))
+    father_aadhaar = Column(EncryptedString)
     mother_name = Column(String(200))
     mother_phone = Column(String(50))
     mother_email = Column(String(255))
@@ -25,7 +26,7 @@ class Parent(Base):
     mother_religion = Column(String(50))
     mother_category = Column(String(50))
     mother_nationality = Column(String(50))
-    mother_aadhaar = Column(String(20))
+    mother_aadhaar = Column(EncryptedString)
     guardian_name = Column(String(200))
     guardian_phone = Column(String(50))
     guardian_email = Column(String(255))
@@ -33,7 +34,7 @@ class Parent(Base):
     guardian_religion = Column(String(50))
     guardian_category = Column(String(50))
     guardian_nationality = Column(String(50))
-    guardian_aadhaar = Column(String(20))
+    guardian_aadhaar = Column(EncryptedString)
     primary_contact_email = Column(String(255))  # used for the Parent portal login
     address = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
@@ -64,9 +65,9 @@ class Student(Base):
     category = Column(String(50))  # General, OBC, SC, ST
     mother_tongue = Column(String(50))
     # Government / academic identifiers (India)
-    apaar_id = Column(String(20))  # Automated Permanent Academic Account Registry
-    aadhaar_no = Column(String(20))  # national ID
-    pen_number = Column(String(30))  # Permanent Education Number
+    apaar_id = Column(EncryptedString)  # Automated Permanent Academic Account Registry
+    aadhaar_no = Column(EncryptedString)  # national ID
+    pen_number = Column(EncryptedString)  # Permanent Education Number
     photo_url = Column(Text)
     current_class_id = Column(UUID(as_uuid=True))
     current_section_id = Column(UUID(as_uuid=True))

@@ -226,7 +226,7 @@ CREATE TABLE parents (
     father_religion VARCHAR(50),
     father_category VARCHAR(50),
     father_nationality VARCHAR(50),
-    father_aadhaar VARCHAR(20),
+    father_aadhaar TEXT, -- encrypted at rest (EncryptedString)
     mother_name VARCHAR(200),
     mother_phone VARCHAR(50),
     mother_email VARCHAR(255),
@@ -234,7 +234,7 @@ CREATE TABLE parents (
     mother_religion VARCHAR(50),
     mother_category VARCHAR(50),
     mother_nationality VARCHAR(50),
-    mother_aadhaar VARCHAR(20),
+    mother_aadhaar TEXT, -- encrypted at rest (EncryptedString)
     guardian_name VARCHAR(200),
     guardian_phone VARCHAR(50),
     guardian_email VARCHAR(255),
@@ -242,7 +242,7 @@ CREATE TABLE parents (
     guardian_religion VARCHAR(50),
     guardian_category VARCHAR(50),
     guardian_nationality VARCHAR(50),
-    guardian_aadhaar VARCHAR(20),
+    guardian_aadhaar TEXT, -- encrypted at rest (EncryptedString)
     primary_contact_email VARCHAR(255), -- used for the Parent portal login
     address TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -267,9 +267,9 @@ CREATE TABLE students (
     religion VARCHAR(50),
     category VARCHAR(50), -- General, OBC, SC, ST
     mother_tongue VARCHAR(50),
-    apaar_id VARCHAR(20), -- Automated Permanent Academic Account Registry
-    aadhaar_no VARCHAR(20), -- national ID
-    pen_number VARCHAR(30), -- Permanent Education Number
+    apaar_id TEXT, -- APAAR (Academic Account Registry); encrypted at rest
+    aadhaar_no TEXT, -- national ID; encrypted at rest
+    pen_number TEXT, -- Permanent Education Number; encrypted at rest
     photo_url TEXT,
     current_class_id UUID REFERENCES classes(id),
     current_section_id UUID REFERENCES sections(id),

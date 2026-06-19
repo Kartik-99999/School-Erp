@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     SMTP_FROM: Optional[str] = None
     SMTP_USE_TLS: bool = True
 
+    # Fernet key for encrypting PII (Aadhaar/APAAR/PEN) at rest. Blank => store plaintext
+    # (dev). Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    PII_ENCRYPTION_KEY: Optional[str] = None
+
     @property
     def async_database_uri(self) -> str:
         """Owner connection (POSTGRES_USER) — used by migrations/DDL scripts."""
