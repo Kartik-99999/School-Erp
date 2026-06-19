@@ -73,6 +73,7 @@ jobs:
           python migrate_fee_schedule.py
           python migrate_admissions_enquiry.py
           python migrate_razorpay_per_tenant.py
+          python migrate_whatsapp_optional.py
           python enable_rls.py
       - name: Pytest (incl. DB-backed RLS + payment tests)
         run: pytest

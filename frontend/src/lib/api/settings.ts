@@ -24,3 +24,24 @@ export const updatePaymentGateway = async (
   payload: PaymentGatewayUpdate
 ): Promise<PaymentGatewayStatus> =>
   (await api.put("/settings/payment-gateway", payload)).data.data;
+
+
+// School profile/settings — the editable subset surfaced on the admin Settings page.
+export interface MySchool {
+  id?: string;
+  name?: string;
+  logo_url?: string | null;
+  address?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  board_affiliation?: string | null;
+  grading_system?: string | null;
+  whatsapp_enabled?: boolean;
+  [k: string]: any;
+}
+
+export const getMySchool = async (): Promise<MySchool> =>
+  (await api.get("/settings/me")).data.data;
+
+export const updateMySchool = async (payload: Partial<MySchool>): Promise<MySchool> =>
+  (await api.put("/settings/me", payload)).data.data;

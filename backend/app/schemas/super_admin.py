@@ -41,6 +41,7 @@ class SchoolSettingsUpdate(BaseModel):
     contact_phone: Optional[str] = None
     board_affiliation: Optional[str] = None
     grading_system: Optional[str] = None
+    whatsapp_enabled: Optional[bool] = None
 
 
 class SchoolResponse(SchoolBase):
@@ -48,6 +49,7 @@ class SchoolResponse(SchoolBase):
     subscription_plan_id: Optional[UUID] = None
     subscription_expires_at: Optional[datetime] = None
     created_at: datetime
+    whatsapp_enabled: bool = False
     # Aggregated stats for super admin view
     student_count: Optional[int] = 0
     staff_count: Optional[int] = 0

@@ -40,6 +40,7 @@ CREATE TABLE schools (
     razorpay_key_secret TEXT,
     razorpay_webhook_secret TEXT,
     razorpay_enabled BOOLEAN DEFAULT FALSE,
+    whatsapp_enabled BOOLEAN NOT NULL DEFAULT FALSE, -- opt-in per school (platform Twilio sender)
     subscription_plan_id UUID REFERENCES subscription_plans(id),
     subscription_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

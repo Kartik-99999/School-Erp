@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import api from "@/lib/axios";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Label } from "@/components/ui/Input";
@@ -9,6 +8,7 @@ import { Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TwoFactorSettings from "@/components/security/TwoFactorSettings";
 import PaymentGatewaySettings from "@/components/settings/PaymentGatewaySettings";
+import { getMySchool, updateMySchool } from "@/lib/api/settings";
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -18,8 +18,8 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get("/settings/me");
-        setSchool(res.data?.data || {});
+        const data = await getMySchool();
+        setSchool(data || {});
       } catch (err) {
         console.error(err);
       } finally {
@@ -33,13 +33,14 @@ export default function AdminSettingsPage() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      await api.put("/settings/me", {
+      await updateMySchool({
         name: school.name,
         contact_email: school.contact_email,
         contact_phone: school.contact_phone,
         address: school.address,
         board_affiliation: school.board_affiliation,
         grading_system: school.grading_system,
+        whatsapp_enabled: school.whatsapp_enabled,
       });
       alert("Settings saved.");
     } catch (err: any) {
@@ -158,6 +159,30 @@ export default function AdminSettingsPage() {
               );
             })}
           </div>
+        </section>
+
+        <section className="bg-surface-card rounded-card border border-border shadow-card p-6">
+          <h2 className="text-base font-semibold text-ink mb-1">Notifications</h2>
+          <p className="text-sm text-ink-muted mb-4">
+            Control automated parent messaging (uses the platform WhatsApp sender).
+          </p>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 w-4 h-4 accent-primary-600"
+              checked={!!school?.whatsapp_enabled}
+              onChange={(e) =>
+                setSchool((p: any) => ({ ...p, whatsapp_enabled: e.target.checked }))
+              }
+            />
+            <div>
+              <h4 className="font-semibold text-ink">WhatsApp alerts</h4>
+              <p className="text-sm text-ink-muted mt-1">
+                Send WhatsApp messages for new-student credentials, absence alerts, fee receipts,
+                and broadcasts. Off by default — remember to Save Changes.
+              </p>
+            </div>
+          </label>
         </section>
 
         <TwoFactorSettings />

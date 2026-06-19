@@ -116,6 +116,20 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     encryption + client, webhook signature/idempotency/cap/404/wrong-school; mocked client,
     DB-backed auto-skip). Proven live on `:8000`. Real delivery needs each school's keys + a
     tunnel (see §6).
+15. **WhatsApp alerts OPTIONAL per school** (default OFF; platform Twilio sender, NOT
+    per-tenant). `schools.whatsapp_enabled` (Boolean NOT NULL default false; migration
+    `migrate_whatsapp_optional.py`, wired into CI). New `send_whatsapp_if_enabled(school, to,
+    msg)` in `app/utils/twilio.py` — a no-op unless `school.whatsapp_enabled`, else sends
+    best-effort inside a try/except that NEVER propagates (WhatsApp must not break the caller).
+    All 4 call sites route through it using the in-scope school: `crud_student` (parent
+    credentials), `crud_fees.process_payment` (receipt; school already loaded),
+    `attendance.notify_parent_absent` (absence; school loaded once before the loop),
+    `communication.process_broadcast_fanout` (broadcasts; school passed into the background
+    task). Exposed in `GET/PUT /settings/me` (`SchoolResponse` + `SchoolSettingsUpdate`).
+    Frontend: a **Notifications → WhatsApp alerts** toggle on the admin settings page (via
+    `lib/api/settings.ts` `getMySchool`/`updateMySchool`). Default OFF for all rows (incl.
+    existing) → zero behaviour change until opt-in. Tests `tests/test_whatsapp_optional.py`
+    (gate off/on + exception swallowed). Proven live on `:8000`.
 
 ## 4. Run / verify
 ```bash
@@ -124,7 +138,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 82 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 86 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -176,6 +190,8 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 - ✅ **Razorpay online payments** — DONE (§3.14): **per-tenant** (each school's own account)
   + intent-in-order + a per-school signature-verified unauthenticated webhook. (Real
   Twilio/Cloudinary keys still needed to fully exercise those integrations.)
+- ✅ **WhatsApp alerts optional** — DONE (§3.15): per-school opt-in toggle (default OFF) +
+  a gated, best-effort sender across all 4 call sites.
 - Rotate `educore_app` password for non-local; Redis-backed rate limiter for multi-instance.
 
 **Product depth (bigger):** LMS (assignments/submissions/grading — `homework_submissions`
@@ -215,5 +231,11 @@ board-compliant report cards / the LMS (product depth).
   `app/api/v1/endpoints/settings.py`; frontend `src/components/settings/PaymentGatewaySettings.tsx`
   + `src/lib/api/settings.ts` (mounted in `admin/settings/page.tsx`); tests
   `tests/test_razorpay_per_tenant.py`.
+- WhatsApp opt-in: `schools.whatsapp_enabled` (`app/models/school.py` + `db/schema.sql` +
+  `migrate_whatsapp_optional.py`); `send_whatsapp_if_enabled` in `app/utils/twilio.py` routed
+  through `crud_student.py` / `crud_fees.py` / `attendance.py` / `communication.py`; settings
+  in `app/api/v1/endpoints/settings.py` + `schemas/super_admin.py`; frontend Notifications
+  toggle in `admin/settings/page.tsx` via `src/lib/api/settings.ts`; tests
+  `tests/test_whatsapp_optional.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.
 - CI: `.github/workflows/ci.yml`. Schema: `db/schema.sql`. Tests: `backend/tests/`.

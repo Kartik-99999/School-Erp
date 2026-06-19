@@ -22,7 +22,7 @@ from app.schemas.fees import (
     FeeScheduleCreate,
     OfflinePaymentCreate,
 )
-from app.utils.twilio import send_whatsapp_message
+from app.utils.twilio import send_whatsapp_if_enabled
 
 
 async def create_adhoc_due(db, school_id, student_id, amount, label, due_date=None):
@@ -317,7 +317,7 @@ class CRUDFeePayment(CRUDBase[FeeReceipt, dict, dict]):
             if parent and (parent.father_phone or parent.mother_phone):
                 phone = parent.father_phone or parent.mother_phone
                 msg = f"Receipt Alert: We have received a payment of ₹{total_paid} against receipt no. {receipt.receipt_number} for {student.first_name}. Thank you."
-                send_whatsapp_message(phone, msg)
+                send_whatsapp_if_enabled(school, phone, msg)
 
         return receipt
 

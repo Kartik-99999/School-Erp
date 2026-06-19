@@ -11,6 +11,7 @@ from sqlalchemy.future import select
 import app.utils.pdf as pdf_module
 from app.api import deps
 from app.models.attendance import AttendanceStudent
+from app.models.school import School
 from app.models.setup import ClassModel, Section
 from app.models.staff import AttendanceStaff, LeaveApplication
 from app.models.students import Parent, Student
@@ -21,7 +22,7 @@ from app.schemas.attendance import (
 )
 from app.schemas.base import APIResponse
 from app.schemas.staff import AttendanceBulkMark
-from app.utils.twilio import send_whatsapp_message
+from app.utils.twilio import send_whatsapp_if_enabled
 
 router = APIRouter()
 
@@ -112,6 +113,9 @@ async def mark_student_attendance(
     existing_result = await db.execute(existing_query)
     existing_records = {str(r.student_id): r for r in existing_result.scalars().all()}
 
+    # Load the school once (for the WhatsApp opt-in gate) rather than per absentee.
+    school = (await db.execute(select(School).filter(School.id == school_uuid))).scalars().first()
+
     # Prepare batch
     for rec in req.attendance_records:
         student_id_str = str(rec.student_id)
@@ -126,7 +130,7 @@ async def mark_student_attendance(
 
             # Send WhatsApp alert if transitioning to Absent
             if old_status != "Absent" and rec.status == "Absent":
-                await notify_parent_absent(db, school_uuid, rec.student_id, req.date)
+                await notify_parent_absent(db, school, rec.student_id, req.date)
         else:
             # Insert
             new_record = AttendanceStudent(
@@ -140,7 +144,7 @@ async def mark_student_attendance(
             db.add(new_record)
 
             if rec.status == "Absent":
-                await notify_parent_absent(db, school_uuid, rec.student_id, req.date)
+                await notify_parent_absent(db, school, rec.student_id, req.date)
 
     await db.commit()
     return APIResponse(
@@ -149,7 +153,7 @@ async def mark_student_attendance(
     )
 
 
-async def notify_parent_absent(db: AsyncSession, school_id: UUID, student_id: UUID, att_date: date):
+async def notify_parent_absent(db: AsyncSession, school: School, student_id: UUID, att_date: date):
     # Fetch Student & Parent
     student = (await db.execute(select(Student).filter(Student.id == student_id))).scalars().first()
     if not student:
@@ -163,7 +167,7 @@ async def notify_parent_absent(db: AsyncSession, school_id: UUID, student_id: UU
     phone = parent.father_phone or parent.mother_phone or parent.guardian_phone
     if phone:
         msg = f"Alert: Your ward {student.first_name} {student.last_name} has been marked ABSENT today ({att_date.strftime('%d-%b-%Y')}). Please contact the school if this is an error."
-        send_whatsapp_message(phone, msg)
+        send_whatsapp_if_enabled(school, phone, msg)
 
 
 @router.get("/students/daily", response_model=APIResponse[List[AttendanceStudentResponse]])

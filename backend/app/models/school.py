@@ -4,6 +4,7 @@ from sqlalchemy import (
     DateTime,
     String,
     Text,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
@@ -32,6 +33,8 @@ class School(Base):
     razorpay_key_secret = Column(EncryptedString, nullable=True)
     razorpay_webhook_secret = Column(EncryptedString, nullable=True)
     razorpay_enabled = Column(Boolean, default=False)
+    # WhatsApp alerts are OPT-IN per school (default OFF) — uses the platform Twilio sender.
+    whatsapp_enabled = Column(Boolean, nullable=False, server_default=text("false"), default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
     updated_at = Column(
         DateTime(timezone=True),

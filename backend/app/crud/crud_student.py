@@ -12,7 +12,7 @@ from app.models.setup import AcademicYear
 from app.models.students import Parent, Student, StudentMedical
 from app.models.users import Role, User
 from app.schemas.students import StudentCreate, StudentUpdate
-from app.utils.twilio import send_whatsapp_message
+from app.utils.twilio import send_whatsapp_if_enabled
 
 
 class CRUDStudent(CRUDBase[Student, StudentCreate, StudentUpdate]):
@@ -148,13 +148,18 @@ class CRUDStudent(CRUDBase[Student, StudentCreate, StudentUpdate]):
         else:
             await db.flush()
 
-        # 7. Send WhatsApp Credentials (parent account + student login)
+        # 7. Send WhatsApp Credentials (parent account + student login) — opt-in per school.
         if parent_phone:
             lines = ["Dear Parent, welcome to School ERP!"]
             if raw_password:
                 lines.append(f"Parent login:\nEmail: {parent_email}\nPass: {raw_password}")
             lines.append(f"Student login:\nAdmission No: {adm_no}\nPass: {student_raw_password}")
-            send_whatsapp_message(parent_phone, "\n".join(lines))
+            school = (
+                (await db.execute(select(School).filter(School.id == school_uuid)))
+                .scalars()
+                .first()
+            )
+            send_whatsapp_if_enabled(school, parent_phone, "\n".join(lines))
 
         # Surface generated student password once for the admin UI (transient, not persisted)
         new_student.generated_password = student_raw_password

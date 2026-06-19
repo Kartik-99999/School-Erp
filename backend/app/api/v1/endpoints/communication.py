@@ -9,6 +9,7 @@ from sqlalchemy.future import select
 from app.api import deps
 from app.crud.crud_communication import crud_event, crud_notice
 from app.models.communication import Event, MessageLog, Notice
+from app.models.school import School
 from app.models.staff import Staff
 from app.models.students import Parent, Student
 from app.schemas.base import APIResponse
@@ -21,7 +22,7 @@ from app.schemas.communication import (
     NoticeResponse,
 )
 from app.utils.email import send_email
-from app.utils.twilio import send_whatsapp_message
+from app.utils.twilio import send_whatsapp_if_enabled
 
 router = APIRouter()
 
@@ -76,11 +77,13 @@ async def toggle_pin_notice(
 
 
 # --- BROADCAST MESSAGING ---
-def process_broadcast_fanout(recipients: list, channel: str, subject: str, message_content: str):
+def process_broadcast_fanout(
+    recipients: list, channel: str, subject: str, message_content: str, school
+):
     success_count = 0
     for r in recipients:
         if channel == "WhatsApp":
-            if send_whatsapp_message(r, message_content):
+            if send_whatsapp_if_enabled(school, r, message_content):
                 success_count += 1
         elif channel == "Email":
             if send_email(r, subject or "School Notice", message_content):
@@ -165,9 +168,16 @@ async def broadcast_message(
     if not recipients:
         raise HTTPException(400, "No valid recipients found for this target group.")
 
-    # Dispatch via background task to prevent timeout
+    # Dispatch via background task to prevent timeout. Load the school once for the WhatsApp
+    # opt-in gate (reading a loaded scalar attr is safe even on the detached instance).
+    school = (await db.execute(select(School).filter(School.id == school_uuid))).scalars().first()
     background_tasks.add_task(
-        process_broadcast_fanout, recipients, msg_in.channel, msg_in.subject, msg_in.message_content
+        process_broadcast_fanout,
+        recipients,
+        msg_in.channel,
+        msg_in.subject,
+        msg_in.message_content,
+        school,
     )
 
     # Log Message (Log will show 'Processing' instead of sent, since it's async now)
