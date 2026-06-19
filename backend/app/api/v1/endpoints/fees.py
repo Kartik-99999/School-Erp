@@ -14,7 +14,6 @@ from sqlalchemy.future import select
 
 import app.utils.pdf as pdf_module
 from app.api import deps
-from app.core.config import settings
 from app.core.limiter import limiter
 from app.crud.crud_audit import record_audit
 from app.crud.crud_fees import (
@@ -25,6 +24,7 @@ from app.crud.crud_fees import (
 )
 from app.crud.crud_setup import crud_fee_head, crud_fee_structure
 from app.models.fees import FeePayment, FeeReceipt, FeeSchedule
+from app.models.school import School
 from app.models.setup import FeeHead, FeeStructure
 from app.models.students import Student
 from app.schemas.base import APIResponse
@@ -50,6 +50,7 @@ from app.utils.razorpay import (
     create_order,
     fetch_order,
     get_captured_amount,
+    get_client,
     verify_payment,
     verify_webhook_signature,
 )
@@ -462,27 +463,34 @@ class OnlinePaymentVerify(BaseModel):
     allocations: Optional[List[PaymentAllocation]] = None
 
 
+async def _load_school(db: AsyncSession, school_id) -> Optional[School]:
+    return (await db.execute(select(School).filter(School.id == school_id))).scalars().first()
+
+
 async def record_online_payment(
-    db: AsyncSession, order_id: str, payment_id: str, captured_inr
+    db: AsyncSession, school: School, order_id: str, payment_id: str, captured_inr
 ) -> FeeReceipt:
     """Single source of truth for recording an online payment — shared by the browser
-    `verify` callback and the async webhook.
+    `verify` callback and the async webhook. Uses the SCHOOL's own Razorpay client.
 
-    Reads the validated intent (school_id / student_id / allocations) from the Razorpay
-    order's ``notes`` (set at initiate), activates that tenant's RLS context manually (no
-    JWT on this path — mirrors the admissions/signup precedent), dedupes on the payment id
-    (idempotent: a duplicate webhook, or one racing the browser, is a no-op), caps the
-    allocation at the captured amount, then records via the shared payment pipeline.
+    Reads the validated intent (student_id / allocations) from the order's ``notes``,
+    sanity-checks notes.school_id == the school the client belongs to, activates that
+    tenant's RLS context manually (no JWT on the webhook path — admissions precedent),
+    dedupes on the payment id (idempotent), caps the allocation at the captured amount,
+    then records via the shared payment pipeline.
     """
-    order = fetch_order(order_id)
+    client = get_client(school.razorpay_key_id, school.razorpay_key_secret)
+    order = fetch_order(client, order_id)
     notes = order.get("notes") or {}
     school_raw = notes.get("school_id")
     student_raw = notes.get("student_id")
     intent_raw = notes.get("intent")
     if not (school_raw and student_raw and intent_raw):
         raise HTTPException(status_code=400, detail="Order is missing its payment intent.")
+    # The order's notes were stamped at initiate — it must belong to THIS school.
+    if school_raw != str(school.id):
+        raise HTTPException(status_code=400, detail="Order does not belong to this school.")
     try:
-        school_uuid = UUID(school_raw)
         student_uuid = UUID(student_raw)
         allocations = [
             PaymentAllocation(
@@ -496,11 +504,11 @@ async def record_online_payment(
     if not allocations:
         raise HTTPException(status_code=400, detail="Order has no fee allocations.")
 
-    # Activate the tenant's RLS context from the order (manual — no JWT here). The
-    # after_begin hook in app/db/session.py re-applies it across process_payment's commit.
-    db.info["rls_tenant"] = str(school_uuid)
+    # Activate the tenant's RLS context (manual — no JWT on the webhook path). The
+    # after_begin hook re-applies it across process_payment's commit.
+    db.info["rls_tenant"] = str(school.id)
     await db.execute(
-        text("SELECT set_config('app.current_tenant', :t, true)"), {"t": str(school_uuid)}
+        text("SELECT set_config('app.current_tenant', :t, true)"), {"t": str(school.id)}
     )
 
     # Idempotency: a given Razorpay payment is recorded at most once.
@@ -508,7 +516,7 @@ async def record_online_payment(
         (
             await db.execute(
                 select(FeeReceipt).filter(
-                    FeeReceipt.school_id == school_uuid,
+                    FeeReceipt.school_id == school.id,
                     FeeReceipt.transaction_reference == payment_id,
                 )
             )
@@ -519,7 +527,7 @@ async def record_online_payment(
     if existing:
         return existing
 
-    # Never credit dues for more than Razorpay actually captured.
+    # Never credit dues for more than the school actually captured.
     total_alloc = sum((a.amount for a in allocations), Decimal("0"))
     if total_alloc - Decimal(str(captured_inr)) > Decimal("0.01"):
         raise HTTPException(
@@ -536,7 +544,7 @@ async def record_online_payment(
     try:
         # process_payment re-validates each schedule (tenant + student + remaining due),
         # locks rows FOR UPDATE, and commits.
-        return await crud_fee_payment.process_payment(db, school_uuid, payment_in, None)
+        return await crud_fee_payment.process_payment(db, school.id, payment_in, None)
     except ValueError:
         logger.exception("Online payment intent rejected by process_payment")
         raise HTTPException(
@@ -560,9 +568,17 @@ async def initiate_online_payment(
     school_id: str = Depends(deps.get_current_tenant_id),
     token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ):
-    """Validate the payment intent and create a Razorpay order that CARRIES it in `notes`,
-    so the browser callback and the webhook both record from one source of truth. (Raises
-    502 if Razorpay isn't configured.)"""
+    """Validate the intent and create a Razorpay order ON THE SCHOOL'S OWN ACCOUNT, with the
+    intent in the order `notes`. Returns the order + the school's public key_id (the browser
+    checkout must open with the school's key_id). 409 if the school hasn't configured online
+    payments."""
+    school = await _load_school(db, UUID(school_id))
+    if not school or not school.razorpay_enabled:
+        raise HTTPException(
+            status_code=409, detail="Online payments are not configured for this school."
+        )
+    client = get_client(school.razorpay_key_id, school.razorpay_key_secret)
+
     # A student/parent may only pay their own (or their child's) dues.
     if token_data.role in ("Student", "Parent"):
         allowed = await _resolve_payable_student_ids(db, token_data)
@@ -607,8 +623,10 @@ async def initiate_online_payment(
             ]
         ),
     }
-    order = create_order(payload.amount, receipt_id=f"fee_{payload.student_id}", notes=notes)
-    return APIResponse(success=True, data={"order": order, "key_id": settings.RAZORPAY_KEY_ID})
+    order = create_order(
+        client, payload.amount, receipt_id=f"fee_{payload.student_id}", notes=notes
+    )
+    return APIResponse(success=True, data={"order": order, "key_id": school.razorpay_key_id})
 
 
 @router.post(
@@ -628,35 +646,51 @@ async def verify_online_payment(
     school_id: str = Depends(deps.get_current_tenant_id),
     token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ):
-    """Browser callback: verify the payment signature, then record from the order's notes
-    via the shared recorder (the same path the webhook uses). Ownership + allocation
-    validity were enforced when the order was created."""
+    """Browser callback: verify the payment signature with the SCHOOL's key_secret, then
+    record from the order's notes via the shared recorder."""
+    school = await _load_school(db, UUID(school_id))
+    if not school or not school.razorpay_enabled:
+        raise HTTPException(
+            status_code=409, detail="Online payments are not configured for this school."
+        )
+    client = get_client(school.razorpay_key_id, school.razorpay_key_secret)
     if not verify_payment(
-        payload.razorpay_order_id, payload.razorpay_payment_id, payload.razorpay_signature
+        client, payload.razorpay_order_id, payload.razorpay_payment_id, payload.razorpay_signature
     ):
         raise HTTPException(
             status_code=400, detail="Payment verification failed (signature mismatch)."
         )
-    captured = get_captured_amount(payload.razorpay_payment_id)
+    captured = get_captured_amount(client, payload.razorpay_payment_id)
     receipt = await record_online_payment(
-        db, payload.razorpay_order_id, payload.razorpay_payment_id, captured
+        db, school, payload.razorpay_order_id, payload.razorpay_payment_id, captured
     )
     return APIResponse(success=True, data=receipt, message="Payment successful.")
 
 
-@router.post("/payments/online/webhook")
-async def razorpay_webhook(request: Request, db: AsyncSession = Depends(deps.get_db)):
-    """UNAUTHENTICATED async payment confirmation from Razorpay (not behind JWT/tenant
-    deps). Verifies the webhook signature against the RAW body BEFORE parsing (fail-closed
-    400), then records from the order's notes via the shared recorder. Idempotent — a
-    duplicate delivery, or one racing the browser verify, is a no-op.
+@router.post("/payments/online/webhook/{school_id}")
+async def razorpay_webhook(
+    school_id: UUID, request: Request, db: AsyncSession = Depends(deps.get_db)
+):
+    """UNAUTHENTICATED per-school async payment confirmation. The {school_id} in the path is
+    just a router; the real auth is the per-school HMAC — X-Razorpay-Signature verified
+    against THIS school's own webhook secret, on the RAW body, BEFORE parsing (fail-closed
+    400). 404 if the school is unknown or hasn't configured payments.
 
-    Status contract: 400 on bad signature / malformed event (Razorpay won't retry); 5xx on
-    a transient internal error or order-fetch failure (Razorpay retries); 200 once
-    recorded/ignored."""
+    200 once recorded; 400 on bad signature / malformed event (no retry); 5xx on a transient
+    internal error (Razorpay retries). Idempotent — a duplicate, or one racing the browser
+    verify, is a no-op."""
+    school = await _load_school(db, school_id)
+    if (
+        not school
+        or not school.razorpay_webhook_secret
+        or not (school.razorpay_key_id and school.razorpay_key_secret)
+    ):
+        raise HTTPException(status_code=404, detail="Unknown or unconfigured school.")
+
     raw = await request.body()
     signature = request.headers.get("X-Razorpay-Signature", "")
-    if not verify_webhook_signature(raw, signature):
+    client = get_client(school.razorpay_key_id, school.razorpay_key_secret)
+    if not verify_webhook_signature(client, raw, signature, school.razorpay_webhook_secret):
         raise HTTPException(status_code=400, detail="Invalid webhook signature.")
 
     try:
@@ -670,7 +704,6 @@ async def razorpay_webhook(request: Request, db: AsyncSession = Depends(deps.get
     payload_obj = event.get("payload") or {}
     payment_entity = (payload_obj.get("payment") or {}).get("entity") or {}
     order_entity = (payload_obj.get("order") or {}).get("entity") or {}
-
     payment_id = payment_entity.get("id")
     order_id = payment_entity.get("order_id") or order_entity.get("id")
     captured_paise = payment_entity.get("amount")
@@ -680,10 +713,10 @@ async def razorpay_webhook(request: Request, db: AsyncSession = Depends(deps.get
         raise HTTPException(status_code=400, detail="Webhook missing order/payment fields.")
 
     try:
-        await record_online_payment(db, order_id, payment_id, float(captured_paise) / 100.0)
+        await record_online_payment(db, school, order_id, payment_id, float(captured_paise) / 100.0)
     except HTTPException:
-        # Business/validation rejection (bad notes, cap) or an order-fetch 502 — surface
-        # the status as-is: 4xx => Razorpay won't retry, 5xx => it retries.
+        # Business/validation rejection (bad notes, cap, wrong school) or order-fetch 502 —
+        # surface as-is: 4xx => Razorpay won't retry, 5xx => it retries.
         raise
     except Exception:
         logger.exception("Razorpay webhook processing failed")

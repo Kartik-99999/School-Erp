@@ -51,11 +51,8 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = "demo_key"
     CLOUDINARY_API_SECRET: str = "demo_secret"
 
-    RAZORPAY_KEY_ID: str = "rzp_test_12345"
-    RAZORPAY_KEY_SECRET: str = "rzp_secret_12345"
-    # Secret set on the Razorpay dashboard webhook; used to verify webhook signatures
-    # (async payment confirmation). Blank => the webhook rejects everything (fail-closed).
-    RAZORPAY_WEBHOOK_SECRET: Optional[str] = None
+    # Razorpay is configured PER-SCHOOL now (encrypted on the School row), not globally —
+    # see app/models/school.py + app/utils/razorpay.get_client().
 
     TWILIO_ACCOUNT_SID: str = "AC_demo"
     TWILIO_AUTH_TOKEN: str = "demo_token"

@@ -35,6 +35,11 @@ CREATE TABLE schools (
     board_affiliation VARCHAR(100),
     grading_system VARCHAR(50) DEFAULT 'percentage', -- percentage or cgpa
     status VARCHAR(50) DEFAULT 'Trial', -- Trial, Active, Suspended
+    -- Per-school Razorpay credentials (secrets encrypted at rest via Fernet/EncryptedString)
+    razorpay_key_id TEXT,
+    razorpay_key_secret TEXT,
+    razorpay_webhook_secret TEXT,
+    razorpay_enabled BOOLEAN DEFAULT FALSE,
     subscription_plan_id UUID REFERENCES subscription_plans(id),
     subscription_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

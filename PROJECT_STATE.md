@@ -93,21 +93,29 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     DB refresh tokens transparently mint new RS256 ones, so users aren't logged out.
     `SECRET_KEY` kept for non-JWT use. Tests `tests/test_jwt_rs256.py` (6); live RS256 login
     proven on `:8000` (header alg=RS256, verifies w/ public key, HS256-forged → 401).
-14. **Razorpay webhook (async payment confirm)** — design = **full intent in the order**.
-    `POST /fees/payments/online/initiate` now validates the allocations (ownership, each
-    schedule belongs to student+tenant, sum == amount) and stashes them in the Razorpay
-    order `notes` (school_id / student_id / intent JSON). A shared `record_online_payment`
-    recorder reads those notes (source of truth), sets tenant RLS context **manually**
-    (admissions precedent), dedupes on payment_id (idempotent), caps allocated ≤ captured,
-    then records via `crud_fee_payment.process_payment`. Both the browser `verify` callback
-    and a new **unauthenticated** `POST /fees/payments/online/webhook` use it. The webhook
-    verifies `X-Razorpay-Signature` against the RAW body with `RAZORPAY_WEBHOOK_SECRET`
-    BEFORE parsing (fail-closed 400); 5xx on transient errors (Razorpay retries), 200 once
-    recorded. `create_order` carries `notes`; `RAZORPAY_WEBHOOK_SECRET` added to config /
-    .env.example. Frontend: allocations ride `/initiate`; `verify` no longer sends them.
-    Tests `tests/test_razorpay_webhook.py` (signature / idempotency / cap / tenant; DB-backed
-    auto-skip). Signature+idempotency+cap proven headlessly + live fail-closed on `:8000`;
-    real webhook delivery needs a tunnel + dashboard config (see §6).
+14. **Online fee payments — PER-TENANT Razorpay + async webhook** (evolves the a308b0e
+    global webhook to per-school). Each SCHOOL collects into its OWN Razorpay account; the
+    platform never holds funds. Per-school creds live on the `schools` row — `razorpay_key_id`,
+    `razorpay_key_secret` + `razorpay_webhook_secret` (both `EncryptedString` at rest),
+    `razorpay_enabled` (migration `migrate_razorpay_per_tenant.py`). `app/utils/razorpay.py`
+    has NO global client: `get_client(key_id, key_secret)` builds one per school and
+    `create_order`/`verify_payment`/`get_captured_amount`/`fetch_order`/`verify_webhook_signature`
+    all take a client. `POST /fees/payments/online/initiate` loads the school's keys (409 if not
+    `razorpay_enabled`), validates allocations, creates the order ON THE SCHOOL'S ACCOUNT with
+    the intent in `notes`, and returns the school's `key_id` for checkout. Shared
+    `record_online_payment(db, school, …)` reads the order notes (source of truth), sanity-checks
+    notes.school_id == the school, sets tenant RLS context manually, dedupes on payment_id
+    (idempotent), caps ≤ captured, records via `process_payment`. The **unauthenticated**
+    `POST /fees/payments/online/webhook/{school_id}` looks up the school + its webhook secret
+    (404 if unknown/unconfigured) and verifies `X-Razorpay-Signature` against the RAW body with
+    THAT school's secret before parsing (fail-closed 400; 5xx → retried; 200 once recorded).
+    Settings API `GET/PUT /settings/payment-gateway` (secrets write-only, never echoed); global
+    `RAZORPAY_*` config removed. Frontend: admin Settings → **Payment Gateway** card (keys +
+    enable + the school's webhook URL to paste into Razorpay); student checkout opens with the
+    `key_id` from `/initiate`. Tests `tests/test_razorpay_per_tenant.py` (per-school key
+    encryption + client, webhook signature/idempotency/cap/404/wrong-school; mocked client,
+    DB-backed auto-skip). Proven live on `:8000`. Real delivery needs each school's keys + a
+    tunnel (see §6).
 
 ## 4. Run / verify
 ```bash
@@ -116,7 +124,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 79 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 82 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -165,9 +173,9 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 - ✅ **2FA (TOTP)** — DONE, backend + frontend (§3.11).
 - ✅ **Aadhaar/APAAR/PEN input validation** — DONE (§3.12): Verhoeff + format on the input schemas.
 - ✅ **RS256** (asymmetric JWT) — DONE (§3.13): RSA keypair, sign-private/verify-public, CI ephemeral keys.
-- ✅ **Razorpay webhook** (async payment confirm) — DONE (§3.14): intent-in-order + a
-  signature-verified unauthenticated webhook. (Real Twilio/Cloudinary keys still needed to
-  fully exercise those integrations.)
+- ✅ **Razorpay online payments** — DONE (§3.14): **per-tenant** (each school's own account)
+  + intent-in-order + a per-school signature-verified unauthenticated webhook. (Real
+  Twilio/Cloudinary keys still needed to fully exercise those integrations.)
 - Rotate `educore_app` password for non-local; Redis-backed rate limiter for multi-instance.
 
 **Product depth (bigger):** LMS (assignments/submissions/grading — `homework_submissions`
@@ -199,10 +207,13 @@ board-compliant report cards / the LMS (product depth).
   `tests/test_pii_validation.py`.
 - PII: `app/core/crypto.py` (EncryptedString), `app/utils/masking.py`, `app/schemas/students.py`.
 - Money: `app/crud/crud_fees.py`, `app/schemas/fees.py`.
-- Razorpay / online payments: `app/utils/razorpay.py` (create_order+notes, fetch_order,
-  verify_webhook_signature), `app/api/v1/endpoints/fees.py` (`record_online_payment` +
-  `initiate` / `verify` / `webhook`), `RAZORPAY_WEBHOOK_SECRET` in `config.py`/.env.example,
-  frontend `src/lib/api/studentPortal.ts` + `src/app/student/fees/page.tsx`, tests
-  `tests/test_razorpay_webhook.py`.
+- Razorpay / online payments (PER-TENANT): per-school creds on `app/models/school.py`
+  (`razorpay_*`, `EncryptedString`) + `db/schema.sql` + `migrate_razorpay_per_tenant.py`;
+  `app/utils/razorpay.py` (`get_client` + client-taking helpers, no global client);
+  `app/api/v1/endpoints/fees.py` (`record_online_payment(db, school, …)` + `initiate` /
+  `verify` / `webhook/{school_id}`); settings `GET/PUT /settings/payment-gateway` in
+  `app/api/v1/endpoints/settings.py`; frontend `src/components/settings/PaymentGatewaySettings.tsx`
+  + `src/lib/api/settings.ts` (mounted in `admin/settings/page.tsx`); tests
+  `tests/test_razorpay_per_tenant.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.
 - CI: `.github/workflows/ci.yml`. Schema: `db/schema.sql`. Tests: `backend/tests/`.

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TwoFactorSettings from "@/components/security/TwoFactorSettings";
+import PaymentGatewaySettings from "@/components/settings/PaymentGatewaySettings";
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -160,6 +161,8 @@ export default function AdminSettingsPage() {
         </section>
 
         <TwoFactorSettings />
+
+        <PaymentGatewaySettings schoolId={school?.id} />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
+from app.core.crypto import EncryptedString
 from app.models.base import Base
 
 
@@ -25,6 +26,12 @@ class School(Base):
     subscription_plan_id = Column(UUID(as_uuid=True), nullable=True)
     subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
     status = Column(String(50), default="Trial")
+    # Per-school Razorpay credentials — each school collects fees into its OWN account.
+    # Secrets are encrypted at rest (Fernet/EncryptedString) and are write-only via the API.
+    razorpay_key_id = Column(Text, nullable=True)
+    razorpay_key_secret = Column(EncryptedString, nullable=True)
+    razorpay_webhook_secret = Column(EncryptedString, nullable=True)
+    razorpay_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
     updated_at = Column(
         DateTime(timezone=True),

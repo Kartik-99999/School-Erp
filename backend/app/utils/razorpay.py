@@ -1,18 +1,31 @@
+"""Per-tenant Razorpay helpers.
+
+There is NO global client: each school collects fees into its OWN Razorpay account, so
+every call uses a client built from that school's stored credentials. The platform never
+holds funds. Secrets live (encrypted) on the School row; see app/models/school.py.
+"""
+
 import razorpay
 from fastapi import HTTPException, status
 
-from app.core.config import settings
 
-client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+def get_client(key_id: str, key_secret: str) -> razorpay.Client:
+    """Build a Razorpay client from a school's own credentials. 409 if the school hasn't
+    configured them (so callers surface a clean 'not configured' error)."""
+    if not key_id or not key_secret:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Online payments are not configured for this school.",
+        )
+    return razorpay.Client(auth=(key_id, key_secret))
 
 
-def create_order(amount_in_inr, receipt_id: str, notes: dict = None) -> dict:
-    """Create a Razorpay order for the given amount (INR).
-
-    ``notes`` is a flat str->str map (<=15 keys) that rides along on the order. We use it
-    to carry the full payment intent (school_id / student_id / allocations) so BOTH the
-    browser callback and the async webhook record from one source of truth.
-    """
+def create_order(
+    client: razorpay.Client, amount_in_inr, receipt_id: str, notes: dict = None
+) -> dict:
+    """Create a Razorpay order on the school's account. ``notes`` (flat str->str, <=15 keys)
+    carries the full payment intent so the browser callback and the webhook record from one
+    source of truth."""
     try:
         data = {
             "amount": int(amount_in_inr * 100),  # paise
@@ -24,17 +37,16 @@ def create_order(amount_in_inr, receipt_id: str, notes: dict = None) -> dict:
             data["notes"] = notes
         return client.order.create(data=data)
     except Exception as e:
-        # Fail loudly instead of returning a fake order id that can never be settled.
         print(f"Razorpay order creation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Payment gateway error. Verify Razorpay credentials are configured.",
+            detail="Payment gateway error. Verify the school's Razorpay credentials.",
         )
 
 
-def fetch_order(order_id: str) -> dict:
-    """Fetch a Razorpay order to read its ``notes`` payment intent. Fail-closed: raises 502
-    if it can't be retrieved (the webhook treats a 5xx as transient and is retried)."""
+def fetch_order(client: razorpay.Client, order_id: str) -> dict:
+    """Fetch an order to read its ``notes`` payment intent. Fail-closed: 502 if it can't be
+    retrieved (the webhook treats 5xx as transient and is retried)."""
     try:
         return client.order.fetch(order_id)
     except Exception as e:
@@ -46,9 +58,12 @@ def fetch_order(order_id: str) -> dict:
 
 
 def verify_payment(
-    razorpay_order_id: str, razorpay_payment_id: str, razorpay_signature: str
+    client: razorpay.Client,
+    razorpay_order_id: str,
+    razorpay_payment_id: str,
+    razorpay_signature: str,
 ) -> bool:
-    """Verify a browser checkout's payment signature (order_id|payment_id keyed)."""
+    """Verify a browser checkout's payment signature against the school's key_secret."""
     try:
         client.utility.verify_payment_signature(
             {
@@ -63,12 +78,10 @@ def verify_payment(
         return False
 
 
-def verify_webhook_signature(body, signature: str) -> bool:
-    """Verify a Razorpay *webhook* payload against ``RAZORPAY_WEBHOOK_SECRET``.
-
-    ``body`` is the RAW request bytes/str — verify BEFORE parsing. Returns False on any
-    mismatch, or if the secret/signature is missing (fail-closed)."""
-    secret = settings.RAZORPAY_WEBHOOK_SECRET
+def verify_webhook_signature(client: razorpay.Client, body, signature: str, secret: str) -> bool:
+    """Verify a webhook payload against the SCHOOL's own webhook ``secret``. ``body`` is the
+    RAW request bytes/str — verify BEFORE parsing. Returns False on any mismatch or if the
+    secret/signature is missing (fail-closed)."""
     if not secret or not signature:
         return False
     try:
@@ -81,9 +94,9 @@ def verify_webhook_signature(body, signature: str) -> bool:
         return False
 
 
-def get_captured_amount(payment_id: str) -> float:
-    """Return the amount (INR) actually captured by Razorpay for a payment. Fail-closed
-    (502 if unconfirmable) so dues are never credited for more than the money collected."""
+def get_captured_amount(client: razorpay.Client, payment_id: str) -> float:
+    """Return the amount (INR) actually captured for a payment on the school's account.
+    Fail-closed (502 if unconfirmable) so dues are never credited for more than collected."""
     try:
         payment = client.payment.fetch(payment_id)
         if payment.get("status") not in ("captured", "authorized"):
