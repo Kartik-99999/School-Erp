@@ -1,8 +1,8 @@
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -10,6 +10,7 @@ from app.api import deps
 from app.models.school import School
 from app.schemas.base import APIResponse
 from app.schemas.super_admin import SchoolResponse, SchoolSettingsUpdate
+from app.utils.validators import clean_bank_account, clean_external_url, clean_ifsc
 
 router = APIRouter()
 
@@ -133,4 +134,83 @@ async def update_payment_gateway(
     await db.refresh(school)
     return APIResponse(
         success=True, data=_gateway_status(school), message="Payment gateway updated."
+    )
+
+
+# Validated, normalizing fee-option field types (raise ValueError -> HTTP 422 on bad input).
+ExternalUrl = Annotated[Optional[str], BeforeValidator(clean_external_url)]
+BankAccount = Annotated[Optional[str], BeforeValidator(clean_bank_account)]
+IfscCode = Annotated[Optional[str], BeforeValidator(clean_ifsc)]
+
+
+class FeeOptionsUpdate(BaseModel):
+    external_payment_enabled: Optional[bool] = None
+    external_payment_url: ExternalUrl = None
+    bank_transfer_enabled: Optional[bool] = None
+    bank_name: Optional[str] = None
+    bank_account_number: BankAccount = None
+    bank_ifsc: IfscCode = None
+    bank_branch: Optional[str] = None
+    bank_account_holder: Optional[str] = None
+    bank_upi_id: Optional[str] = None
+
+
+class FeeOptionsResponse(BaseModel):
+    external_payment_enabled: bool
+    external_payment_url: Optional[str] = None
+    bank_transfer_enabled: bool
+    bank_name: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_ifsc: Optional[str] = None
+    bank_branch: Optional[str] = None
+    bank_account_holder: Optional[str] = None
+    bank_upi_id: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+@router.get(
+    "/fee-options",
+    response_model=APIResponse[FeeOptionsResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
+async def get_fee_options(
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+) -> Any:
+    """The school's display/redirect fee options (external URL + bank transfer). Unlike the
+    Razorpay payment-gateway endpoint, these are NON-secret and returned as-is."""
+    school = (
+        (await db.execute(select(School).filter(School.id == UUID(school_id)))).scalars().first()
+    )
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    return APIResponse(success=True, data=FeeOptionsResponse.model_validate(school))
+
+
+@router.put(
+    "/fee-options",
+    response_model=APIResponse[FeeOptionsResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
+async def update_fee_options(
+    payload: FeeOptionsUpdate,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+) -> Any:
+    """Configure the external payment URL + bank-transfer details and their enable flags.
+    A bad IFSC / account number / URL is rejected with 422 (see app/utils/validators.py)."""
+    school = (
+        (await db.execute(select(School).filter(School.id == UUID(school_id)))).scalars().first()
+    )
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(school, field, value)
+    db.add(school)
+    await db.commit()
+    await db.refresh(school)
+    return APIResponse(
+        success=True,
+        data=FeeOptionsResponse.model_validate(school),
+        message="Fee options updated.",
     )

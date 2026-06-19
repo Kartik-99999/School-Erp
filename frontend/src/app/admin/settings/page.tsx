@@ -8,6 +8,7 @@ import { Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TwoFactorSettings from "@/components/security/TwoFactorSettings";
 import PaymentGatewaySettings from "@/components/settings/PaymentGatewaySettings";
+import FeePaymentOptionsSettings from "@/components/settings/FeePaymentOptionsSettings";
 import { getMySchool, updateMySchool } from "@/lib/api/settings";
 
 export default function AdminSettingsPage() {
@@ -188,6 +189,8 @@ export default function AdminSettingsPage() {
         <TwoFactorSettings />
 
         <PaymentGatewaySettings schoolId={school?.id} />
+
+        <FeePaymentOptionsSettings />
       </div>
     </div>
   );

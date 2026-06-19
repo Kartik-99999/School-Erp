@@ -130,6 +130,21 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     `lib/api/settings.ts` `getMySchool`/`updateMySchool`). Default OFF for all rows (incl.
     existing) → zero behaviour change until opt-in. Tests `tests/test_whatsapp_optional.py`
     (gate off/on + exception swallowed). Proven live on `:8000`.
+16. **Two more per-school fee options — external URL + bank transfer** (DISPLAY/REDIRECT only,
+    each independently optional, alongside per-tenant Razorpay §3.14). 9 plaintext, non-secret
+    columns on `schools` (`external_payment_enabled` / `external_payment_url`;
+    `bank_transfer_enabled` + `bank_name` / `bank_account_number` / `bank_ifsc` / `bank_branch`
+    / `bank_account_holder` / `bank_upi_id`); migration `migrate_fee_options.py` (in CI).
+    Validators in `app/utils/validators.py`: IFSC `^[A-Z]{4}0[A-Z0-9]{6}$` (upper-normalized),
+    account 9–18 digits, valid http(s) URL → **422** on bad input. `GET/PUT /settings/fee-options`
+    (School Admin; readable — NOT write-only, unlike Razorpay secrets). Parent-facing
+    `GET /fees/payment-options` (tenant-scoped; Student/Parent/Admin/Accountant) →
+    `{razorpay:{enabled,key_id}, external:{enabled,url}, bank:{enabled,…}}`. **No auto-receipt**
+    for external/bank — reconciled via the existing offline-payment flow; only Razorpay
+    auto-records (its webhook). Frontend: admin **Fee Payment Options** card +
+    `student/fees` renders Razorpay Pay-Now / an external "Pay on school portal" link (new tab)
+    / a bank-details panel / a "contact the school" message when none are enabled. Default OFF
+    for all. Tests `tests/test_fee_options.py`. Proven live on `:8000`.
 
 ## 4. Run / verify
 ```bash
@@ -138,7 +153,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 86 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 92 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -192,6 +207,8 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
   Twilio/Cloudinary keys still needed to fully exercise those integrations.)
 - ✅ **WhatsApp alerts optional** — DONE (§3.15): per-school opt-in toggle (default OFF) +
   a gated, best-effort sender across all 4 call sites.
+- ✅ **External-URL + bank-transfer fee options** — DONE (§3.16): per-school, display/redirect
+  only, alongside Razorpay (external/bank reconciled via the offline-payment flow).
 - Rotate `educore_app` password for non-local; Redis-backed rate limiter for multi-instance.
 
 **Product depth (bigger):** LMS (assignments/submissions/grading — `homework_submissions`
@@ -237,5 +254,12 @@ board-compliant report cards / the LMS (product depth).
   in `app/api/v1/endpoints/settings.py` + `schemas/super_admin.py`; frontend Notifications
   toggle in `admin/settings/page.tsx` via `src/lib/api/settings.ts`; tests
   `tests/test_whatsapp_optional.py`.
+- Fee options (external URL + bank transfer): `schools.*` (`app/models/school.py` +
+  `db/schema.sql` + `migrate_fee_options.py`); validators in `app/utils/validators.py`;
+  `GET/PUT /settings/fee-options` (`app/api/v1/endpoints/settings.py`); parent
+  `GET /fees/payment-options` (`app/api/v1/endpoints/fees.py`); frontend
+  `src/components/settings/FeePaymentOptionsSettings.tsx` + `src/lib/api/settings.ts` + student
+  render in `src/app/student/fees/page.tsx` (`src/lib/api/studentPortal.ts`); tests
+  `tests/test_fee_options.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.
 - CI: `.github/workflows/ci.yml`. Schema: `db/schema.sql`. Tests: `backend/tests/`.

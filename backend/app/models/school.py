@@ -35,6 +35,21 @@ class School(Base):
     razorpay_enabled = Column(Boolean, default=False)
     # WhatsApp alerts are OPT-IN per school (default OFF) — uses the platform Twilio sender.
     whatsapp_enabled = Column(Boolean, nullable=False, server_default=text("false"), default=False)
+    # Additional per-school fee-collection options (DISPLAY/REDIRECT only — NOT auto-recorded;
+    # the external URL + bank details are non-secret and returned in the API as-is).
+    external_payment_enabled = Column(
+        Boolean, nullable=False, server_default=text("false"), default=False
+    )
+    external_payment_url = Column(Text, nullable=True)
+    bank_transfer_enabled = Column(
+        Boolean, nullable=False, server_default=text("false"), default=False
+    )
+    bank_name = Column(String(255), nullable=True)
+    bank_account_number = Column(String(34), nullable=True)
+    bank_ifsc = Column(String(11), nullable=True)
+    bank_branch = Column(String(255), nullable=True)
+    bank_account_holder = Column(String(255), nullable=True)
+    bank_upi_id = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
     updated_at = Column(
         DateTime(timezone=True),

@@ -48,3 +48,22 @@ export interface OnlineVerifyPayload {
 // (the same source of truth the async webhook uses).
 export const verifyOnlinePayment = async (payload: OnlineVerifyPayload) =>
   (await api.post("/fees/payments/online/verify", payload)).data;
+
+
+// --- Fee payment options (which methods the school has enabled, for the student/parent) ---
+export interface PaymentOptions {
+  razorpay: { enabled: boolean; key_id: string | null };
+  external: { enabled: boolean; url: string | null };
+  bank: {
+    enabled: boolean;
+    bank_name: string | null;
+    account_number: string | null;
+    ifsc: string | null;
+    branch: string | null;
+    account_holder: string | null;
+    upi_id: string | null;
+  };
+}
+
+export const getPaymentOptions = async (): Promise<PaymentOptions> =>
+  (await api.get("/fees/payment-options")).data.data;

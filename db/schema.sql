@@ -41,6 +41,16 @@ CREATE TABLE schools (
     razorpay_webhook_secret TEXT,
     razorpay_enabled BOOLEAN DEFAULT FALSE,
     whatsapp_enabled BOOLEAN NOT NULL DEFAULT FALSE, -- opt-in per school (platform Twilio sender)
+    -- Additional per-school fee-collection options (display/redirect only; non-secret)
+    external_payment_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    external_payment_url TEXT,
+    bank_transfer_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    bank_name VARCHAR(255),
+    bank_account_number VARCHAR(34),
+    bank_ifsc VARCHAR(11),
+    bank_branch VARCHAR(255),
+    bank_account_holder VARCHAR(255),
+    bank_upi_id VARCHAR(255),
     subscription_plan_id UUID REFERENCES subscription_plans(id),
     subscription_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

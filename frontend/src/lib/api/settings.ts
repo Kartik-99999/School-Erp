@@ -45,3 +45,24 @@ export const getMySchool = async (): Promise<MySchool> =>
 
 export const updateMySchool = async (payload: Partial<MySchool>): Promise<MySchool> =>
   (await api.put("/settings/me", payload)).data.data;
+
+
+// Display/redirect fee options (external payment URL + bank transfer). NON-secret —
+// returned as-is (unlike the write-only Razorpay payment-gateway endpoint).
+export interface FeeOptions {
+  external_payment_enabled: boolean;
+  external_payment_url: string | null;
+  bank_transfer_enabled: boolean;
+  bank_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc: string | null;
+  bank_branch: string | null;
+  bank_account_holder: string | null;
+  bank_upi_id: string | null;
+}
+
+export const getFeeOptions = async (): Promise<FeeOptions> =>
+  (await api.get("/settings/fee-options")).data.data;
+
+export const updateFeeOptions = async (payload: Partial<FeeOptions>): Promise<FeeOptions> =>
+  (await api.put("/settings/fee-options", payload)).data.data;

@@ -724,6 +724,49 @@ async def razorpay_webhook(
     return {"status": "ok"}
 
 
+@router.get(
+    "/payment-options",
+    dependencies=[
+        Depends(
+            deps.require_roles(["Student", "Parent", "School Admin", "Super Admin", "Accountant"])
+        )
+    ],
+)
+async def get_payment_options(
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+):
+    """Parent-facing: which fee-collection methods this school has enabled + their display
+    data. External + bank are DISPLAY/REDIRECT only (no auto-receipt — offline reconciliation);
+    only Razorpay auto-records via its webhook."""
+    school = (
+        (await db.execute(select(School).filter(School.id == UUID(school_id)))).scalars().first()
+    )
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    bank_on = bool(school.bank_transfer_enabled)
+    data = {
+        "razorpay": {
+            "enabled": bool(school.razorpay_enabled and school.razorpay_key_id),
+            "key_id": school.razorpay_key_id if school.razorpay_enabled else None,
+        },
+        "external": {
+            "enabled": bool(school.external_payment_enabled and school.external_payment_url),
+            "url": school.external_payment_url if school.external_payment_enabled else None,
+        },
+        "bank": {
+            "enabled": bank_on,
+            "bank_name": school.bank_name if bank_on else None,
+            "account_number": school.bank_account_number if bank_on else None,
+            "ifsc": school.bank_ifsc if bank_on else None,
+            "branch": school.bank_branch if bank_on else None,
+            "account_holder": school.bank_account_holder if bank_on else None,
+            "upi_id": school.bank_upi_id if bank_on else None,
+        },
+    }
+    return APIResponse(success=True, data=data)
+
+
 @router.get("/receipts", response_model=APIResponse[List[FeeReceiptResponse]])
 async def get_receipts(
     student_id: Optional[UUID] = None,

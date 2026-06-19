@@ -7,6 +7,7 @@ legacy/imported rows always read back (and are masked on output).
 """
 
 import re
+from urllib.parse import urlparse
 
 # --- Verhoeff algorithm (the trailing check digit on a 12-digit Aadhaar) ----------
 # Dihedral group D5 multiplication table.
@@ -110,4 +111,62 @@ def clean_pen(value):
         return None
     if not is_valid_pen(s):
         raise ValueError("Invalid PEN (use up to 20 letters/digits, no spaces).")
+    return s
+
+
+# --- bank-transfer / external-payment fee options ---------------------------------
+_IFSC_RE = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
+
+
+def is_valid_ifsc(value: str) -> bool:
+    """RBI IFSC: 4 letters + '0' + 6 alphanumerics (e.g. HDFC0001234)."""
+    return bool(_IFSC_RE.fullmatch(value.strip().upper()))
+
+
+def is_valid_bank_account(value: str) -> bool:
+    """Indian bank account numbers are 9–18 digits (spaces tolerated)."""
+    s = re.sub(r"\s", "", value.strip())
+    return s.isdigit() and 9 <= len(s) <= 18
+
+
+def is_valid_http_url(value: str) -> bool:
+    """A syntactically valid http(s) URL (scheme + host)."""
+    try:
+        u = urlparse(value.strip())
+    except (ValueError, TypeError):
+        return False
+    return u.scheme in ("http", "https") and bool(u.netloc)
+
+
+def clean_ifsc(value):
+    if value is None:
+        return None
+    s = str(value).strip().upper()
+    if not s:
+        return None
+    if not is_valid_ifsc(s):
+        raise ValueError("Invalid IFSC code (format: ABCD0XXXXXX, e.g. HDFC0001234).")
+    return s
+
+
+def clean_bank_account(value):
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    digits = re.sub(r"\s", "", s)
+    if not (digits.isdigit() and 9 <= len(digits) <= 18):
+        raise ValueError("Invalid bank account number (9–18 digits).")
+    return digits
+
+
+def clean_external_url(value):
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if not is_valid_http_url(s):
+        raise ValueError("Invalid payment URL (must be a valid http:// or https:// link).")
     return s

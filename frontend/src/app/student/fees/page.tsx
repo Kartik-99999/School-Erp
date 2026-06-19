@@ -1,7 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { DollarSign, CreditCard, Clock, FileText } from "lucide-react";
-import { getMyFees, initiateOnlinePayment, verifyOnlinePayment } from "@/lib/api/studentPortal";
+import { DollarSign, CreditCard, Clock, FileText, ExternalLink, Landmark } from "lucide-react";
+import {
+  getMyFees,
+  initiateOnlinePayment,
+  verifyOnlinePayment,
+  getPaymentOptions,
+  type PaymentOptions,
+} from "@/lib/api/studentPortal";
 
 const loadRazorpay = (): Promise<boolean> =>
   new Promise((resolve) => {
@@ -27,6 +33,7 @@ export default function StudentFeesPage() {
   const [summary, setSummary] = useState<any>({ total_due: 0, total_paid: 0, balance: 0 });
   const [studentId, setStudentId] = useState<string>("");
   const [paying, setPaying] = useState(false);
+  const [options, setOptions] = useState<PaymentOptions | null>(null);
 
   const load = async () => {
     try {
@@ -35,6 +42,11 @@ export default function StudentFeesPage() {
       setDues(res.data.dues || []);
       setReceipts(res.data.receipts || []);
       setSummary(res.data.summary || {});
+      try {
+        setOptions(await getPaymentOptions());
+      } catch (e) {
+        console.error("Failed to load payment options", e);
+      }
     } catch (e) {
       console.error("Failed to load fees", e);
     } finally {
@@ -118,7 +130,7 @@ export default function StudentFeesPage() {
             Outstanding Balance
           </p>
           <p className="text-5xl font-bold mb-4">{loading ? "…" : inr(summary.balance)}</p>
-          {!loading && Number(summary.balance) > 0 && (
+          {!loading && Number(summary.balance) > 0 && options?.razorpay?.enabled && (
             <button
               onClick={handlePayNow}
               disabled={paying}
@@ -140,6 +152,99 @@ export default function StudentFeesPage() {
           </p>
         </div>
       </div>
+
+      {!loading &&
+        options &&
+        (options.external.enabled ||
+          options.bank.enabled ||
+          (!options.razorpay.enabled &&
+            !options.external.enabled &&
+            !options.bank.enabled)) && (
+          <div className="bg-surface-card rounded-card shadow-sm border border-border p-6 space-y-4">
+            <h3 className="text-lg font-bold text-ink">Ways to Pay</h3>
+            {!options.razorpay.enabled &&
+            !options.external.enabled &&
+            !options.bank.enabled ? (
+              <p className="text-sm text-ink-muted">
+                Online payment isn’t available right now — please contact the school office to
+                pay your fees.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {options.external.enabled && options.external.url && (
+                  <div className="border border-border rounded-input p-4">
+                    <p className="font-semibold text-ink flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4" /> Pay on the school’s portal
+                    </p>
+                    <p className="text-sm text-ink-muted mt-1">
+                      You’ll be redirected to the school’s own payment site.
+                    </p>
+                    <a
+                      href={options.external.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-block px-4 py-2 bg-primary-600 text-white rounded-btn text-sm font-medium hover:bg-primary-700"
+                    >
+                      Open payment site
+                    </a>
+                  </div>
+                )}
+                {options.bank.enabled && (
+                  <div className="border border-border rounded-input p-4 md:col-span-2">
+                    <p className="font-semibold text-ink flex items-center gap-2">
+                      <Landmark className="w-4 h-4" /> Bank transfer (NEFT / IMPS / UPI)
+                    </p>
+                    <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                      {options.bank.account_holder && (
+                        <div>
+                          <dt className="inline text-ink-muted">Account holder: </dt>
+                          <dd className="inline text-ink font-medium">
+                            {options.bank.account_holder}
+                          </dd>
+                        </div>
+                      )}
+                      {options.bank.bank_name && (
+                        <div>
+                          <dt className="inline text-ink-muted">Bank: </dt>
+                          <dd className="inline text-ink font-medium">{options.bank.bank_name}</dd>
+                        </div>
+                      )}
+                      {options.bank.account_number && (
+                        <div>
+                          <dt className="inline text-ink-muted">A/C no: </dt>
+                          <dd className="inline text-ink font-medium">
+                            {options.bank.account_number}
+                          </dd>
+                        </div>
+                      )}
+                      {options.bank.ifsc && (
+                        <div>
+                          <dt className="inline text-ink-muted">IFSC: </dt>
+                          <dd className="inline text-ink font-medium">{options.bank.ifsc}</dd>
+                        </div>
+                      )}
+                      {options.bank.branch && (
+                        <div>
+                          <dt className="inline text-ink-muted">Branch: </dt>
+                          <dd className="inline text-ink font-medium">{options.bank.branch}</dd>
+                        </div>
+                      )}
+                      {options.bank.upi_id && (
+                        <div>
+                          <dt className="inline text-ink-muted">UPI: </dt>
+                          <dd className="inline text-ink font-medium">{options.bank.upi_id}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    <p className="text-xs text-ink-muted mt-2">
+                      After paying, the school office will record your receipt.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
       <div className="bg-surface-card rounded-card shadow-sm border border-border overflow-hidden">
         <div className="p-6 border-b border-border">
