@@ -13,15 +13,18 @@ cloudinary.config(
 
 def upload_file(file_content: bytes, folder: str = "school_erp") -> str:
     """
-    Uploads a file to Cloudinary and returns the secure URL.
+    Uploads a file to Cloudinary and returns the secure URL. ``resource_type="auto"`` lets
+    Cloudinary detect the type, so non-image documents (pdf/docx/xlsx/ppt/zip/txt) are stored
+    as ``raw`` instead of being rejected by the image pipeline.
     """
     try:
-        response = cloudinary.uploader.upload(file_content, folder=folder)
+        response = cloudinary.uploader.upload(file_content, folder=folder, resource_type="auto")
         return response.get("secure_url")
     except Exception as e:
         # Fail loudly instead of persisting a fake URL that looks valid.
         print(f"Cloudinary upload failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="File upload failed. Verify Cloudinary credentials are configured.",
+            detail="File upload failed. The file may be unsupported or corrupt, "
+            "or the storage service is unavailable.",
         )
