@@ -74,6 +74,13 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     `SchoolForm`) and a `TwoFactorSettings` card on the admin settings page — QR enroll
     (`qrcode.react`) + manual secret, code confirm → one-time recovery codes, and a
     password-gated disable. `tsc` clean; login challenge + verify proven against `:3001`.
+12. **Aadhaar / APAAR / PEN input validation** — `app/utils/validators.py` (Aadhaar:
+    12 digits, leading 2–9, **Verhoeff** check digit; APAAR: 12 digits; PEN: lenient
+    alphanumeric ≤20). Wired as pydantic `BeforeValidator`s on the **input** schemas only
+    (`StudentCreate` / `StudentUpdate` / `ParentCreate`) — Response schemas stay
+    unvalidated so legacy/imported rows still read + mask. Normalizes (strips spaces/
+    hyphens), blank → None. Tests `tests/test_pii_validation.py`; live: bad → 422,
+    valid → 201 on `:8000`.
 
 ## 4. Run / verify
 ```bash
@@ -82,7 +89,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 60 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 68 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -121,7 +128,7 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 ## 7. What's NEXT (prioritized)
 **Bounded hardening (pick one):**
 - ✅ **2FA (TOTP)** — DONE, backend + frontend (§3.11).
-- **Aadhaar/APAAR input validation** (format/checksum) — small, finishes the PII story.
+- ✅ **Aadhaar/APAAR/PEN input validation** — DONE (§3.12): Verhoeff + format on the input schemas.
 - **RS256** (asymmetric JWT) instead of HS256.
 - **Razorpay webhook** (async payment confirm) + real Twilio/Cloudinary keys (needs
   real accounts to fully test).
@@ -132,7 +139,8 @@ table already exists) · board-compliant report cards · communication hub · an
 granular RBAC (`roles.permissions` JSON is unused) · native mobile · the stub dashboards
 (teacher/accountant/student previews).
 
-**Recommended next:** Aadhaar/APAAR input validation (finishes the PII story) or RS256.
+**Recommended next:** RS256 (asymmetric JWT), or wire the 2FA card into the
+teacher/accountant settings areas.
 
 ## 8. Key file map
 - RLS: `backend/enable_rls.py`, `app/db/session.py` (after_begin), `app/api/deps.py`
@@ -146,6 +154,9 @@ granular RBAC (`roles.permissions` JSON is unused) · native mobile · the stub 
   Frontend: `frontend/src/components/security/TwoFactorSettings.tsx`,
   `frontend/src/lib/api/twoFactor.ts`, `frontend/src/lib/authError.ts`, the NextAuth route
   + `login/CoreTeamForm.tsx` / `login/SchoolForm.tsx`, embedded in `admin/settings/page.tsx`.
+- Input validation: `app/utils/validators.py` (Aadhaar Verhoeff + APAAR/PEN), wired on
+  `StudentCreate`/`StudentUpdate`/`ParentCreate` in `app/schemas/students.py`; tests
+  `tests/test_pii_validation.py`.
 - PII: `app/core/crypto.py` (EncryptedString), `app/utils/masking.py`, `app/schemas/students.py`.
 - Money: `app/crud/crud_fees.py`, `app/schemas/fees.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.

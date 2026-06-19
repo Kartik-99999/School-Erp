@@ -1,10 +1,18 @@
 from datetime import date
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, BeforeValidator, ConfigDict, field_serializer
 
 from app.utils.masking import mask_pii
+from app.utils.validators import clean_aadhaar, clean_apaar, clean_pen
+
+# Validated, self-normalizing PII field types — used on INPUT schemas only
+# (create/update). Response schemas stay unvalidated so legacy/imported rows always
+# read back. The clean_* funcs normalize and raise ValueError (-> HTTP 422) on bad input.
+AadhaarField = Annotated[Optional[str], BeforeValidator(clean_aadhaar)]
+ApaarField = Annotated[Optional[str], BeforeValidator(clean_apaar)]
+PenField = Annotated[Optional[str], BeforeValidator(clean_pen)]
 
 
 # Parent
@@ -38,7 +46,10 @@ class ParentBase(BaseModel):
 
 
 class ParentCreate(ParentBase):
-    pass
+    # Validate Aadhaar on input only — ParentResponse extends ParentBase, not this.
+    father_aadhaar: AadhaarField = None
+    mother_aadhaar: AadhaarField = None
+    guardian_aadhaar: AadhaarField = None
 
 
 class ParentResponse(ParentBase):
@@ -92,6 +103,10 @@ class StudentBase(BaseModel):
 
 
 class StudentCreate(StudentBase):
+    # Validate the government IDs on input only — StudentResponse extends StudentBase.
+    apaar_id: ApaarField = None
+    aadhaar_no: AadhaarField = None
+    pen_number: PenField = None
     parent: ParentCreate
     medical: Optional[StudentMedicalCreate] = None
 
@@ -107,9 +122,9 @@ class StudentUpdate(BaseModel):
     religion: Optional[str] = None
     category: Optional[str] = None
     mother_tongue: Optional[str] = None
-    apaar_id: Optional[str] = None
-    aadhaar_no: Optional[str] = None
-    pen_number: Optional[str] = None
+    apaar_id: ApaarField = None
+    aadhaar_no: AadhaarField = None
+    pen_number: PenField = None
     photo_url: Optional[str] = None
     current_class_id: Optional[UUID] = None
     current_section_id: Optional[UUID] = None
