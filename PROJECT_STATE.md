@@ -60,6 +60,17 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
 9. **bcrypt pin** — `bcrypt>=3.2.0,<4.0` in requirements.txt (passlib 1.7.4 breaks on
    bcrypt 4.x — CI caught this; it would've broken login on a fresh deploy).
 10. **git + GitHub + CI** set up (section 2).
+11. **2FA (TOTP)** — opt-in two-factor (aimed at admin/staff, available to any user).
+    Two-step login: password → short-lived `mfa_token` (5 min, purpose-scoped) →
+    `/auth/2fa/verify` with a TOTP **or** a single-use recovery code → access+refresh.
+    Routes under `/auth/2fa`: `status` · `setup` (returns `otpauth://` provisioning URI
+    for QR) · `enable` (confirms a code, returns 10 recovery codes) · `disable` (password
+    re-auth) · `verify`. Secret encrypted at rest (`EncryptedString`/Fernet); recovery
+    codes sha256 + single-use. New tables `two_factor_secrets` / `two_factor_recovery_codes`
+    have no `school_id` → no RLS (refresh-token precedent); `educore_app` granted via
+    `enable_rls.py` default privileges. `pyotp` added. Tests: `tests/test_2fa.py` (pure
+    logic + auth guards + DB-backed e2e). Verified live on `:8000`.
+    **Backend done; the enroll/verify UI (frontend) is still TODO.**
 
 ## 4. Run / verify
 ```bash
@@ -92,19 +103,20 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
   lockfile / pinning.
 
 ## 6. Immediate loose ends (USER)
-1. **Push the latest commit** `42fd7a6` (PII encryption) to GitHub:
-   `cd ~/school-erp && until git push origin main; do sleep 3; done` → CI re-runs.
-   (Also commit/push this `PROJECT_STATE.md`.)
-2. **Restart `:8000`** + **reseed the dev DB** (it's empty after the rebuild) — sign up a
-   school at `/signup` or load `sample_data/`.
-3. **Browser-test the auth refresh**: log in, idle past 60 min, confirm it stays logged
-   in (the one piece not verifiable without a browser). Fallback if it misbehaves: raise
+1. ~~Push `42fd7a6` (PII) + this doc~~ — **DONE**: pushed to GitHub (`be5ab2f`), CI re-ran.
+2. ~~Reseed the empty dev DB~~ — **DONE**: Super Admin `admin@educore.com`/`admin123`;
+   school `demo` with School Admin `admin@demo.edu`/`demo1234`. `:8000` confirmed
+   connecting as `educore_app` (RLS enforced) — no restart needed.
+3. **Browser-test the auth refresh** (still pending — needs a browser): log in, idle past
+   60 min, confirm it stays logged in. Fallback if it misbehaves: raise
    `ACCESS_TOKEN_EXPIRE_MINUTES` in `.env`.
+4. **Build the 2FA enroll/verify UI** (frontend): `/auth/2fa/setup` (render
+   `provisioning_uri` as a QR) → `/enable`; and handle the login `requires_2fa` challenge
+   → `/auth/2fa/verify`. Backend is done + verified (§3.11).
 
 ## 7. What's NEXT (prioritized)
 **Bounded hardening (pick one):**
-- **2FA (TOTP)** for admin/staff — enroll (QR) + verify at login + recovery codes
-  (backend testable; enroll/verify UI needs browser).
+- ✅ **2FA (TOTP)** — backend DONE (§3.11). Remaining: the enroll/verify **frontend UI**.
 - **Aadhaar/APAAR input validation** (format/checksum) — small, finishes the PII story.
 - **RS256** (asymmetric JWT) instead of HS256.
 - **Razorpay webhook** (async payment confirm) + real Twilio/Cloudinary keys (needs
@@ -116,13 +128,18 @@ table already exists) · board-compliant report cards · communication hub · an
 granular RBAC (`roles.permissions` JSON is unused) · native mobile · the stub dashboards
 (teacher/accountant/student previews).
 
-**Recommended next:** 2FA (TOTP) — highest security value, mostly verifiable.
+**Recommended next:** 2FA **frontend UI** (backend shipped, §3.11), then Aadhaar/APAAR
+input validation or RS256.
 
 ## 8. Key file map
 - RLS: `backend/enable_rls.py`, `app/db/session.py` (after_begin), `app/api/deps.py`
   (set_tenant_context), `app/api/v1/endpoints/super_admin.py` (bypass).
 - Auth: `app/api/v1/endpoints/auth.py`, `app/core/jwt.py`, `app/core/security.py`,
   `app/models/auth_tokens.py` (RefreshToken), frontend `src/app/api/auth/[...nextauth]/route.ts`.
+- 2FA: `app/api/v1/endpoints/two_factor.py` (routes `/auth/2fa/*`), `app/core/twofa.py`
+  (pyotp + recovery codes), `app/models/two_factor.py`, `app/schemas/two_factor.py`,
+  `app/core/jwt.py` (`create_mfa_token`/`verify_mfa_token`), login gate +
+  `_issue_login_tokens` in `auth.py`. Tables in `db/schema.sql`; tests `tests/test_2fa.py`.
 - PII: `app/core/crypto.py` (EncryptedString), `app/utils/masking.py`, `app/schemas/students.py`.
 - Money: `app/crud/crud_fees.py`, `app/schemas/fees.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.

@@ -5,6 +5,7 @@ from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ from sqlalchemy.future import select
 
 from app.api import deps
 from app.core.config import settings
-from app.core.jwt import create_access_token
+from app.core.jwt import create_access_token, create_mfa_token
 from app.core.limiter import limiter
 from app.core.security import get_password_hash, verify_password
 from app.crud.crud_audit import record_audit
@@ -41,6 +42,59 @@ async def _new_refresh_token(db: AsyncSession, user_id) -> str:
     )
     await db.commit()
     return raw
+
+
+async def _issue_login_tokens(db: AsyncSession, user, request: Request) -> dict:
+    """Build the full success payload for a verified login: resolve role + subdomain,
+    mint a short-lived access token plus a rotating refresh token, and best-effort
+    record last_login + an audit row (bookkeeping must never block a valid login).
+
+    Shared by /auth/login (no-2FA path) and /auth/2fa/verify (post-challenge)."""
+    role = (await db.execute(select(Role).filter(Role.id == user.role_id))).scalars().first()
+    role_name = role.name if role else "Student"
+
+    subdomain = None
+    if user.school_id:
+        from app.models.school import School
+
+        school = (
+            (await db.execute(select(School).filter(School.id == user.school_id))).scalars().first()
+        )
+        subdomain = school.subdomain if school else None
+
+    access_token = create_access_token(subject=user.id, role=role_name, school_id=user.school_id)
+    refresh_token = await _new_refresh_token(db, user.id)
+
+    try:
+        user.last_login = datetime.now(timezone.utc)
+        db.add(user)
+        await record_audit(
+            db,
+            action="auth.login",
+            school_id=user.school_id,
+            actor_user_id=user.id,
+            actor_email=user.email,
+            actor_role=role_name,
+            entity_type="User",
+            entity_id=user.id,
+            summary=f"{user.email} signed in as {role_name}",
+            ip_address=request.client.host if request.client else None,
+        )
+        await db.commit()
+    except Exception as e:  # noqa: BLE001 — never fail login over bookkeeping
+        await db.rollback()
+        print(f"[login] post-auth bookkeeping skipped: {type(e).__name__}: {e}")
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": str(user.id),
+        "role": role_name,
+        "school_id": str(user.school_id) if user.school_id else None,
+        "subdomain": subdomain,
+        "refresh_token": refresh_token,
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    }
 
 
 class PasswordResetRequest(BaseModel):
@@ -143,59 +197,27 @@ async def login_access_token(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    # 2. Fetch Role Name
-    role_query = select(Role).filter(Role.id == user.role_id)
-    role_res = await db.execute(role_query)
-    role = role_res.scalars().first()
-    role_name = role.name if role else "Student"
+    # 2FA gate: if the account has confirmed TOTP, don't issue tokens yet. Return a
+    # short-lived MFA challenge that the client exchanges (with a code) at
+    # /auth/2fa/verify. Returning a JSONResponse bypasses the Token response_model.
+    from app.models.two_factor import TwoFactorSecret
 
-    # 3. Fetch School Subdomain if user belongs to a school
-    subdomain = None
-    if user.school_id:
-        from app.models.school import School
-
-        school_query = select(School).filter(School.id == user.school_id)
-        school_res = await db.execute(school_query)
-        school = school_res.scalars().first()
-        if school:
-            subdomain = school.subdomain
-
-    # 4. Create tokens (short-lived access + rotating refresh)
-    access_token = create_access_token(subject=user.id, role=role_name, school_id=user.school_id)
-    refresh_token = await _new_refresh_token(db, user.id)
-
-    # Record the sign-in (best-effort: last_login + audit). The token is already
-    # issued, so bookkeeping must never block a valid login.
-    try:
-        user.last_login = datetime.now(timezone.utc)
-        db.add(user)
-        await record_audit(
-            db,
-            action="auth.login",
-            school_id=user.school_id,
-            actor_user_id=user.id,
-            actor_email=user.email,
-            actor_role=role_name,
-            entity_type="User",
-            entity_id=user.id,
-            summary=f"{user.email} signed in as {role_name}",
-            ip_address=request.client.host if request.client else None,
+    tfa = (
+        (await db.execute(select(TwoFactorSecret).filter(TwoFactorSecret.user_id == user.id)))
+        .scalars()
+        .first()
+    )
+    if tfa and tfa.is_enabled:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "requires_2fa": True,
+                "mfa_token": create_mfa_token(user.id),
+                "token_type": "mfa",
+            },
         )
-        await db.commit()
-    except Exception as e:  # noqa: BLE001 — never fail login over bookkeeping
-        await db.rollback()
-        print(f"[login] post-auth bookkeeping skipped: {type(e).__name__}: {e}")
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user_id": str(user.id),
-        "role": role_name,
-        "school_id": str(user.school_id) if user.school_id else None,
-        "subdomain": subdomain,
-        "refresh_token": refresh_token,
-        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    }
+    return await _issue_login_tokens(db, user, request)
 
 
 @router.post("/refresh", response_model=Token)

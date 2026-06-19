@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     # (dev). Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     PII_ENCRYPTION_KEY: Optional[str] = None
 
+    # Label shown in authenticator apps when enrolling 2FA (the otpauth:// issuer).
+    TOTP_ISSUER: str = "Educore School ERP"
+
     @property
     def async_database_uri(self) -> str:
         """Owner connection (POSTGRES_USER) — used by migrations/DDL scripts."""

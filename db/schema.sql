@@ -577,6 +577,29 @@ CREATE TABLE password_reset_tokens (
 );
 CREATE INDEX idx_password_reset_tokens_user ON password_reset_tokens(user_id);
 
+-- ==========================================
+-- TWO-FACTOR AUTH (TOTP) — keyed by user, no school_id => no RLS policy
+-- ==========================================
+CREATE TABLE two_factor_secrets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    secret TEXT NOT NULL,                 -- base32 TOTP secret, encrypted at rest (Fernet)
+    is_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    confirmed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE two_factor_recovery_codes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash VARCHAR(64) NOT NULL,       -- sha256 of the normalized single-use code
+    used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_two_factor_recovery_codes_user ON two_factor_recovery_codes(user_id);
+CREATE INDEX idx_two_factor_recovery_codes_code_hash ON two_factor_recovery_codes(code_hash);
+
 CREATE TABLE student_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
