@@ -165,11 +165,15 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
   `until git push origin main; do sleep 3; done`. `api.github.com` REST + git transport
   work intermittently; `gh repo create` (GraphQL) often timed out — repos were created
   via REST `curl POST /user/repos`.
-- **Claude Code blocks the agent from pushing whole repos to new remotes** (data-exfil
-  guardrail) — the USER must run `git push` (via `!` or their terminal). The agent
-  can't push.
+- **Pushing:** incremental `git push origin main` to the EXISTING origin works fine from the
+  agent — done repeatedly (e.g. `73fe125`, `d3c9d2f` were agent-pushed). The original data-exfil
+  guardrail only bit the *initial* whole-repo push to a *new* remote; it does not apply to
+  incremental pushes here. Network is flaky, so wrap pushes in the retry loop above.
 - **`PII_ENCRYPTION_KEY` is a vault secret** — back it up; losing it = unrecoverable
-  PII. For existing plaintext rows, re-save them after setting the key.
+  PII. For existing plaintext rows, re-save them after setting the key. **Blast radius grew:**
+  it now ALSO encrypts every school's Razorpay `key_secret` + `webhook_secret` (per-tenant
+  gateway config reuses the same `EncryptedString`), so rotating/losing it breaks payment
+  creds too. (Consider a dedicated key for gateway secrets later.)
 - **RLS:** restart the backend after changing `APP_DB_USER` in `.env`. A backend started
   before activation keeps connecting as owner (RLS inert) until restarted.
 - **JWT keys must be stable across restarts.** Tokens are RS256-signed with
