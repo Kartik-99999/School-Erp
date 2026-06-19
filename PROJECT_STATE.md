@@ -93,6 +93,21 @@ WhatsApp, CBSE, APAAR/Aadhaar/PEN). ~20 modules, 6 roles.
     DB refresh tokens transparently mint new RS256 ones, so users aren't logged out.
     `SECRET_KEY` kept for non-JWT use. Tests `tests/test_jwt_rs256.py` (6); live RS256 login
     proven on `:8000` (header alg=RS256, verifies w/ public key, HS256-forged → 401).
+14. **Razorpay webhook (async payment confirm)** — design = **full intent in the order**.
+    `POST /fees/payments/online/initiate` now validates the allocations (ownership, each
+    schedule belongs to student+tenant, sum == amount) and stashes them in the Razorpay
+    order `notes` (school_id / student_id / intent JSON). A shared `record_online_payment`
+    recorder reads those notes (source of truth), sets tenant RLS context **manually**
+    (admissions precedent), dedupes on payment_id (idempotent), caps allocated ≤ captured,
+    then records via `crud_fee_payment.process_payment`. Both the browser `verify` callback
+    and a new **unauthenticated** `POST /fees/payments/online/webhook` use it. The webhook
+    verifies `X-Razorpay-Signature` against the RAW body with `RAZORPAY_WEBHOOK_SECRET`
+    BEFORE parsing (fail-closed 400); 5xx on transient errors (Razorpay retries), 200 once
+    recorded. `create_order` carries `notes`; `RAZORPAY_WEBHOOK_SECRET` added to config /
+    .env.example. Frontend: allocations ride `/initiate`; `verify` no longer sends them.
+    Tests `tests/test_razorpay_webhook.py` (signature / idempotency / cap / tenant; DB-backed
+    auto-skip). Signature+idempotency+cap proven headlessly + live fail-closed on `:8000`;
+    real webhook delivery needs a tunnel + dashboard config (see §6).
 
 ## 4. Run / verify
 ```bash
@@ -101,7 +116,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 74 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 79 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -150,8 +165,9 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 - ✅ **2FA (TOTP)** — DONE, backend + frontend (§3.11).
 - ✅ **Aadhaar/APAAR/PEN input validation** — DONE (§3.12): Verhoeff + format on the input schemas.
 - ✅ **RS256** (asymmetric JWT) — DONE (§3.13): RSA keypair, sign-private/verify-public, CI ephemeral keys.
-- **Razorpay webhook** (async payment confirm) + real Twilio/Cloudinary keys (needs
-  real accounts to fully test).
+- ✅ **Razorpay webhook** (async payment confirm) — DONE (§3.14): intent-in-order + a
+  signature-verified unauthenticated webhook. (Real Twilio/Cloudinary keys still needed to
+  fully exercise those integrations.)
 - Rotate `educore_app` password for non-local; Redis-backed rate limiter for multi-instance.
 
 **Product depth (bigger):** LMS (assignments/submissions/grading — `homework_submissions`
@@ -159,8 +175,8 @@ table already exists) · board-compliant report cards · communication hub · an
 granular RBAC (`roles.permissions` JSON is unused) · native mobile · the stub dashboards
 (teacher/accountant/student previews).
 
-**Recommended next:** wire the 2FA card into the teacher/accountant settings areas, or the
-Razorpay webhook (needs real keys to fully test).
+**Recommended next:** wire the 2FA card into the teacher/accountant settings areas, or
+board-compliant report cards / the LMS (product depth).
 
 ## 8. Key file map
 - RLS: `backend/enable_rls.py`, `app/db/session.py` (after_begin), `app/api/deps.py`
@@ -183,5 +199,10 @@ Razorpay webhook (needs real keys to fully test).
   `tests/test_pii_validation.py`.
 - PII: `app/core/crypto.py` (EncryptedString), `app/utils/masking.py`, `app/schemas/students.py`.
 - Money: `app/crud/crud_fees.py`, `app/schemas/fees.py`.
+- Razorpay / online payments: `app/utils/razorpay.py` (create_order+notes, fetch_order,
+  verify_webhook_signature), `app/api/v1/endpoints/fees.py` (`record_online_payment` +
+  `initiate` / `verify` / `webhook`), `RAZORPAY_WEBHOOK_SECRET` in `config.py`/.env.example,
+  frontend `src/lib/api/studentPortal.ts` + `src/app/student/fees/page.tsx`, tests
+  `tests/test_razorpay_webhook.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.
 - CI: `.github/workflows/ci.yml`. Schema: `db/schema.sql`. Tests: `backend/tests/`.

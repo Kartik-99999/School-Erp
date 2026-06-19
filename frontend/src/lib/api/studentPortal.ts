@@ -18,15 +18,33 @@ export const applyLeave = async (payload: LeaveApplyPayload) =>
   (await api.post("/student-portal/leaves", payload)).data;
 
 // --- Online fee payment (Razorpay) ---
-export const initiateOnlinePayment = async (amount: number, studentId: string) =>
-  (await api.post(`/fees/payments/online/initiate?amount=${amount}&student_id=${studentId}`)).data;
+export interface PaymentAllocation {
+  fee_schedule_id: string;
+  amount: number;
+}
+
+// The Razorpay order now CARRIES the validated intent (the server stashes the
+// allocations in the order's notes), so allocations ride along here at initiate time.
+export const initiateOnlinePayment = async (
+  amount: number,
+  studentId: string,
+  allocations: PaymentAllocation[]
+) =>
+  (
+    await api.post("/fees/payments/online/initiate", {
+      amount,
+      student_id: studentId,
+      allocations,
+    })
+  ).data;
 
 export interface OnlineVerifyPayload {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
   student_id: string;
-  allocations: { fee_schedule_id: string; amount: number }[];
 }
+// allocations are no longer sent — the server records from the order's notes
+// (the same source of truth the async webhook uses).
 export const verifyOnlinePayment = async (payload: OnlineVerifyPayload) =>
   (await api.post("/fees/payments/online/verify", payload)).data;

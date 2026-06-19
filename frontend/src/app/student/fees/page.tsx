@@ -55,7 +55,7 @@ export default function StudentFeesPage() {
 
     setPaying(true);
     try {
-      const init = await initiateOnlinePayment(total, studentId);
+      const init = await initiateOnlinePayment(total, studentId, allocations);
       const order = init.data.order;
       const keyId = init.data.key_id;
       const ok = await loadRazorpay();
@@ -78,7 +78,6 @@ export default function StudentFeesPage() {
               razorpay_payment_id: resp.razorpay_payment_id,
               razorpay_signature: resp.razorpay_signature,
               student_id: studentId,
-              allocations,
             });
             alert("Payment successful! Your dues have been updated.");
             await load();

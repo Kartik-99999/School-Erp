@@ -53,6 +53,9 @@ class Settings(BaseSettings):
 
     RAZORPAY_KEY_ID: str = "rzp_test_12345"
     RAZORPAY_KEY_SECRET: str = "rzp_secret_12345"
+    # Secret set on the Razorpay dashboard webhook; used to verify webhook signatures
+    # (async payment confirmation). Blank => the webhook rejects everything (fail-closed).
+    RAZORPAY_WEBHOOK_SECRET: Optional[str] = None
 
     TWILIO_ACCOUNT_SID: str = "AC_demo"
     TWILIO_AUTH_TOKEN: str = "demo_token"
