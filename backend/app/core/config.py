@@ -46,6 +46,26 @@ class Settings(BaseSettings):
     APP_DB_USER: Optional[str] = None
     APP_DB_PASSWORD: Optional[str] = None
 
+    # --- Deployment / scale (production; all default to off/local-safe) ---
+    # Shared rate-limit store so all replicas count against ONE counter (multi-replica
+    # correctness). e.g. rediss://:<pwd>@<host>:6380/0. Unset -> slowapi uses in-memory
+    # (single-process; fine for local/dev/CI). See app/core/limiter.py.
+    REDIS_URL: Optional[str] = None
+
+    # Set true when the app connects through PgBouncer in TRANSACTION pooling mode:
+    # disables asyncpg's prepared-statement cache, which txn pooling can't support.
+    # The per-transaction `SET LOCAL app.current_tenant` (RLS, see app/db/session.py)
+    # stays correct under transaction pooling.
+    DB_PGBOUNCER: bool = False
+
+    # Require TLS to Postgres (most managed Postgres / PgBouncer front-ends enforce SSL).
+    # Appends ssl=require to the asyncpg connection. Default off for local/CI.
+    DB_SSL_REQUIRE: bool = False
+
+    # SQLAlchemy connection pool, PER REPLICA/worker (size with PgBouncer in front).
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 10
+
     # Third-party Integrations (Placeholders for local dev)
     CLOUDINARY_CLOUD_NAME: str = "demo"
     CLOUDINARY_API_KEY: str = "demo_key"
@@ -107,17 +127,28 @@ class Settings(BaseSettings):
             )
         return self.JWT_PUBLIC_KEY.replace("\\n", "\n")
 
+    def _with_ssl(self, uri: str) -> str:
+        """Append ssl=require when DB_SSL_REQUIRE is set (asyncpg accepts the libpq
+        sslmode strings). Central so every engine + bring-up script inherits it."""
+        if self.DB_SSL_REQUIRE:
+            return f"{uri}{'&' if '?' in uri else '?'}ssl=require"
+        return uri
+
     @property
     def async_database_uri(self) -> str:
         """Owner connection (POSTGRES_USER) — used by migrations/DDL scripts."""
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return self._with_ssl(
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
     @property
     def app_database_uri(self) -> str:
         """Connection the running app uses. Falls back to the owner connection
         unless APP_DB_USER/APP_DB_PASSWORD are set (then RLS is enforced)."""
         if self.APP_DB_USER and self.APP_DB_PASSWORD:
-            return f"postgresql+asyncpg://{self.APP_DB_USER}:{self.APP_DB_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+            return self._with_ssl(
+                f"postgresql+asyncpg://{self.APP_DB_USER}:{self.APP_DB_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+            )
         return self.async_database_uri
 
     class Config:

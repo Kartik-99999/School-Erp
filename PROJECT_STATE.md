@@ -169,7 +169,7 @@ cd backend && PYTHONPATH=. ./venv/bin/python -m uvicorn app.main:app --port 8000
 # Frontend (3001)
 cd frontend && npm install && npm run dev
 # Tests + lint
-cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 97 tests (DB ones skip w/o PG)
+cd backend && PYTHONPATH=. ./venv/bin/python -m pytest        # 103 tests (DB ones skip w/o PG)
 cd backend && ./venv/bin/ruff check app tests *.py && ./venv/bin/black --check app tests *.py
 cd frontend && npx tsc --noEmit
 ```
@@ -290,5 +290,15 @@ board-compliant report cards / the LMS (product depth).
   `src/components/resources/ResourcesPanel.tsx` + `src/lib/api/resources.ts` + four
   `{admin,teacher,student,parent}/resources/page.tsx` + nav in the role layouts; tests
   `tests/test_resources.py`.
+- Deployment (host-agnostic): `app/core/limiter.py` (Redis store, in-memory fallback),
+  `app/db/session.py` (env-gated PgBouncer `statement_cache_size=0` + pool/pre-ping),
+  `app/core/config.py` (`REDIS_URL`/`DB_PGBOUNCER`/`DB_SSL_REQUIRE`/`DB_POOL_*`); images
+  `backend/Dockerfile` + `frontend/Dockerfile` + `frontend/next.config.js` (standalone) +
+  `.dockerignore`s; DB bring-up `backend/apply_schema.py` + `backend/db_bringup.sh`; tests
+  `tests/test_limiter.py`. (Target host: VPS + Docker + Caddy — runbook TBD.)
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.
 - CI: `.github/workflows/ci.yml`. Schema: `db/schema.sql`. Tests: `backend/tests/`.
+
+## 9. Deployment
+Host-agnostic Docker images + Redis-backed rate limiter + PgBouncer pooling are ready; target host
+= VPS + Docker + Caddy (runbook TBD).

@@ -22,4 +22,6 @@ pandas>=2.0.0
 Jinja2>=3.1.2
 WeasyPrint>=60.1
 slowapi>=0.1.9
+redis>=5.0          # shared rate-limit store (slowapi/limits) for multi-replica deploys
+gunicorn>=21.2.0    # production process manager; runs uvicorn workers (see backend/Dockerfile)
 pyotp>=2.9.0,<3.0   # TOTP for two-factor auth (pure-Python; no native deps)

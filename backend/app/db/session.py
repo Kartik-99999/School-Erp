@@ -4,8 +4,23 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 
+# Behind PgBouncer in TRANSACTION pooling mode, asyncpg's prepared-statement cache must be
+# disabled (a prepared statement is bound to one server connection, which txn pooling does
+# not guarantee across statements). The per-transaction `SET LOCAL app.current_tenant`
+# below stays correct: txn pooling keeps one server connection for the whole transaction,
+# and SET LOCAL is transaction-scoped, so it applies to every statement and resets on commit.
+_connect_args: dict = {}
+if settings.DB_PGBOUNCER:
+    _connect_args["statement_cache_size"] = 0
+
 engine = create_async_engine(
-    settings.app_database_uri, echo=False, future=True, pool_size=20, max_overflow=10
+    settings.app_database_uri,
+    echo=False,
+    future=True,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_pre_ping=True,  # drop connections severed by PgBouncer / managed-PG idle timeouts
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
