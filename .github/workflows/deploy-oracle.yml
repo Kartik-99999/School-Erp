@@ -26,7 +26,10 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Auto-deploy stays DORMANT (job skipped, not failed) until you set repo variable
+    # DEPLOY_ENABLED=true — do that once the Oracle VM + ORACLE_* SSH secrets exist.
+    # Manual 'Run workflow' (workflow_dispatch) always works regardless.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
