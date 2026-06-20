@@ -9,7 +9,7 @@
 ## 1. What this is
 A **multi-tenant School ERP SaaS**. One deployment serves many schools
 ("tenants"), each on its own **subdomain** (e.g. `dcmc.localhost:3001`,
-`springfield.educore.com`). A platform **Super Admin / Core Team** on the base
+`springfield.erpcore.tech`). A platform **Super Admin / Core Team** on the base
 domain onboards schools. India-flavored (₹, Razorpay, WhatsApp, CBSE grading,
 APAAR/Aadhaar/PEN) but intended to go global.
 
@@ -106,7 +106,7 @@ RLS is bypassed (manual `school_id` filters only). Migrations always use
 - **CSV templates** — `downloadCsvTemplate()` helper; templates for student + house/club/sport member imports (fixed a pre-existing broken students template).
 
 **Critical fixes**
-- **CORS** now allows tenant **subdomains** (`allow_origin_regex` for `*.localhost`, `*.127.0.0.1`, `*.educore.com`) — previously every client-side call from a school subdomain was browser-blocked.
+- **CORS** now allows tenant **subdomains** (`allow_origin_regex` for `*.localhost`, `*.127.0.0.1`, `*.erpcore.tech`) — previously every client-side call from a school subdomain was browser-blocked.
 - Cross-tenant **IDOR** fixes: receipt-PDF and the entire exams read surface now filter `school_id` + role-guard.
 - Fee **payment** ownership + lost-update race (SELECT … FOR UPDATE), N+1 fixes (dues/results), `fee_structures` unique constraint, FK indexes.
 - Repo professionally formatted; scratch files moved to `archive/`, data to `sample_data/`; root `README.md` added.

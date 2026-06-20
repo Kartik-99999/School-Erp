@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { createSchool } from "@/lib/api/superAdmin";
+import { BASE_DOMAIN } from "@/lib/config";
 
 export default function NewSchoolPage() {
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function NewSchoolPage() {
                 placeholder="e.g. springfield"
               />
               <p className="text-xs text-ink-muted">
-                Will be used for tenant login: {formData.subdomain || "subdomain"}.educore.com
+                Will be used for tenant login: {formData.subdomain || "subdomain"}.{BASE_DOMAIN}
               </p>
             </div>
             <div className="space-y-2">

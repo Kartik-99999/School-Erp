@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
+import { BASE_DOMAIN } from "@/lib/config";
 
 interface SchoolInfo {
   id?: string;
@@ -100,10 +101,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
       const currentHost = window.location.host;
       const hostname = window.location.hostname;
       const isBaseDomain =
-        hostname === "localhost" ||
-        hostname === "127.0.0.1" ||
-        hostname === process.env.NEXT_PUBLIC_BASE_DOMAIN ||
-        hostname === "educore.com";
+        hostname === "localhost" || hostname === "127.0.0.1" || hostname === BASE_DOMAIN;
 
       if (isBaseDomain && role !== "Super Admin" && role !== "super_admin") {
         // If a school user tries to login on the base domain, tell them they must use their subdomain
@@ -141,7 +139,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
                 <div className="text-2xl font-bold drop-shadow-lg">WELCOME</div>
                 <div className="text-lg drop-shadow-md">
                   {school?.subdomain
-                    ? `${school.subdomain}.educore.com`
+                    ? `${school.subdomain}.${BASE_DOMAIN}`
                     : "Student & Parent Portal"}
                 </div>
               </div>

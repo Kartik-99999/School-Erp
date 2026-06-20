@@ -19,11 +19,15 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed browser origins for CORS.
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3001,http://127.0.0.1:3001"
 
+    # Platform base domain — tenants are subdomains (e.g. <school>.erpcore.tech). The frontend
+    # uses NEXT_PUBLIC_BASE_DOMAIN; the backend uses this for the default per-school admin email.
+    BASE_DOMAIN: str = "erpcore.tech"
+
     # Multi-tenant: tenants live on subdomains (e.g. dcmc.localhost:3001,
-    # springfield.educore.com). A plain origin list can't cover every subdomain,
+    # springfield.erpcore.tech). A plain origin list can't cover every subdomain,
     # so allow any subdomain of localhost / 127.0.0.1 / the platform domain.
     BACKEND_CORS_ORIGIN_REGEX: str = (
-        r"^https?://([a-z0-9-]+\.)*(localhost|127\.0\.0\.1|educore\.com)(:\d+)?$"
+        r"^https?://([a-z0-9-]+\.)*(localhost|127\.0\.0\.1|erpcore\.tech)(:\d+)?$"
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")

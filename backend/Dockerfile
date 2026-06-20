@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
 # Backend (FastAPI, async) — gunicorn + uvicorn workers, non-root.
+# python:3.9-slim-bullseye is multi-arch, so this builds natively on ARM64 (Oracle Cloud A1/Ampere);
+# the WeasyPrint libs below resolve on arm64 too. Cross-build from x86: docker buildx --platform linux/arm64.
 # Build context = repo ROOT (the image needs backend/ AND db/schema.sql for the bring-up job):
 #   docker build -f backend/Dockerfile -t <registry>/erp-backend:<tag> .
 FROM python:3.9-slim-bullseye

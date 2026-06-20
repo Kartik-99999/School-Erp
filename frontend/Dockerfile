@@ -1,8 +1,11 @@
 # syntax=docker/dockerfile:1
 # Frontend (Next.js 14 App Router) — multi-stage standalone build.
+# node:20-alpine is multi-arch, so this builds natively on ARM64 (Oracle Cloud A1/Ampere).
+# Cross-build from x86: docker buildx build --platform linux/arm64 ...
 # Build context = frontend/.  Build:
 #   docker build -f frontend/Dockerfile \
-#     --build-arg NEXT_PUBLIC_API_URL=https://api.educore.com/api/v1 \
+#     --build-arg NEXT_PUBLIC_API_URL=https://api.erpcore.tech/api/v1 \
+#     --build-arg NEXT_PUBLIC_BASE_DOMAIN=erpcore.tech \
 #     -t <registry>/erp-frontend:<tag> frontend
 
 # ---- deps: install node_modules from the lockfile ----
@@ -17,9 +20,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # NEXT_PUBLIC_* are inlined into the browser bundle at BUILD time, so the browser calls the
-# real backend directly (the API is public, behind api.educore.com). Override per environment.
-ARG NEXT_PUBLIC_API_URL=https://api.educore.com/api/v1
+# real backend directly (the API is public, behind api.erpcore.tech). Override per environment.
+ARG NEXT_PUBLIC_API_URL=https://api.erpcore.tech/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_DOMAIN=erpcore.tech
+ENV NEXT_PUBLIC_BASE_DOMAIN=$NEXT_PUBLIC_BASE_DOMAIN
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
@@ -28,7 +33,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# NextAuth in production sets the cookie domain to .educore.com and marks it __Secure-/secure
+# NextAuth in production sets the cookie domain to .erpcore.tech and marks it __Secure-/secure
 # (it keys off NODE_ENV=production), so subdomains share the session. Keep NODE_ENV=production.
 RUN addgroup -g 1001 -S nodejs && adduser -u 1001 -S nextjs -G nodejs
 COPY --from=builder /app/public ./public

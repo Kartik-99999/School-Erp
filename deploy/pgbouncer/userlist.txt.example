@@ -1,0 +1,10 @@
+; Copy to userlist.txt (gitignored) — it holds the SCRAM verifier PgBouncer uses to
+; authenticate the backend (educore_app) and to open server connections to Postgres.
+;
+; Generate the line from Postgres AFTER the DB bring-up created the educore_app role
+; (run as the owner):
+;   docker compose exec -T postgres psql -U postgres -Atc \
+;     "SELECT '\"'||rolname||'\" \"'||rolpassword||'\"' FROM pg_authid WHERE rolname='educore_app';"
+;
+; Paste the result (one line per role). Format: "rolename" "SCRAM-SHA-256$..."
+"educore_app" "SCRAM-SHA-256$4096:REPLACE_SALT$REPLACE_STOREDKEY:REPLACE_SERVERKEY"

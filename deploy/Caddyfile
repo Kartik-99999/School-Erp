@@ -1,0 +1,32 @@
+# Reverse proxy + automatic TLS for the School ERP.
+#   api.<domain>            -> backend:8000   (the public API the browser calls directly)
+#   <domain> + *.<domain>   -> frontend:3000  (apex + every tenant subdomain)
+# Wildcard TLS uses the ACME DNS-01 challenge via Cloudflare (HTTP-01 can't do wildcards),
+# so this needs the custom Caddy image (Dockerfile.caddy) + a CLOUDFLARE_API_TOKEN with
+# Zone:DNS:Edit. The frontend Host header is preserved, so the Next.js middleware routes
+# tenants by subdomain.
+{
+	email {$ACME_EMAIL}
+}
+
+# DNS-01 TLS issuance, shared by both site blocks.
+(tls_dns) {
+	tls {
+		dns cloudflare {$CLOUDFLARE_API_TOKEN}
+		resolvers 1.1.1.1
+	}
+}
+
+# api.<domain> is matched before the wildcard (a more specific host wins).
+api.{$BASE_DOMAIN} {
+	import tls_dns
+	encode zstd gzip
+	reverse_proxy backend:8000
+}
+
+# apex + every tenant subdomain -> frontend. The wildcard cert covers *.<domain>.
+{$BASE_DOMAIN}, *.{$BASE_DOMAIN} {
+	import tls_dns
+	encode zstd gzip
+	reverse_proxy frontend:3000
+}

@@ -1,0 +1,149 @@
+# Production stack for Oracle Cloud Always Free (ARM A1). Only `caddy` publishes 80/443;
+# every other service talks over the internal Docker network by name. Secrets/config come from
+# the gitignored deploy/.env (copy from .env.example). Bring up from deploy/:  docker compose up -d
+name: school-erp
+
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_BASE_DOMAIN: ${NEXT_PUBLIC_BASE_DOMAIN}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: school-erp-backend:latest
+    restart: unless-stopped
+    # Secrets + integration creds + DB creds come from .env; topology is pinned here.
+    env_file: .env
+    environment:
+      POSTGRES_SERVER: pgbouncer
+      POSTGRES_PORT: "6432"
+      DB_PGBOUNCER: "true"
+      DB_SSL_REQUIRE: "false" # internal Docker network; TLS is terminated at Caddy
+      REDIS_URL: redis://redis:6379/0
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').getcode()==200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  # One-shot DB bring-up / migrations. NOT part of `up` (profile-gated). Run explicitly:
+  #   docker compose run --rm migrate
+  # Connects DIRECT to Postgres as the OWNER on 5432 (bypasses PgBouncer) for DDL + role creation.
+  migrate:
+    profiles: ["migrate"]
+    image: school-erp-backend:latest
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: "5432"
+      DB_PGBOUNCER: "false"
+    command: ["bash", "db_bringup.sh"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Transaction-pooling connection pooler. Uses the mounted pgbouncer.ini + userlist.txt
+  # (DB_* env intentionally unset so edoburu uses the mounted config, not generated config).
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22.1
+    restart: unless-stopped
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    expose:
+      - "6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:

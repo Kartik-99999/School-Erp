@@ -1,7 +1,7 @@
 # School ERP — Multi-Tenant SaaS
 
 A multi-tenant School ERP. One deployment serves many schools ("tenants"), each
-on its own subdomain (e.g. `springfield.educore.com`); a platform Super-Admin /
+on its own subdomain (e.g. `springfield.erpcore.tech`); a platform Super-Admin /
 Core Team onboards schools from the base domain.
 
 > A deeper architecture/status snapshot lives in [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md).

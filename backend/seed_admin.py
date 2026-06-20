@@ -25,7 +25,7 @@ async def seed_admin():
                 role_id = role_result.scalar_one()
 
             # Check if admin user exists
-            admin_email = "admin@educore.com"
+            admin_email = "admin@erpcore.tech"
             user_result = await session.execute(
                 text("SELECT id FROM users WHERE email = :email"), {"email": admin_email}
             )

@@ -1,0 +1,8 @@
+# Custom Caddy with the Cloudflare DNS plugin — required because a wildcard cert (*.erpcore.tech)
+# can only be issued via the ACME DNS-01 challenge (HTTP-01 cannot validate wildcards).
+# caddy:2-builder is multi-arch, so xcaddy produces a native ARM64 binary on Oracle A1.
+FROM caddy:2-builder AS builder
+RUN xcaddy build --with github.com/caddy-dns/cloudflare
+
+FROM caddy:2
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy

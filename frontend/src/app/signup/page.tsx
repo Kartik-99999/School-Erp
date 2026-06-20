@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import { BASE_DOMAIN } from "@/lib/config";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -102,7 +103,7 @@ export default function SignupPage() {
                   onChange={(e) => onSubdomain(e.target.value)}
                 />
                 <span className="bg-surface border border-l-0 border-border-strong rounded-r-lg p-3 text-ink-muted text-sm">
-                  .educore.com
+                  .{BASE_DOMAIN}
                 </span>
               </div>
               <p className="text-xs text-ink-faint mt-1">

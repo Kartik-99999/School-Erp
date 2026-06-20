@@ -46,7 +46,7 @@ export default function DashboardShell({
 
   // Sign out without letting NextAuth resolve the redirect (it would default to
   // :3000 / the base domain). Navigate on the current origin so the user stays
-  // on the same host & subdomain (e.g. springfield.educore.com/login).
+  // on the same host & subdomain (e.g. springfield.erpcore.tech/login).
   const handleLogout = () => {
     clearTokenCache();
     signOut({ redirect: false }).then(() => {

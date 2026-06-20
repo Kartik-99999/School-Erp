@@ -202,7 +202,7 @@ Fresh DB: `psql -U postgres -d school_erp -f db/schema.sql` then run `backend/cr
 
 ## 6. Immediate loose ends (USER)
 1. ~~Push `42fd7a6` (PII) + this doc~~ — **DONE**: pushed to GitHub (`be5ab2f`), CI re-ran.
-2. ~~Reseed the empty dev DB~~ — **DONE**: Super Admin `admin@educore.com`/`admin123`;
+2. ~~Reseed the empty dev DB~~ — **DONE**: Super Admin `admin@erpcore.tech`/`admin123`;
    school `demo` with School Admin `admin@demo.edu`/`demo1234`. `:8000` confirmed
    connecting as `educore_app` (RLS enforced) — no restart needed.
 3. ~~Browser-test the auth refresh~~ — **DONE & verified** (2026-06-19): logged in via the real
@@ -290,15 +290,39 @@ board-compliant report cards / the LMS (product depth).
   `src/components/resources/ResourcesPanel.tsx` + `src/lib/api/resources.ts` + four
   `{admin,teacher,student,parent}/resources/page.tsx` + nav in the role layouts; tests
   `tests/test_resources.py`.
-- Deployment (host-agnostic): `app/core/limiter.py` (Redis store, in-memory fallback),
-  `app/db/session.py` (env-gated PgBouncer `statement_cache_size=0` + pool/pre-ping),
-  `app/core/config.py` (`REDIS_URL`/`DB_PGBOUNCER`/`DB_SSL_REQUIRE`/`DB_POOL_*`); images
-  `backend/Dockerfile` + `frontend/Dockerfile` + `frontend/next.config.js` (standalone) +
-  `.dockerignore`s; DB bring-up `backend/apply_schema.py` + `backend/db_bringup.sh`; tests
-  `tests/test_limiter.py`. (Target host: VPS + Docker + Caddy — runbook TBD.)
+- Base domain (env-driven, = **erpcore.tech**): frontend `src/lib/config.ts`
+  (`BASE_DOMAIN = NEXT_PUBLIC_BASE_DOMAIN || erpcore.tech`) used in `middleware.ts` / `SchoolForm.tsx`
+  / NextAuth `route.ts` cookie domain / `signup` / `schools/new` / `InvalidSubdomain` / `CoreTeamForm`;
+  backend `app/core/config.py` (`BASE_DOMAIN` + CORS regex), `super_admin.py` (admin email),
+  `schools.py` (`RESERVED_SUBDOMAINS`).
+- Deployment (Oracle Always Free, ARM64): code `app/core/limiter.py` (Redis/in-memory),
+  `app/db/session.py` (env-gated PgBouncer `statement_cache_size=0` + pool/pre-ping), `app/core/config.py`;
+  images `backend/Dockerfile` + `frontend/Dockerfile` (multi-arch ARM64, `NEXT_PUBLIC_*` build args) +
+  `frontend/next.config.js` (standalone) + `.dockerignore`s; stack `deploy/docker-compose.yml` +
+  `deploy/Dockerfile.caddy` + `deploy/Caddyfile` + `deploy/pgbouncer/*` + `deploy/.env.example` +
+  `deploy/backup/pg_backup.sh`; bring-up `backend/apply_schema.py` + `backend/db_bringup.sh`; CD
+  `.github/workflows/deploy-oracle.yml`; runbook `DEPLOY_ORACLE.md`; tests `tests/test_limiter.py`.
 - Config/secrets: `app/core/config.py`, `backend/.env` (gitignored), `backend/.env.example`.
 - CI: `.github/workflows/ci.yml`. Schema: `db/schema.sql`. Tests: `backend/tests/`.
 
-## 9. Deployment
-Host-agnostic Docker images + Redis-backed rate limiter + PgBouncer pooling are ready; target host
-= VPS + Docker + Caddy (runbook TBD).
+## 9. Deployment — Oracle Cloud Always Free (ARM A1) + erpcore.tech
+Self-hosted **$0** stack on an Oracle Always Free **Ampere A1** VM (ARM64): Caddy (automatic
+**wildcard TLS** via Cloudflare DNS-01) → frontend (Next.js standalone) + backend (FastAPI/gunicorn)
+→ Postgres 15 + PgBouncer (transaction pooling) + Redis. Base domain is **env-driven**, set to
+**erpcore.tech** (frontend `NEXT_PUBLIC_BASE_DOMAIN` via `src/lib/config.ts` `BASE_DOMAIN`; backend
+`BASE_DOMAIN` + CORS regex). Full runbook: **`DEPLOY_ORACLE.md`**.
+- **Stack** (`deploy/`): `docker-compose.yml` (only Caddy publishes 80/443; healthchecks; restart
+  unless-stopped; a profile-gated one-shot `migrate` runs `db_bringup.sh` DIRECT as owner), custom
+  Caddy `Dockerfile.caddy` (xcaddy + caddy-dns/cloudflare) + `Caddyfile` (api.→backend, apex+`*.`→
+  frontend, DNS-01 wildcard TLS), `pgbouncer/pgbouncer.ini` (transaction mode) + `userlist.txt.example`,
+  `.env.example`, `backup/pg_backup.sh` (nightly encrypted `pg_dump` → Oracle Object Storage via
+  rclone; **no PITR ⇒ these dumps are the DR plan**; AWS S3 alt).
+- **Images** build natively on ARM64 (multi-arch bases); frontend bakes `NEXT_PUBLIC_API_URL` +
+  `NEXT_PUBLIC_BASE_DOMAIN` build args. Backend keeps Redis limiter + env-gated PgBouncer
+  `statement_cache_size=0` (RLS `SET LOCAL` is transaction-pooling-safe).
+- **CD:** `.github/workflows/deploy-oracle.yml` — after CI on main → SSH to the A1 VM → build →
+  conditional `migrate` (on schema/migration change) → `compose up -d`.
+- **Verified locally (no cloud):** `caddy validate` = Valid + `docker compose config` ok (downloaded
+  caddy-with-cloudflare + compose-v2 binaries), 103 pytest + limiter, ruff/black/isort, tsc, and
+  `git grep educore.com` clean. Wildcard TLS REQUIRES a DNS API token (Cloudflare); all secrets live
+  only in gitignored `deploy/.env` (+ `deploy/pgbouncer/userlist.txt`).

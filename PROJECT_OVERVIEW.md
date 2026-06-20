@@ -3,7 +3,7 @@
 > Paste this into a new chat to give full context. Self-contained snapshot of the project's state.
 
 ## 1. What this is
-A **multi-tenant School ERP SaaS**. One deployment serves many schools ("tenants"), each on its own **subdomain** (e.g. `springfield.educore.com`). A platform-level **Super Admin / Core Team** (on the base domain) onboards schools. India-flavored today (₹, Razorpay, WhatsApp, CBSE grading) but intended to go global.
+A **multi-tenant School ERP SaaS**. One deployment serves many schools ("tenants"), each on its own **subdomain** (e.g. `springfield.erpcore.tech`). A platform-level **Super Admin / Core Team** (on the base domain) onboards schools. India-flavored today (₹, Razorpay, WhatsApp, CBSE grading) but intended to go global.
 
 - **Location:** `/Users/kartikbhardwaj/school-erp` → `backend/`, `frontend/`, `db/schema.sql`
 - **NOT a git repo** (no version control yet).

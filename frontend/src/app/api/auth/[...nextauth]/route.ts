@@ -106,9 +106,12 @@ const authOptions: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
-        // Omitting domain on localhost completely so Chrome treats it as a host-only cookie.
-        // For production, we use '.educore.com' to allow subdomains to share the cookie.
-        domain: process.env.NODE_ENV === "production" ? ".educore.com" : undefined,
+        // In production, share the session cookie across subdomains via
+        // `.${NEXT_PUBLIC_BASE_DOMAIN}` (e.g. .erpcore.tech); host-only on localhost.
+        domain:
+          process.env.NODE_ENV === "production"
+            ? `.${process.env.NEXT_PUBLIC_BASE_DOMAIN || "erpcore.tech"}`
+            : undefined,
       },
     },
   },

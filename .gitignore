@@ -8,6 +8,8 @@ backend/venv/
 .env.local
 backend/.env
 frontend/.env.local
+deploy/.env
+deploy/pgbouncer/userlist.txt
 
 # Node / Next
 node_modules/

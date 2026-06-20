@@ -21,7 +21,18 @@ from app.schemas.base import APIResponse
 router = APIRouter()
 
 # Subdomains we never let a tenant claim (reserved for the platform).
-RESERVED_SUBDOMAINS = {"www", "app", "api", "admin", "core", "mail", "static", "assets", "educore"}
+RESERVED_SUBDOMAINS = {
+    "www",
+    "app",
+    "api",
+    "admin",
+    "core",
+    "mail",
+    "static",
+    "assets",
+    "educore",
+    "erpcore",
+}
 SUBDOMAIN_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,48}[a-z0-9])$")
 # Roles every new tenant starts with (School Admin gets full permissions).
 DEFAULT_ROLES = ["School Admin", "Teacher", "Student", "Parent", "Accountant"]

@@ -1,4 +1,5 @@
 import { Building2, AlertTriangle } from "lucide-react";
+import { BASE_DOMAIN } from "@/lib/config";
 
 export default function InvalidSubdomain({ subdomain }: { subdomain?: string }) {
   return (
@@ -27,7 +28,7 @@ export default function InvalidSubdomain({ subdomain }: { subdomain?: string }) 
             <Building2 className="w-3.5 h-3.5" /> Looking for your school?
           </p>
           <p className="text-xs text-ink-muted">
-            Your portal looks like <span className="font-mono">your-school.educore.com</span>.
+            Your portal looks like <span className="font-mono">your-school.{BASE_DOMAIN}</span>.
             Contact your school office for the correct address.
           </p>
         </div>

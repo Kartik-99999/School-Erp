@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api import deps
+from app.core.config import settings
 from app.crud.crud_super_admin import (
     BillingHistory,
     crud_school_platform,
@@ -77,7 +78,7 @@ async def create_school(
         {"id": role_id, "s_id": school.id},
     )
 
-    admin_email = school_in.contact_email or f"admin@{school_in.subdomain}.educore.com"
+    admin_email = school_in.contact_email or f"admin@{school_in.subdomain}.{settings.BASE_DOMAIN}"
     secure_password = secrets.token_urlsafe(16)
     await db.execute(
         text(

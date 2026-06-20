@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { clearTokenCache } from "@/lib/axios";
 import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
+import { BASE_DOMAIN } from "@/lib/config";
 
 export default function CoreTeamForm() {
   const [email, setEmail] = useState("");
@@ -108,7 +109,7 @@ export default function CoreTeamForm() {
                     required
                     type="text"
                     className="w-full border border-border-strong rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="e.g. admin@educore.com"
+                    placeholder={`e.g. admin@${BASE_DOMAIN}`}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />

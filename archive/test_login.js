@@ -1,7 +1,7 @@
 const http = require('http');
 
 const data = new URLSearchParams();
-data.append('email', 'admin@educore.com');
+data.append('email', 'admin@erpcore.tech');
 data.append('password', 'admin123');
 
 const options = {
