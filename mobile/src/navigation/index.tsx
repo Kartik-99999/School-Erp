@@ -19,6 +19,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 import ComingSoonScreen from "../screens/ComingSoonScreen";
 import TimetableScreen from "../screens/TimetableScreen";
 import SubjectsScreen from "../screens/SubjectsScreen";
+import MessagesScreen from "../screens/MessagesScreen";
 import HomeworkScreen from "../screens/HomeworkScreen";
 import ExamsScreen from "../screens/ExamsScreen";
 import LibraryScreen from "../screens/LibraryScreen";
@@ -63,6 +64,7 @@ function HomeStack() {
       <HomeNav.Screen name="Receipt" component={ReceiptScreen} options={{ title: "Receipt" }} />
       <HomeNav.Screen name="Timetable" component={TimetableScreen} />
       <HomeNav.Screen name="Subjects" component={SubjectsScreen} />
+      <HomeNav.Screen name="Messages" component={MessagesScreen} options={{ title: "Messages" }} />
       <HomeNav.Screen name="Homework" component={HomeworkScreen} />
       <HomeNav.Screen name="Exams" component={ExamsScreen} options={{ title: "Exams & Results" }} />
       <HomeNav.Screen name="Library" component={LibraryScreen} />

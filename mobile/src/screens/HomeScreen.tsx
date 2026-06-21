@@ -28,6 +28,7 @@ const TILES: Record<string, Tile[]> = {
     { label: "Resources", icon: "folder-open-outline", route: "Resources" },
     { label: "Events", icon: "calendar-clear-outline", route: "Events" },
     { label: "Notices", icon: "notifications-outline", route: "Notices" },
+    { label: "Messages", icon: "chatbubbles-outline", route: "Messages" },
     { label: "Timeline", icon: "newspaper-outline", route: "Timeline" },
     { label: "Subjects", icon: "reader-outline", route: "Subjects" },
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
