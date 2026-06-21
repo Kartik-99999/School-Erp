@@ -55,7 +55,32 @@ async def create_notice(
     token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ):
     notice = await crud_notice.create(db, obj_in=notice_in, school_id=school_id)
-    # Could optionally fire push notifications here based on target
+    # Fan-out an in-app notification (+ best-effort push) to the targeted users.
+    try:
+        from app.models.users import Role, User
+        from app.utils.push import notify_users
+
+        role_map = {
+            "All": ["Student", "Parent", "Teacher"],
+            "Students": ["Student"],
+            "Parents": ["Parent"],
+            "Staff": ["Teacher"],
+        }
+        roles = role_map.get(notice.target_audience, [])
+        if roles:
+            uids = (
+                await db.execute(
+                    select(User.id)
+                    .join(Role, Role.id == User.role_id)
+                    .filter(User.school_id == UUID(school_id), Role.name.in_(roles))
+                )
+            ).scalars().all()
+            await notify_users(
+                db, school_id, uids, notice.title, (notice.body or "")[:140], ntype="notice", ref_id=notice.id
+            )
+            await db.commit()
+    except Exception:
+        pass  # the notice is saved; the fan-out is best-effort
     return APIResponse(success=True, data=notice)
 
 

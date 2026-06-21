@@ -13,6 +13,7 @@ import GalleriesScreen from "../screens/GalleriesScreen";
 import GalleryDetailScreen from "../screens/GalleryDetailScreen";
 import LessonPlannerScreen from "../screens/LessonPlannerScreen";
 import AppointmentsScreen from "../screens/AppointmentsScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
 import NoticesScreen from "../screens/NoticesScreen";
 import NoticeDetailScreen from "../screens/NoticeDetailScreen";
 import AttendanceScreen from "../screens/AttendanceScreen";
@@ -70,6 +71,7 @@ function HomeStack() {
       <HomeNav.Screen name="GalleryDetail" component={GalleryDetailScreen} options={{ title: "Album" }} />
       <HomeNav.Screen name="LessonPlanner" component={LessonPlannerScreen} options={{ title: "Lesson Planner" }} />
       <HomeNav.Screen name="Appointments" component={AppointmentsScreen} />
+      <HomeNav.Screen name="Notifications" component={NotificationsScreen} />
       <HomeNav.Screen name="Attendance" component={AttendanceScreen} />
       <HomeNav.Screen name="Fees" component={FeesScreen} />
       <HomeNav.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: "Payment history" }} />

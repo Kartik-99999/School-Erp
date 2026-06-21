@@ -35,7 +35,7 @@ const TILES: Record<string, Tile[]> = {
     { label: "Polls", icon: "bar-chart-outline", route: "Polls" },
     { label: "Galleries", icon: "images-outline", route: "Galleries" },
     { label: "Appointments", icon: "person-add-outline", route: "Appointments" },
-    { label: "Notifications", icon: "notifications-circle-outline", route: "ComingSoon", params: { title: "Notifications", note: "Needs GET /notifications (list) and POST /notifications/register-device (push token)." } },
+    { label: "Notifications", icon: "notifications-circle-outline", route: "Notifications" },
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
   ],
   Student: [
@@ -56,7 +56,7 @@ const TILES: Record<string, Tile[]> = {
     { label: "Polls", icon: "bar-chart-outline", route: "Polls" },
     { label: "Galleries", icon: "images-outline", route: "Galleries" },
     { label: "Appointments", icon: "person-add-outline", route: "Appointments" },
-    { label: "Notifications", icon: "notifications-circle-outline", route: "ComingSoon", params: { title: "Notifications", note: "Needs GET /notifications (list) and POST /notifications/register-device (push token)." } },
+    { label: "Notifications", icon: "notifications-circle-outline", route: "Notifications" },
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
   ],
   Teacher: [

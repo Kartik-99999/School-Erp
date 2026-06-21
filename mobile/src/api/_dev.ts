@@ -14,6 +14,7 @@ import type { Poll } from "./polls";
 import type { Gallery, GalleryDetail } from "./galleries";
 import type { Syllabus } from "./syllabus";
 import type { Appointment, Slot } from "./appointments";
+import type { AppNotification } from "./notifications";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -205,4 +206,10 @@ export const appointmentSlots: Slot[] = [
 
 export const myAppointments: Appointment[] = [
   { id: "ap1", teacher_name: "Priya Menon · Class Teacher", start_time: "2026-06-20T05:00:00Z", end_time: "2026-06-20T05:30:00Z", status: "Booked", note: "Mid-term review" },
+];
+
+export const notifications: AppNotification[] = [
+  { id: "n1", title: "PTM this Saturday", body: "Parent-teacher meeting, 9 AM–12:30 PM.", type: "notice", ref_id: "1", is_read: false, created_at: "2026-06-21T03:30:00Z" },
+  { id: "n2", title: "Term 2 fees due", body: "₹12,000 due by 10 July.", type: "fee", ref_id: null, is_read: false, created_at: "2026-06-20T06:00:00Z" },
+  { id: "n3", title: "Attendance update", body: "Marked present today.", type: "absence", ref_id: null, is_read: true, created_at: "2026-06-19T04:00:00Z" },
 ];

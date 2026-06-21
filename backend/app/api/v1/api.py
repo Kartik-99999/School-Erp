@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     leaves,
     library,
     messaging,
+    notifications,
     payroll,
     reports,
     resources,
@@ -57,6 +58,7 @@ api_router.include_router(super_admin.router, prefix="/super-admin", tags=["supe
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
 api_router.include_router(student_portal.router, prefix="/student-portal", tags=["student-portal"])
 api_router.include_router(messaging.router, prefix="/messages", tags=["messaging"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(schools.router, prefix="/schools", tags=["schools"])
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])

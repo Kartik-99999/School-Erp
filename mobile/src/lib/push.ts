@@ -45,13 +45,11 @@ export async function registerForPush(): Promise<void> {
 
     const token = (await Notifications.getExpoPushTokenAsync()).data;
 
-    // TODO(backend): no device-token registration endpoint exists yet. When the backend
-    // adds e.g. POST /notifications/register-device { token, platform }, this starts
-    // working; until then it fails quietly and is a documented no-op.
+    // Hand the Expo push token to the backend (POST /notifications/register-device).
     try {
-      await api.post("/notifications/register-device", { token, platform: Platform.OS });
+      await api.post("/notifications/register-device", { expo_push_token: token });
     } catch {
-      // endpoint not implemented yet — see TODO above
+      // best-effort; a transient failure shouldn't break sign-in
     }
   } catch {
     registered = false; // allow a later retry
