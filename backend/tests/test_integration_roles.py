@@ -107,6 +107,13 @@ async def tenant(owner_session):
     staff_acc = Staff(school_id=sid, user_id=users["Accountant"].id, first_name="Amal", last_name="Accountant")
     s.add_all([staff, staff_acc])
     await s.flush()
+    # A second teacher (own user + staff) so timetable ownership can be tested teacher-vs-teacher.
+    teacher2 = User(school_id=sid, email=f"teacher2-{suf}@e.com", hashed_password=get_password_hash(PW), role_id=role_objs["Teacher"].id, is_active=True)
+    s.add(teacher2)
+    await s.flush()
+    staff_t2 = Staff(school_id=sid, user_id=teacher2.id, first_name="Tom", last_name="Two")
+    s.add(staff_t2)
+    await s.flush()
 
     year = await ins("INSERT INTO academic_years (school_id,name,start_date,end_date) VALUES (:s,'2026-27','2026-04-01','2027-03-31') RETURNING id", s=sid)
     cls = await ins("INSERT INTO classes (school_id,name,numeric_value) VALUES (:s,'VIII',8) RETURNING id", s=sid)
@@ -174,6 +181,7 @@ async def tenant(owner_session):
         "gallery": str(gallery.id), "receipt": str(receipt), "staff": str(staff.id),
         "slot1": str(slot1), "slot2": str(slot2),
         "es1": str(es1), "cls": str(cls), "sec": str(sec), "staff_acc": str(staff_acc.id),
+        "staff_t2": str(staff_t2.id),
     }
 
     # FK-safe teardown
@@ -440,3 +448,31 @@ async def test_payroll_employees_serializes(tenant, app_client):
     row = data[0]
     assert "staff" in row and "structure" in row
     assert row["staff"]["id"] and row["staff"]["user_id"]  # valid StaffResponse shape
+
+
+async def test_teacher_timetable_ownership(tenant, app_client):
+    """GET /academics/timetable/teacher/{id}: teacher sees only their own; admin any; others 403."""
+    th = await _auth(app_client, tenant, "Teacher")
+    ah = await _auth(app_client, tenant, "School Admin")
+    sh = await _auth(app_client, tenant, "Student")
+    own, other_teacher = tenant["staff"], tenant["staff_t2"]
+    # Teacher: own id 200 (the mobile schedule path), another teacher's id 403
+    assert (await app_client.get(f"{API}/academics/timetable/teacher/{own}", headers=th)).status_code == 200
+    assert (await app_client.get(f"{API}/academics/timetable/teacher/{other_teacher}", headers=th)).status_code == 403
+    # Admin: any teacher; Student: never
+    assert (await app_client.get(f"{API}/academics/timetable/teacher/{other_teacher}", headers=ah)).status_code == 200
+    assert (await app_client.get(f"{API}/academics/timetable/teacher/{own}", headers=sh)).status_code == 403
+
+
+async def test_student_activities_ownership(tenant, app_client):
+    """GET /activities/student/{id} reuses the student ownership guard (student self / parent own /
+    staff any / else 403) -- keeps the parent app flow working."""
+    sh = await _auth(app_client, tenant, "Student")
+    ph = await _auth(app_client, tenant, "Parent")
+    ah = await _auth(app_client, tenant, "School Admin")
+    c1, other = tenant["child1"], tenant["other_child"]
+    assert (await app_client.get(f"{API}/activities/student/{c1}", headers=sh)).status_code == 200
+    assert (await app_client.get(f"{API}/activities/student/{other}", headers=sh)).status_code == 403
+    assert (await app_client.get(f"{API}/activities/student/{c1}", headers=ph)).status_code == 200
+    assert (await app_client.get(f"{API}/activities/student/{other}", headers=ph)).status_code == 403
+    assert (await app_client.get(f"{API}/activities/student/{other}", headers=ah)).status_code == 200

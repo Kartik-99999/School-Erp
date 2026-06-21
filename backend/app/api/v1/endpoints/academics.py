@@ -30,6 +30,7 @@ from app.models.academics import (
 )
 from app.models.setup import ClassModel, Section, Subject
 from app.models.staff import Staff
+from app.models.staff import Staff
 from app.models.students import Student
 from app.schemas.academics import (
     HomeworkCreate,
@@ -200,9 +201,28 @@ async def get_teacher_timetable(
     teacher_id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ):
     """A teacher's full weekly timetable, keyed by day (used by teacher schedule/dashboard)."""
     school_uuid = UUID(school_id)
+    # Ownership: admins may view any teacher; a Teacher may view only their own timetable.
+    if token_data.role not in ("School Admin", "Super Admin"):
+        if token_data.role != "Teacher":
+            raise HTTPException(status_code=403, detail="Not authorized to view this timetable.")
+        me = (
+            (
+                await db.execute(
+                    select(Staff).filter(
+                        Staff.user_id == UUID(token_data.user_id),
+                        Staff.school_id == school_uuid,
+                    )
+                )
+            )
+            .scalars()
+            .first()
+        )
+        if not me or me.id != teacher_id:
+            raise HTTPException(status_code=403, detail="You can only view your own timetable.")
     periods = (
         (await db.execute(select(TimetablePeriod).filter(TimetablePeriod.school_id == school_uuid)))
         .scalars()

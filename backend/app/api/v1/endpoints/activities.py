@@ -25,6 +25,7 @@ from app.models.activities import (
     Sport,
     SportMembership,
 )
+from app.api.v1.endpoints.students import _authorize_student_access
 from app.models.students import Parent, Student
 from app.schemas.activities import (
     ClubCreate,
@@ -130,9 +131,24 @@ async def student_activities(
     student_id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
+    student = (
+        (
+            await db.execute(
+                select(Student).filter(
+                    Student.id == student_id, Student.school_id == UUID(school_id)
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    await _authorize_student_access(db, token_data, school_id, student)
     return APIResponse(
-        success=True, data=await _student_activities(db, UUID(school_id), student_id)
+        success=True, data=await _student_activities(db, UUID(school_id), student.id)
     )
 
 
