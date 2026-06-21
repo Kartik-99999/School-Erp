@@ -9,7 +9,7 @@ class NoticeBase(BaseModel):
     title: str
     body: str
     attachment_url: Optional[str] = None
-    is_pinned: bool = False
+    is_pinned: Optional[bool] = False
     category: str = "Notice"  # Notice | Circular
     target_audience: str
     target_class_id: Optional[UUID] = None
@@ -55,7 +55,7 @@ class EventBase(BaseModel):
     end_date: date
     event_type: str
     target_audience: str = "All"
-    send_reminder: bool = False
+    send_reminder: Optional[bool] = False
 
 
 class EventCreate(EventBase):

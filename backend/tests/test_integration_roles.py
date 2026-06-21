@@ -138,8 +138,9 @@ async def tenant(owner_session):
     receipt = await ins("INSERT INTO fee_receipts (school_id,student_id,receipt_number,total_amount,payment_mode,payment_date) VALUES (:s,:st,:rn,12000,'Cash','2026-04-10') RETURNING id", s=sid, st=child1.id, rn=f"RC-{suf}")
 
     # Communication + library + leave
-    await ins("INSERT INTO notices (school_id,title,body,category,target_audience,is_pinned) VALUES (:s,'Welcome','Hello','Notice','All',false) RETURNING id", s=sid)
-    await ins("INSERT INTO events (school_id,title,start_date,end_date,event_type,target_audience,send_reminder) VALUES (:s,'Sports Day','2026-07-05','2026-07-05','Sports','All',false) RETURNING id", s=sid)
+    # is_pinned / send_reminder intentionally left NULL to exercise the Optional schema fix
+    await ins("INSERT INTO notices (school_id,title,body,category,target_audience) VALUES (:s,'Welcome','Hello','Notice','All') RETURNING id", s=sid)
+    await ins("INSERT INTO events (school_id,title,start_date,end_date,event_type,target_audience) VALUES (:s,'Sports Day','2026-07-05','2026-07-05','Sports','All') RETURNING id", s=sid)
     await ins("INSERT INTO resources (school_id,title,category,target_audience,file_url) VALUES (:s,'Notes','Study Material','All','https://x/n.pdf') RETURNING id", s=sid)
     book = await ins("INSERT INTO library_books (school_id,title) VALUES (:s,'Wings of Fire') RETURNING id", s=sid)
     await ins("INSERT INTO library_issues (school_id,book_id,student_id,due_date) VALUES (:s,:b,:st,'2026-07-01') RETURNING id", s=sid, b=book, st=child1.id)
