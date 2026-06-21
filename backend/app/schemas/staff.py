@@ -97,6 +97,13 @@ class StaffSalaryStructureResponse(StaffSalaryStructureBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PayrollEmployeeResponse(BaseModel):
+    """One row of GET /payroll/employees: a staff member + their salary structure (if any)."""
+    staff: StaffResponse
+    structure: Optional[StaffSalaryStructureResponse] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AttendanceStaffBase(BaseModel):
     staff_id: UUID
     date: date

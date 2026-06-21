@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,6 +9,7 @@ from app.api import deps
 from app.crud.crud_staff import crud_staff, crud_staff_salary
 from app.schemas.base import APIResponse
 from app.schemas.staff import (
+    PayrollEmployeeResponse,
     StaffSalaryStructureCreate,
     StaffSalaryStructureResponse,
 )
@@ -18,6 +19,7 @@ router = APIRouter()
 
 @router.get(
     "/employees",
+    response_model=APIResponse[List[PayrollEmployeeResponse]],
     dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Accountant"]))],
 )
 async def get_payroll_employees(

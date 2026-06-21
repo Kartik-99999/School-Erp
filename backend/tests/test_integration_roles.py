@@ -371,10 +371,8 @@ async def test_security_gates_block_unauthorized(tenant, app_client):
     # The gates did not over-restrict the roles that legitimately use these.
     assert (await app_client.get(f"{API}/exams/schedules/{es1}/marks", headers=th)).status_code == 200
     assert (await app_client.post(f"{API}/exams/marks/bulk", headers=th, json=marks_body)).status_code == 200
-    # Accountant passes the payroll gate (200/404 = allowed, not 403). NOTE: GET /payroll/employees
-    # itself 500s on real data (serializes a raw ORM Staff with no response schema) -- reported as a
-    # finding; we assert the gate via the response-modeled /structure endpoint instead.
-    assert (await app_client.get(f"{API}/payroll/structure/{staff}", headers=ach)).status_code in (200, 404)
+    # Accountant passes the payroll gate, and the listing now serializes (concern 4 fix).
+    assert (await app_client.get(f"{API}/payroll/employees", headers=ach)).status_code == 200
 
 
 # --------------------------------------------------------------------------- #
@@ -427,3 +425,17 @@ async def test_staff_role_filter_join(tenant, app_client):
     r2 = await app_client.get(f"{API}/staff?role=Accountant", headers=th)
     acc_ids = {s["id"] for s in r2.json()["data"]}
     assert tenant["staff_acc"] in acc_ids and tenant["staff"] not in acc_ids
+
+
+async def test_payroll_employees_serializes(tenant, app_client):
+    """GET /payroll/employees now has a response_model (was 500 PydanticSerializationError)."""
+    ach = await _auth(app_client, tenant, "Accountant")
+    r = await app_client.get(f"{API}/payroll/employees", headers=ach)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["success"] is True
+    data = body["data"]
+    assert isinstance(data, list) and len(data) >= 2  # teacher + accountant staff seeded
+    row = data[0]
+    assert "staff" in row and "structure" in row
+    assert row["staff"]["id"] and row["staff"]["user_id"]  # valid StaffResponse shape
