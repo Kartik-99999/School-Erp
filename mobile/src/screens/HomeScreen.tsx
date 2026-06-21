@@ -31,6 +31,11 @@ const TILES: Record<string, Tile[]> = {
     { label: "Messages", icon: "chatbubbles-outline", route: "Messages" },
     { label: "Timeline", icon: "newspaper-outline", route: "Timeline" },
     { label: "Subjects", icon: "reader-outline", route: "Subjects" },
+    { label: "Planner", icon: "calendar-number-outline", route: "ComingSoon", params: { title: "Lesson Planner", note: "Needs a student/parent-readable syllabus endpoint (e.g. GET /student-portal/syllabus?student_id=) with chapters + progress." } },
+    { label: "Polls", icon: "bar-chart-outline", route: "ComingSoon", params: { title: "Polls", note: "Needs GET /polls (active) and POST /polls/{id}/vote." } },
+    { label: "Galleries", icon: "images-outline", route: "ComingSoon", params: { title: "Galleries", note: "Needs GET /galleries (albums) and GET /galleries/{id} (photos)." } },
+    { label: "Appointments", icon: "person-add-outline", route: "ComingSoon", params: { title: "Appointments", note: "Needs GET /appointments/slots, POST /appointments, GET /appointments/me." } },
+    { label: "Notifications", icon: "notifications-circle-outline", route: "ComingSoon", params: { title: "Notifications", note: "Needs GET /notifications (list) and POST /notifications/register-device (push token)." } },
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
   ],
   Student: [
@@ -47,6 +52,11 @@ const TILES: Record<string, Tile[]> = {
     { label: "Events", icon: "calendar-clear-outline", route: "Events" },
     { label: "Timeline", icon: "newspaper-outline", route: "Timeline" },
     { label: "Subjects", icon: "reader-outline", route: "Subjects" },
+    { label: "Planner", icon: "calendar-number-outline", route: "ComingSoon", params: { title: "Lesson Planner", note: "Needs a student/parent-readable syllabus endpoint (e.g. GET /student-portal/syllabus?student_id=) with chapters + progress." } },
+    { label: "Polls", icon: "bar-chart-outline", route: "ComingSoon", params: { title: "Polls", note: "Needs GET /polls (active) and POST /polls/{id}/vote." } },
+    { label: "Galleries", icon: "images-outline", route: "ComingSoon", params: { title: "Galleries", note: "Needs GET /galleries (albums) and GET /galleries/{id} (photos)." } },
+    { label: "Appointments", icon: "person-add-outline", route: "ComingSoon", params: { title: "Appointments", note: "Needs GET /appointments/slots, POST /appointments, GET /appointments/me." } },
+    { label: "Notifications", icon: "notifications-circle-outline", route: "ComingSoon", params: { title: "Notifications", note: "Needs GET /notifications (list) and POST /notifications/register-device (push token)." } },
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
   ],
   Teacher: [
