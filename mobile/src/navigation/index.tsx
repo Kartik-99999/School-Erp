@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../auth/AuthContext";
+import { addNotificationTapListener, registerForPush } from "../lib/push";
 import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import NoticesScreen from "../screens/NoticesScreen";
@@ -109,6 +110,18 @@ function MainTabs() {
 
 export default function RootNavigator() {
   const { session } = useAuth();
+
+  // Register this device for push once signed in (no-op on web / dev-mock).
+  React.useEffect(() => {
+    if (session) registerForPush();
+  }, [session]);
+
+  // Handle notification taps (deep-linking is a documented TODO in lib/push).
+  React.useEffect(() => {
+    const unsub = addNotificationTapListener(() => {});
+    return unsub;
+  }, []);
+
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {session ? (
