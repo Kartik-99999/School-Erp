@@ -57,12 +57,20 @@ export interface FeeDue {
   balance: number;
   status?: string;
 }
+export interface FeeReceipt {
+  id: string;
+  receipt_number?: string;
+  payment_date?: string;
+  payment_mode?: string;
+  total_amount: number;
+}
 export interface FeesData {
   student_id?: string;
   dues: FeeDue[];
+  receipts?: FeeReceipt[];
   summary: { total_due: number; total_paid: number; balance: number };
 }
-const EMPTY_FEES: FeesData = { dues: [], summary: { total_due: 0, total_paid: 0, balance: 0 } };
+const EMPTY_FEES: FeesData = { dues: [], receipts: [], summary: { total_due: 0, total_paid: 0, balance: 0 } };
 export async function getMyFees(studentId?: string): Promise<FeesData> {
   if (DEV_FAKE_ROLE) return mock.fees;
   const q = studentId ? `?student_id=${studentId}` : "";
