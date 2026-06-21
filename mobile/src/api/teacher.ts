@@ -232,3 +232,49 @@ export async function submitMarks(scheduleId: string, marks: MarkSubmit[]): Prom
   if (DEV_FAKE_ROLE) return; // pretend success in preview
   await api.post("/exams/marks/bulk", { exam_schedule_id: scheduleId, marks });
 }
+
+
+// --- Staff leave (a teacher applies for their OWN leave) ---
+export interface StaffLeaveType {
+  id: string;
+  name: string;
+}
+export interface StaffLeave {
+  id: string;
+  leave_type_id: string;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+  status: string; // "Pending" | "Approved" | "Rejected"
+}
+export interface StaffLeaveApply {
+  leave_type_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+}
+
+export async function getStaffLeaveTypes(): Promise<StaffLeaveType[]> {
+  if (DEV_FAKE_ROLE) return mock.leaveTypes;
+  const res = await api.get("/leaves/types");
+  return ((res.data?.data ?? []) as any[]).map((t) => ({ id: String(t.id), name: t.name }));
+}
+
+// The caller's own staff leave applications (backend resolves the staff row from the token).
+export async function getMyStaffLeaves(): Promise<StaffLeave[]> {
+  if (DEV_FAKE_ROLE) return mock.staffLeaves;
+  const res = await api.get("/leaves/applications/me");
+  return ((res.data?.data ?? []) as any[]).map((l) => ({
+    id: String(l.id),
+    leave_type_id: String(l.leave_type_id),
+    start_date: l.start_date,
+    end_date: l.end_date,
+    reason: l.reason,
+    status: l.status,
+  }));
+}
+
+export async function applyStaffLeave(payload: StaffLeaveApply): Promise<void> {
+  if (DEV_FAKE_ROLE) return; // pretend success in preview
+  await api.post("/leaves/applications", payload);
+}

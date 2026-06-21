@@ -7,10 +7,12 @@ from sqlalchemy.future import select
 
 from app.api import deps
 from app.crud.crud_staff import crud_leave_application, crud_leave_type
+from app.models.staff import LeaveApplication, LeaveStatus, Staff
 from app.models.student_leaves import StudentLeaveApplication
 from app.models.students import Student
 from app.schemas.base import APIResponse
 from app.schemas.staff import (
+    LeaveApplicationBase,
     LeaveApplicationResponse,
     LeaveTypeCreate,
     LeaveTypeResponse,
@@ -42,7 +44,11 @@ async def create_leave_type(
     return APIResponse(success=True, data=leave_type)
 
 
-@router.get("/applications", response_model=APIResponse[List[LeaveApplicationResponse]])
+@router.get(
+    "/applications",
+    response_model=APIResponse[List[LeaveApplicationResponse]],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
 async def get_leave_applications(
     status: str = None,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -55,6 +61,81 @@ async def get_leave_applications(
         query = query.filter(crud_leave_application.model.status == status)
     result = await db.execute(query)
     apps = result.scalars().all()
+    return APIResponse(success=True, data=apps)
+
+
+async def _resolve_my_staff(db: AsyncSession, token_data: deps.TokenData, school_id: str) -> Staff:
+    me = (
+        (
+            await db.execute(
+                select(Staff).filter(
+                    Staff.user_id == UUID(token_data.user_id),
+                    Staff.school_id == UUID(school_id),
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if not me:
+        raise HTTPException(status_code=404, detail="No staff record for the current user.")
+    return me
+
+
+@router.post(
+    "/applications",
+    response_model=APIResponse[LeaveApplicationResponse],
+    dependencies=[
+        Depends(deps.require_roles(["Teacher", "School Admin", "Super Admin", "Accountant"]))
+    ],
+)
+async def apply_for_leave(
+    leave_in: LeaveApplicationBase,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+) -> Any:
+    """A staff member applies for their OWN leave (staff_id resolved from the token)."""
+    me = await _resolve_my_staff(db, token_data, school_id)
+    if leave_in.end_date < leave_in.start_date:
+        raise HTTPException(status_code=400, detail="End date cannot be before start date.")
+    app = LeaveApplication(
+        school_id=UUID(school_id),
+        staff_id=me.id,
+        leave_type_id=leave_in.leave_type_id,
+        start_date=leave_in.start_date,
+        end_date=leave_in.end_date,
+        reason=leave_in.reason,
+        status=LeaveStatus.PENDING,
+    )
+    db.add(app)
+    await db.commit()
+    await db.refresh(app)
+    return APIResponse(success=True, data=app, message="Leave application submitted.")
+
+
+@router.get("/applications/me", response_model=APIResponse[List[LeaveApplicationResponse]])
+async def get_my_leave_applications(
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+) -> Any:
+    """The caller's own staff leave applications."""
+    me = await _resolve_my_staff(db, token_data, school_id)
+    apps = (
+        (
+            await db.execute(
+                select(LeaveApplication)
+                .filter(
+                    LeaveApplication.staff_id == me.id,
+                    LeaveApplication.school_id == UUID(school_id),
+                )
+                .order_by(LeaveApplication.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
     return APIResponse(success=True, data=apps)
 
 

@@ -1,5 +1,5 @@
 // DEV-ONLY sample data for the teacher flow (only used when EXPO_PUBLIC_DEV_FAKE_ROLE is set).
-import type { ExamLite, ExamScheduleLite, MarkInput, ScheduleDay, SectionStudent, TeacherClass, TeacherHomework } from "./teacher";
+import type { ExamLite, ExamScheduleLite, MarkInput, ScheduleDay, SectionStudent, StaffLeave, StaffLeaveType, TeacherClass, TeacherHomework } from "./teacher";
 import type { StudentLeave } from "./leaveApprovals";
 
 export const classes: TeacherClass[] = [
@@ -63,4 +63,16 @@ export const marksRoster: MarkInput[] = [
 export const studentLeaves: StudentLeave[] = [
   { id: "sl1", student_name: "Aarav Sharma", admission_number: "ADM-2024-0142", leave_type: "Sick", from_date: "2026-06-22", to_date: "2026-06-23", reason: "Viral fever; doctor advised two days' rest.", status: "Pending", applied_at: "2026-06-21" },
   { id: "sl2", student_name: "Diya Patel", admission_number: "ADM-2024-0153", leave_type: "Casual", from_date: "2026-06-25", to_date: "2026-06-25", reason: "Attending a family function.", status: "Pending", applied_at: "2026-06-20" },
+];
+
+
+export const leaveTypes: StaffLeaveType[] = [
+  { id: "lt-casual", name: "Casual Leave" },
+  { id: "lt-sick", name: "Sick Leave" },
+  { id: "lt-earned", name: "Earned Leave" },
+];
+
+export const staffLeaves: StaffLeave[] = [
+  { id: "stl1", leave_type_id: "lt-sick", start_date: "2026-06-18", end_date: "2026-06-19", reason: "Fever; doctor advised rest.", status: "Approved" },
+  { id: "stl2", leave_type_id: "lt-casual", start_date: "2026-07-02", end_date: "2026-07-02", reason: "Personal work.", status: "Pending" },
 ];

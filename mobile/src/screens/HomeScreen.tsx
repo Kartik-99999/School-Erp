@@ -122,6 +122,7 @@ const TeacherSections: Section[] = [
     title: "Administration",
     data: [
       { label: "Leave requests", icon: "checkmark-done-outline", route: "LeaveApprovals" },
+      { label: "Apply leave", icon: "document-text-outline", route: "TeacherLeave" },
     ]
   }
 ];

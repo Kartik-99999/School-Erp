@@ -152,6 +152,7 @@ async def tenant(owner_session):
     book = await ins("INSERT INTO library_books (school_id,title) VALUES (:s,'Wings of Fire') RETURNING id", s=sid)
     await ins("INSERT INTO library_issues (school_id,book_id,student_id,due_date) VALUES (:s,:b,:st,'2026-07-01') RETURNING id", s=sid, b=book, st=child1.id)
     await ins("INSERT INTO student_leave_applications (school_id,student_id,leave_type,from_date,to_date,reason,status) VALUES (:s,:st,'Sick','2026-06-15','2026-06-16','Fever','Pending') RETURNING id", s=sid, st=child1.id)
+    leave_type = await ins("INSERT INTO leave_types (school_id,name,days_allowed) VALUES (:s,'Casual',12) RETURNING id", s=sid)
 
     poll = Poll(school_id=sid, question="Theme?", target_audience="All", is_active=True)
     s.add(poll)
@@ -181,7 +182,7 @@ async def tenant(owner_session):
         "gallery": str(gallery.id), "receipt": str(receipt), "staff": str(staff.id),
         "slot1": str(slot1), "slot2": str(slot2),
         "es1": str(es1), "cls": str(cls), "sec": str(sec), "staff_acc": str(staff_acc.id),
-        "staff_t2": str(staff_t2.id),
+        "staff_t2": str(staff_t2.id), "leave_type": str(leave_type),
     }
 
     # FK-safe teardown
@@ -190,7 +191,8 @@ async def tenant(owner_session):
         "appointments", "appointment_slots", "fee_payments", "fee_receipts", "fee_schedules",
         "fee_structures", "fee_heads", "results", "student_marks", "exam_schedules", "exams",
         "exam_types", "grade_scales", "timetable_slots", "timetable_periods", "library_issues",
-        "library_books", "student_leave_applications", "notifications", "device_tokens",
+        "library_books", "student_leave_applications", "leave_applications", "leave_types",
+        "notifications", "device_tokens",
         "notices", "events", "resources", "students", "parents", "sections", "classes",
         "subjects", "academic_years", "staff", "users", "roles",
     ]
@@ -476,3 +478,23 @@ async def test_student_activities_ownership(tenant, app_client):
     assert (await app_client.get(f"{API}/activities/student/{c1}", headers=ph)).status_code == 200
     assert (await app_client.get(f"{API}/activities/student/{other}", headers=ph)).status_code == 403
     assert (await app_client.get(f"{API}/activities/student/{other}", headers=ah)).status_code == 200
+
+
+async def test_staff_leave_apply_and_own_list(tenant, app_client):
+    """Issue 1: a staff member applies for their OWN leave; the full list is admin-only."""
+    th = await _auth(app_client, tenant, "Teacher")
+    sh = await _auth(app_client, tenant, "Student")
+    ah = await _auth(app_client, tenant, "School Admin")
+    body = {"leave_type_id": tenant["leave_type"], "start_date": "2026-07-01", "end_date": "2026-07-03", "reason": "Family"}
+    # Teacher applies for their own leave -> Pending
+    r = await app_client.post(f"{API}/leaves/applications", headers=th, json=body)
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "Pending"
+    # ...and sees it in their own list
+    mine = await app_client.get(f"{API}/leaves/applications/me", headers=th)
+    assert mine.status_code == 200 and len(mine.json()["data"]) >= 1
+    # A Student cannot apply for staff leave
+    assert (await app_client.post(f"{API}/leaves/applications", headers=sh, json=body)).status_code == 403
+    # The full staff-leave list is now admin-only
+    assert (await app_client.get(f"{API}/leaves/applications", headers=th)).status_code == 403
+    assert (await app_client.get(f"{API}/leaves/applications", headers=ah)).status_code == 200
