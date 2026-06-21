@@ -44,6 +44,7 @@ const TILES: Record<string, Tile[]> = {
     { label: "Homework", icon: "book-outline", route: "TeacherHomework" },
     { label: "Marks", icon: "create-outline", route: "MarksEntry" },
     { label: "Notices", icon: "notifications-outline", route: "Notices" },
+    { label: "Post notice", icon: "megaphone-outline", route: "PostNotice" },
     { label: "Schedule", icon: "time-outline", route: "TeacherSchedule" },
   ],
 };
