@@ -5,6 +5,7 @@ import type { Child } from "./children";
 import type { ExamResult } from "./exams";
 import type { LibraryData } from "./library";
 import type { LeaveApplication } from "./leaves";
+import type { Resource } from "./resources";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -80,4 +81,10 @@ export const library: LibraryData = {
 export const leaves: LeaveApplication[] = [
   { id: "lv1", leave_type: "Sick", from_date: "2026-06-15", to_date: "2026-06-16", reason: "Down with fever; rest advised by the doctor.", status: "Approved", applied_at: "2026-06-14" },
   { id: "lv2", leave_type: "Casual", from_date: "2026-07-02", to_date: "2026-07-02", reason: "Attending a family function out of town.", status: "Pending", applied_at: "2026-06-20" },
+];
+
+export const resources: Resource[] = [
+  { id: "r1", title: "Science Notes — Crop Production (Ch. 5)", description: "Summary notes and key diagrams for the chapter.", category: "Study Material", file_url: "https://example.com/science-ch5.pdf", file_name: "science-ch5.pdf", file_type: "pdf", external_url: null, created_at: "2026-06-18" },
+  { id: "r2", title: "Holiday Homework — Mathematics", description: "Practice set for the summer break.", category: "Study Material", file_url: "https://example.com/maths-holiday.pdf", file_name: "maths-holiday.pdf", file_type: "pdf", external_url: null, created_at: "2026-06-15" },
+  { id: "r3", title: "Circular — Revised School Timings", description: "New timings effective 1 July. Please read carefully.", category: "Notice Circular", file_url: null, file_name: null, file_type: null, external_url: "https://example.com/circular-timings", created_at: "2026-06-12" },
 ];
