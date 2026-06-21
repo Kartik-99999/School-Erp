@@ -40,7 +40,7 @@ const TILES: Record<string, Tile[]> = {
   ],
   Teacher: [
     { label: "Mark attendance", icon: "checkbox-outline", route: "TeacherClasses" },
-    { label: "My classes", icon: "people-outline", route: "TeacherClasses" },
+    { label: "My classes", icon: "people-outline", route: "TeacherRoster" },
     { label: "Homework", icon: "book-outline", route: "TeacherHomework" },
     { label: "Marks", icon: "create-outline", route: "MarksEntry" },
     { label: "Notices", icon: "notifications-outline", route: "Notices" },
