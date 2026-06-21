@@ -337,7 +337,11 @@ async def create_concession(
     return APIResponse(success=True, data=obj)
 
 
-@router.post("/concessions/assign", response_model=APIResponse[StudentFeeConcessionResponse])
+@router.post(
+    "/concessions/assign",
+    response_model=APIResponse[StudentFeeConcessionResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Accountant"]))],
+)
 async def assign_concession(
     in_data: StudentFeeConcessionCreate,
     db: AsyncSession = Depends(deps.set_tenant_context),

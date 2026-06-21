@@ -108,7 +108,11 @@ async def get_route_stops(
 
 
 # --- STUDENT ASSIGNMENT ---
-@router.post("/assignments", response_model=APIResponse[StudentTransportResponse])
+@router.post(
+    "/assignments",
+    response_model=APIResponse[StudentTransportResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
 async def assign_student(
     assign_in: StudentTransportCreate,
     db: AsyncSession = Depends(deps.set_tenant_context),

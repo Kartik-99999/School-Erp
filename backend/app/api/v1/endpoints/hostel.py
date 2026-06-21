@@ -96,7 +96,11 @@ async def get_rooms(
 
 
 # --- ALLOCATIONS ---
-@router.post("/allocations", response_model=APIResponse[HostelAllocationResponse])
+@router.post(
+    "/allocations",
+    response_model=APIResponse[HostelAllocationResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
 async def assign_student_to_room(
     alloc_in: HostelAllocationCreate,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -177,7 +181,10 @@ async def get_allocations(
     return APIResponse(success=True, data=data)
 
 
-@router.post("/allocations/{alloc_id}/vacate")
+@router.post(
+    "/allocations/{alloc_id}/vacate",
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
 async def vacate_room(
     alloc_id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),

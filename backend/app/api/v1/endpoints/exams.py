@@ -120,7 +120,11 @@ async def get_exams(
     return APIResponse(success=True, data=exams)
 
 
-@router.post("/schedules", response_model=APIResponse[ExamScheduleResponse])
+@router.post(
+    "/schedules",
+    response_model=APIResponse[ExamScheduleResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def create_exam_schedule(
     schedule_in: ExamScheduleCreate,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -142,7 +146,11 @@ async def get_exam_schedules(
 
 
 # --- MARKS ENTRY ---
-@router.get("/schedules/{schedule_id}/marks", response_model=APIResponse[List[StudentMarkResponse]])
+@router.get(
+    "/schedules/{schedule_id}/marks",
+    response_model=APIResponse[List[StudentMarkResponse]],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def get_student_marks(
     schedule_id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -153,7 +161,11 @@ async def get_student_marks(
     return APIResponse(success=True, data=marks)
 
 
-@router.post("/marks/bulk", response_model=APIResponse)
+@router.post(
+    "/marks/bulk",
+    response_model=APIResponse,
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def bulk_enter_marks(
     marks_in: StudentMarkBulkCreate,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -171,7 +183,10 @@ async def bulk_enter_marks(
         raise HTTPException(status_code=400, detail="Could not save marks.")
 
 
-@router.post("/schedules/{schedule_id}/marks/import")
+@router.post(
+    "/schedules/{schedule_id}/marks/import",
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def import_marks_csv(
     schedule_id: UUID,
     file: UploadFile = File(...),
@@ -206,7 +221,11 @@ async def import_marks_csv(
 
 
 # --- RESULTS PROCESSING ---
-@router.post("/{exam_id}/process", response_model=APIResponse)
+@router.post(
+    "/{exam_id}/process",
+    response_model=APIResponse,
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def process_exam_results(
     exam_id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -222,7 +241,11 @@ async def process_exam_results(
         raise HTTPException(status_code=400, detail="Could not process results.")
 
 
-@router.get("/{exam_id}/results", response_model=APIResponse[List[ResultResponse]])
+@router.get(
+    "/{exam_id}/results",
+    response_model=APIResponse[List[ResultResponse]],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def get_results(
     exam_id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),

@@ -171,6 +171,7 @@ async def tenant(owner_session):
         "exam": str(exam), "poll": str(poll.id), "opt1": str(opt1.id), "opt2": str(opt2.id),
         "gallery": str(gallery.id), "receipt": str(receipt), "staff": str(staff.id),
         "slot1": str(slot1), "slot2": str(slot2),
+        "es1": str(es1), "cls": str(cls), "sec": str(sec),
     }
 
     # FK-safe teardown
@@ -334,3 +335,42 @@ async def test_change_password_self_service(tenant, app_client):
     # New secret logs in; the old one no longer does.
     assert (await _login(app_client, tenant["creds"]["Accountant"], code=tenant["subdomain"], pw=new_pw)).status_code == 200
     assert (await _login(app_client, tenant["creds"]["Accountant"], code=tenant["subdomain"], pw=PW)).status_code in (400, 401)
+
+
+async def test_security_gates_block_unauthorized(tenant, app_client):
+    """Negative + preservation for the role gates added in the security-fix commit.
+
+    A Student must be rejected from every newly-gated staff/finance operation, while
+    the legitimate roles (Teacher for marks, Accountant for payroll) keep working.
+    """
+    sh = await _auth(app_client, tenant, "Student")
+    th = await _auth(app_client, tenant, "Teacher")
+    ach = await _auth(app_client, tenant, "Accountant")
+    es1, exam, staff, cls, sec, child1 = (tenant[k] for k in ("es1", "exam", "staff", "cls", "sec", "child1"))
+    today = date.today().isoformat()
+    marks_body = {"exam_schedule_id": es1, "marks": [{"student_id": child1, "marks_obtained": 70, "is_absent": False}]}
+    att_body = {"date": today, "class_id": cls, "section_id": sec, "attendance_records": [{"student_id": child1, "date": today, "status": "Present"}]}
+
+    blocked = [
+        ("get", f"/exams/schedules/{es1}/marks", None),     # whole-class marks leak
+        ("get", f"/exams/{exam}/results", None),            # whole-class results leak
+        ("post", f"/exams/{exam}/process", None),           # publish results
+        ("post", "/exams/marks/bulk", marks_body),          # grade tampering
+        ("post", "/attendance/students/bulk", att_body),    # attendance tampering
+        ("get", "/payroll/employees", None),                # salary PII (all staff)
+        ("get", f"/payroll/structure/{staff}", None),       # salary PII
+        ("get", f"/payroll/payslip/{staff}?month=April&year=2026", None),
+        ("get", "/library/lookup/isbn/9780143", None),      # was fully unauthenticated
+    ]
+    for method, path, body in blocked:
+        call = getattr(app_client, method)
+        r = await (call(f"{API}{path}", headers=sh, json=body) if body is not None else call(f"{API}{path}", headers=sh))
+        assert r.status_code == 403, (path, r.status_code, r.text)
+
+    # The gates did not over-restrict the roles that legitimately use these.
+    assert (await app_client.get(f"{API}/exams/schedules/{es1}/marks", headers=th)).status_code == 200
+    assert (await app_client.post(f"{API}/exams/marks/bulk", headers=th, json=marks_body)).status_code == 200
+    # Accountant passes the payroll gate (200/404 = allowed, not 403). NOTE: GET /payroll/employees
+    # itself 500s on real data (serializes a raw ORM Staff with no response schema) -- reported as a
+    # finding; we assert the gate via the response-modeled /structure endpoint instead.
+    assert (await app_client.get(f"{API}/payroll/structure/{staff}", headers=ach)).status_code in (200, 404)

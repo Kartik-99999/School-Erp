@@ -152,7 +152,11 @@ async def get_staff_profile(
     return APIResponse(success=True, data=staff)
 
 
-@router.post("/{id}/documents", response_model=APIResponse[StaffDocumentResponse])
+@router.post(
+    "/{id}/documents",
+    response_model=APIResponse[StaffDocumentResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
 async def upload_staff_document(
     id: UUID,
     document_type: str = Form(...),
@@ -172,7 +176,11 @@ async def upload_staff_document(
     return APIResponse(success=True, data=doc, message="Document uploaded successfully")
 
 
-@router.post("/attendance/bulk-mark", response_model=APIResponse)
+@router.post(
+    "/attendance/bulk-mark",
+    response_model=APIResponse,
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def mark_bulk_attendance(
     *,
     db: AsyncSession = Depends(deps.set_tenant_context),

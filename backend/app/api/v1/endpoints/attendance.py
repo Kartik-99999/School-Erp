@@ -81,7 +81,11 @@ pdf_module.TEMPLATES[
 """
 
 
-@router.post("/students/bulk", response_model=APIResponse)
+@router.post(
+    "/students/bulk",
+    response_model=APIResponse,
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def mark_student_attendance(
     *,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -328,7 +332,11 @@ async def generate_monthly_register(
 # (Note: basic bulk mark is currently in staff.py, moving complex logic here for unification)
 
 
-@router.post("/staff/bulk", response_model=APIResponse)
+@router.post(
+    "/staff/bulk",
+    response_model=APIResponse,
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def mark_staff_attendance(
     *,
     db: AsyncSession = Depends(deps.set_tenant_context),

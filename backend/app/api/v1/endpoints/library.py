@@ -76,7 +76,10 @@ async def get_books(
     return APIResponse(success=True, data=books)
 
 
-@router.get("/lookup/isbn/{isbn}")
+@router.get(
+    "/lookup/isbn/{isbn}",
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def lookup_isbn(isbn: str):
     """Fetches book metadata from Open Library API."""
     async with httpx.AsyncClient() as client:

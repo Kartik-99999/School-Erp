@@ -16,7 +16,10 @@ from app.schemas.staff import (
 router = APIRouter()
 
 
-@router.get("/employees")
+@router.get(
+    "/employees",
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Accountant"]))],
+)
 async def get_payroll_employees(
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
@@ -31,7 +34,11 @@ async def get_payroll_employees(
     return APIResponse(success=True, data=result)
 
 
-@router.get("/structure/{staff_id}", response_model=APIResponse[StaffSalaryStructureResponse])
+@router.get(
+    "/structure/{staff_id}",
+    response_model=APIResponse[StaffSalaryStructureResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Accountant"]))],
+)
 async def get_salary_structure(
     staff_id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),
@@ -134,7 +141,10 @@ pdf_module.TEMPLATES[
 """
 
 
-@router.get("/payslip/{staff_id}")
+@router.get(
+    "/payslip/{staff_id}",
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Accountant"]))],
+)
 async def generate_payslip(
     staff_id: UUID,
     month: str,
