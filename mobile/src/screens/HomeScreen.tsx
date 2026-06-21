@@ -25,6 +25,7 @@ const TILES: Record<string, Tile[]> = {
     { label: "Resources", icon: "folder-open-outline", route: "Resources" },
     { label: "Events", icon: "calendar-clear-outline", route: "Events" },
     { label: "Notices", icon: "notifications-outline", route: "Notices" },
+    { label: "Subjects", icon: "reader-outline", route: "Subjects" },
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
   ],
   Student: [
@@ -36,6 +37,7 @@ const TILES: Record<string, Tile[]> = {
     { label: "Leaves", icon: "document-text-outline", route: "Leaves" },
     { label: "Resources", icon: "folder-open-outline", route: "Resources" },
     { label: "Events", icon: "calendar-clear-outline", route: "Events" },
+    { label: "Subjects", icon: "reader-outline", route: "Subjects" },
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
   ],
   Teacher: [

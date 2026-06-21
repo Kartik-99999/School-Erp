@@ -150,3 +150,21 @@ export async function getHomework(opts?: { classId?: string; sectionId?: string 
   const r = await api.get(`/academics/homework?class_id=${classId}&section_id=${sectionId}`);
   return (r.data?.data ?? []) as Homework[];
 }
+
+export interface SubjectItem {
+  subject: string;
+  teacher?: string;
+}
+// Derived from the timetable so it works per-child (parent) or self (student) with no
+// extra endpoint and previews via the timetable dev-mock.
+export async function getSubjects(opts?: { classId?: string; sectionId?: string }): Promise<SubjectItem[]> {
+  const days = await getTimetable(opts);
+  const map = new Map<string, string | undefined>();
+  for (const d of days) {
+    for (const p of d.periods) {
+      const name = (p.subject || "").trim();
+      if (name && !map.has(name)) map.set(name, p.teacher);
+    }
+  }
+  return Array.from(map.entries()).map(([subject, teacher]) => ({ subject, teacher }));
+}
