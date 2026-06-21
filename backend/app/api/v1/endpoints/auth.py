@@ -150,6 +150,40 @@ async def reset_password(
     return {"success": True, "message": "Password updated successfully"}
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+@limiter.limit("10/minute")
+async def change_password(
+    request: Request,
+    req: ChangePasswordRequest,
+    db: AsyncSession = Depends(deps.get_db),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+) -> Any:
+    """Authenticated self-service password change: verify the current password, enforce a
+    minimum length, then store the new bcrypt hash."""
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
+    user = (
+        (await db.execute(select(User).filter(User.id == UUID(token_data.user_id)))).scalars().first()
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(req.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    if verify_password(req.new_password, user.hashed_password):
+        raise HTTPException(
+            status_code=400, detail="New password must be different from the current one."
+        )
+    user.hashed_password = get_password_hash(req.new_password)
+    db.add(user)
+    await db.commit()
+    return {"success": True, "message": "Password changed successfully."}
+
+
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")
 async def login_access_token(

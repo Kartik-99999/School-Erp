@@ -118,16 +118,7 @@ export default function ProfileScreen({ navigation }: any) {
           label="Notifications"
           right={<Switch value={notif} onValueChange={toggleNotif} trackColor={{ true: colors.gold }} />}
         />
-        <ActionRow
-          icon="lock-closed-outline"
-          label="Change password"
-          onPress={() =>
-            navigation.navigate("ComingSoon", {
-              title: "Change password",
-              note: "Needs an authenticated endpoint: POST /auth/change-password { current_password, new_password }.",
-            })
-          }
-        />
+        <ActionRow icon="lock-closed-outline" label="Change password" onPress={() => navigation.navigate("ChangePassword")} />
         <ActionRow
           icon="swap-horizontal-outline"
           label="Switch academic year"

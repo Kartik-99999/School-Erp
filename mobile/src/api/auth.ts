@@ -1,5 +1,5 @@
 import { api } from "./client";
-import { DEV_FORCE_2FA, SCHOOL_CODE } from "../config";
+import { DEV_FAKE_ROLE, DEV_FORCE_2FA, SCHOOL_CODE } from "../config";
 
 export interface SchoolBrand {
   id?: string;
@@ -43,4 +43,10 @@ export async function verify2fa(mfaToken: string, code: string): Promise<LoginRe
   }
   const res = await api.post("/auth/2fa/verify", { mfa_token: mfaToken, code: code.trim() });
   return res.data as LoginResponse;
+}
+
+// Authenticated self-service password change.
+export async function changePassword(current_password: string, new_password: string): Promise<void> {
+  if (DEV_FAKE_ROLE) return; // preview: pretend success
+  await api.post("/auth/change-password", { current_password, new_password });
 }
