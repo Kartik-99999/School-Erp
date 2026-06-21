@@ -119,16 +119,7 @@ export default function ProfileScreen({ navigation }: any) {
           right={<Switch value={notif} onValueChange={toggleNotif} trackColor={{ true: colors.gold }} />}
         />
         <ActionRow icon="lock-closed-outline" label="Change password" onPress={() => navigation.navigate("ChangePassword")} />
-        <ActionRow
-          icon="swap-horizontal-outline"
-          label="Switch academic year"
-          onPress={() =>
-            navigation.navigate("ComingSoon", {
-              title: "Switch academic year",
-              note: "/academic-years lists sessions, but switching the active one needs a backend endpoint (e.g. PUT /auth/session/academic-year).",
-            })
-          }
-        />
+        <ActionRow icon="swap-horizontal-outline" label="Switch academic year" onPress={() => navigation.navigate("AcademicYear")} />
         <ActionRow icon="shield-checkmark-outline" label="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL)} />
         <ActionRow icon="mail-outline" label="Contact support" onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} last />
       </View>

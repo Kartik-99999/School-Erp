@@ -9,6 +9,7 @@ import type { Resource } from "./resources";
 import type { SchoolEvent } from "./events";
 import type { StudentProfile } from "./profile";
 import type { ParentMessage } from "./messages";
+import type { AcademicYear } from "./academicYears";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -121,4 +122,9 @@ export const messages: ParentMessage[] = [
   { id: "m1", sender: "Parent", body: "Good morning. Will there be class this Saturday?", is_read: true, created_at: "2026-06-19T09:10:00Z" },
   { id: "m2", sender: "School", body: "Good morning! Yes, Saturday is a working day this week (8:00 AM–12:00 PM).", is_read: true, created_at: "2026-06-19T09:40:00Z" },
   { id: "m3", sender: "Parent", body: "Thank you for confirming.", is_read: true, created_at: "2026-06-19T09:42:00Z" },
+];
+
+export const academicYears: AcademicYear[] = [
+  { id: "ay-2026", name: "2026–27", start_date: "2026-04-01", end_date: "2027-03-31", is_active: true },
+  { id: "ay-2025", name: "2025–26", start_date: "2025-04-01", end_date: "2026-03-31", is_active: false },
 ];

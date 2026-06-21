@@ -21,6 +21,7 @@ import TimetableScreen from "../screens/TimetableScreen";
 import SubjectsScreen from "../screens/SubjectsScreen";
 import MessagesScreen from "../screens/MessagesScreen";
 import ChangePasswordScreen from "../screens/ChangePasswordScreen";
+import AcademicYearScreen from "../screens/AcademicYearScreen";
 import HomeworkScreen from "../screens/HomeworkScreen";
 import ExamsScreen from "../screens/ExamsScreen";
 import LibraryScreen from "../screens/LibraryScreen";
@@ -106,6 +107,7 @@ function ProfileStack() {
     <ProfileNav.Navigator screenOptions={stackOpts}>
       <ProfileNav.Screen name="ProfileMain" component={ProfileScreen} options={{ headerShown: false }} />
       <ProfileNav.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Change password" }} />
+      <ProfileNav.Screen name="AcademicYear" component={AcademicYearScreen} options={{ title: "Switch academic year" }} />
       <ProfileNav.Screen
         name="ComingSoon"
         component={ComingSoonScreen}

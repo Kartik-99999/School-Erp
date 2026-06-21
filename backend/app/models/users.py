@@ -23,6 +23,7 @@ class User(Base):
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     last_login = Column(DateTime(timezone=True))
+    active_academic_year_id = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
     updated_at = Column(
         DateTime(timezone=True),
