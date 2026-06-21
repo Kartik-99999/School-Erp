@@ -4,6 +4,7 @@ import type { AttendanceData, FeesData, Homework, Notice, TimetableDay } from ".
 import type { Child } from "./children";
 import type { ExamResult } from "./exams";
 import type { LibraryData } from "./library";
+import type { LeaveApplication } from "./leaves";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -74,3 +75,8 @@ export const library: LibraryData = {
     { id: "l3", book_title: "Indian Constitution at Work", author: "NCERT", issue_date: "2026-05-20", due_date: "2026-06-03", return_date: "2026-06-02", status: "Returned", fine_amount: 0 },
   ],
 };
+
+export const leaves: LeaveApplication[] = [
+  { id: "lv1", leave_type: "Sick", from_date: "2026-06-15", to_date: "2026-06-16", reason: "Down with fever; rest advised by the doctor.", status: "Approved", applied_at: "2026-06-14" },
+  { id: "lv2", leave_type: "Casual", from_date: "2026-07-02", to_date: "2026-07-02", reason: "Attending a family function out of town.", status: "Pending", applied_at: "2026-06-20" },
+];
