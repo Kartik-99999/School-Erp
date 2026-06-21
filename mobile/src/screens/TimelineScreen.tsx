@@ -65,7 +65,7 @@ export default function TimelineScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space(2), padding: space(4) }} style={styles.chipsBar}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space(2), paddingHorizontal: space(4), alignItems: "center" }} style={styles.chipsBar}>
         {FILTERS.map((f) => {
           const on = f === filter;
           return (
@@ -108,7 +108,7 @@ export default function TimelineScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  chipsBar: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.bg },
+  chipsBar: { height: 56, flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.bg },
   chip: { paddingHorizontal: space(4), paddingVertical: space(2), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
   chipOn: { backgroundColor: colors.goldSoft, borderColor: colors.gold },
   chipText: { fontSize: 13, fontWeight: "700", color: colors.sub },

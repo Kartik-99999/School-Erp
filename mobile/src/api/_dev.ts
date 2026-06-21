@@ -35,12 +35,17 @@ export const fees: FeesData = {
   student_id: "s1",
   summary: { total_due: 48000, total_paid: 36000, balance: 12000 },
   dues: [
-    { id: "fs1", fee_head: "Term 2 — Tuition", due_date: "2026-07-10", net_due_amount: 12000, amount_paid: 0, balance: 12000 },
-    { id: "fs2", fee_head: "Transport (Jul–Sep)", due_date: "2026-07-10", net_due_amount: 4500, amount_paid: 4500, balance: 0 },
+    { id: "fs1", fee_head: "Term 1 — Tuition", due_date: "2026-04-01", net_due_amount: 24000, amount_paid: 24000, balance: 0 },
+    { id: "fs2", fee_head: "Transport (Apr–Jun)", due_date: "2026-04-15", net_due_amount: 4500, amount_paid: 4500, balance: 0 },
+    { id: "fs3", fee_head: "Examination fee", due_date: "2026-06-20", net_due_amount: 3000, amount_paid: 3000, balance: 0 },
+    { id: "fs4", fee_head: "Transport (Jul–Sep)", due_date: "2026-07-01", net_due_amount: 4500, amount_paid: 4500, balance: 0 },
+    { id: "fs5", fee_head: "Term 2 — Tuition", due_date: "2026-07-10", net_due_amount: 12000, amount_paid: 0, balance: 12000 },
   ],
   receipts: [
     { id: "rc1", receipt_number: "RC-2026-0042", payment_date: "2026-04-10", payment_mode: "Razorpay", total_amount: 24000 },
-    { id: "rc2", receipt_number: "RC-2026-0071", payment_date: "2026-05-12", payment_mode: "Cash", total_amount: 12000 },
+    { id: "rc2", receipt_number: "RC-2026-0051", payment_date: "2026-04-20", payment_mode: "Cash", total_amount: 4500 },
+    { id: "rc3", receipt_number: "RC-2026-0066", payment_date: "2026-06-25", payment_mode: "Razorpay", total_amount: 3000 },
+    { id: "rc4", receipt_number: "RC-2026-0079", payment_date: "2026-07-05", payment_mode: "Cash", total_amount: 4500 },
   ],
 };
 
