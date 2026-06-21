@@ -47,7 +47,7 @@ export async function getExamResults(studentId?: string): Promise<ExamResult[]> 
 
 // Per-subject report card for one exam.
 export async function getReportCard(examId: string, studentId?: string): Promise<ReportCard> {
-  if (DEV_FAKE_ROLE) return mock.reportCard;
+  if (DEV_FAKE_ROLE) return mock.reportCardById[studentId ?? "s1"] ?? mock.reportCard;
   const q = studentId ? `?student_id=${studentId}` : "";
   const res = await api.get(`/student-portal/report-cards/${examId}${q}`);
   return res.data?.data as ReportCard;

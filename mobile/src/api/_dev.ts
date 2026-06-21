@@ -227,6 +227,22 @@ export const reportCard: ReportCard = {
   summary: { total_marks: 500, obtained_marks: 389, percentage: 77.8, grade: "A", status: "Pass", rank: 4 },
 };
 
+export const reportCardById: Record<string, ReportCard> = {
+  s1: reportCard,
+  s2: {
+    exam: { id: "e1", name: "Half-Yearly Examination", start_date: "2026-09-10", end_date: "2026-09-20" },
+    student: { id: "s2", name: "Diya Sharma", admission_number: "ADM-2024-0211", class_name: "V" },
+    subjects: [
+      { subject_id: "m", subject_name: "Mathematics", max_marks: 100, passing_marks: 33, obtained: 92, is_absent: false, grade: "A" },
+      { subject_id: "ev", subject_name: "EVS", max_marks: 100, passing_marks: 33, obtained: 88, is_absent: false, grade: "A" },
+      { subject_id: "en", subject_name: "English", max_marks: 100, passing_marks: 33, obtained: 85, is_absent: false, grade: "A" },
+      { subject_id: "hi", subject_name: "Hindi", max_marks: 100, passing_marks: 33, obtained: 79, is_absent: false, grade: "B" },
+      { subject_id: "gk", subject_name: "General Knowledge", max_marks: 100, passing_marks: 33, obtained: 95, is_absent: false, grade: "A" },
+    ],
+    summary: { total_marks: 500, obtained_marks: 439, percentage: 87.8, grade: "A", status: "Pass", rank: 2 },
+  },
+};
+
 // --- Per-child dev-mock variants so switching child changes name + numbers ---
 // s1 = Aarav (VIII-A, class c8), s2 = Diya (V-B, class c5). Student-self (no id) -> s1.
 
