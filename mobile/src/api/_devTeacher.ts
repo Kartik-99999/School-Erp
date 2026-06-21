@@ -1,5 +1,5 @@
 // DEV-ONLY sample data for the teacher flow (only used when EXPO_PUBLIC_DEV_FAKE_ROLE is set).
-import type { ScheduleDay, SectionStudent, TeacherClass, TeacherHomework } from "./teacher";
+import type { ExamLite, ExamScheduleLite, MarkInput, ScheduleDay, SectionStudent, TeacherClass, TeacherHomework } from "./teacher";
 
 export const classes: TeacherClass[] = [
   { class_id: "c8", section_id: "a", name: "Class VIII-A" },
@@ -40,4 +40,21 @@ export const subjects: { id: string; name: string }[] = [
 export const classHomework: TeacherHomework[] = [
   { id: "h1", title: "Algebra — Exercise 4.3", subject_id: "sub-math", due_date: "2026-06-25", description: "Solve Q1–Q12 in the classwork notebook; show each step.", status: "Active" },
   { id: "h2", title: "Read 'The Sermon at Benares'", subject_id: "sub-eng", due_date: "2026-06-24", description: "Prepare a short summary and list three key lessons.", status: "Active" },
+];
+
+export const exams: ExamLite[] = [
+  { id: "ex1", name: "Half-Yearly Examination", class_id: "c8", status: "Marks Entry" },
+  { id: "ex2", name: "Unit Test II", class_id: "c8", status: "Scheduled" },
+];
+
+export const examSchedules: ExamScheduleLite[] = [
+  { id: "es1", subject_id: "sub-math", subject_name: "Mathematics", max_marks: 100, passing_marks: 33 },
+  { id: "es2", subject_id: "sub-sci", subject_name: "Science", max_marks: 100, passing_marks: 33 },
+];
+
+export const marksRoster: MarkInput[] = [
+  { student_id: "1", name: "Aarav Sharma", roll: "01", marks_obtained: "78", is_absent: false },
+  { student_id: "2", name: "Diya Patel", roll: "02", marks_obtained: "", is_absent: false },
+  { student_id: "3", name: "Ishaan Gupta", roll: "03", marks_obtained: "", is_absent: true },
+  { student_id: "4", name: "Kavya Reddy", roll: "04", marks_obtained: "65", is_absent: false },
 ];

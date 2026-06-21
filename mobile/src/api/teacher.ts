@@ -148,3 +148,87 @@ export async function createHomework(input: CreateHomeworkInput, meta: HomeworkM
     teacher_id: meta.teacherId,
   });
 }
+
+// --- Marks entry (teacher: pick exam + subject -> enter marks -> submit) ---
+export interface ExamLite {
+  id: string;
+  name: string;
+  class_id: string;
+  status?: string;
+}
+export interface ExamScheduleLite {
+  id: string;
+  subject_id: string;
+  subject_name?: string;
+  max_marks: number;
+  passing_marks: number;
+}
+export interface MarkInput {
+  student_id: string;
+  name: string;
+  roll?: string;
+  marks_obtained: string;
+  is_absent: boolean;
+}
+export interface MarkSubmit {
+  student_id: string;
+  marks_obtained: number | null;
+  is_absent: boolean;
+}
+
+// Exams for the classes this teacher takes.
+export async function getTeacherExams(classIds: string[]): Promise<ExamLite[]> {
+  if (DEV_FAKE_ROLE) return mock.exams;
+  const res = await api.get("/exams");
+  const all = ((res.data?.data ?? []) as any[]).map((e) => ({
+    id: String(e.id),
+    name: e.name,
+    class_id: String(e.class_id),
+    status: e.status,
+  }));
+  return classIds.length ? all.filter((e) => classIds.includes(e.class_id)) : all;
+}
+
+export async function getExamSchedules(examId: string): Promise<ExamScheduleLite[]> {
+  if (DEV_FAKE_ROLE) return mock.examSchedules;
+  const [schRes, subjRes] = await Promise.all([
+    api.get(`/exams/${examId}/schedules`),
+    api.get(`/subjects`).catch(() => ({ data: { data: [] } })),
+  ]);
+  const names: Record<string, string> = {};
+  for (const s of (subjRes.data?.data ?? []) as any[]) names[String(s.id)] = s.name;
+  return ((schRes.data?.data ?? []) as any[]).map((s) => ({
+    id: String(s.id),
+    subject_id: String(s.subject_id),
+    subject_name: names[String(s.subject_id)],
+    max_marks: Number(s.max_marks ?? 0),
+    passing_marks: Number(s.passing_marks ?? 0),
+  }));
+}
+
+// The class roster pre-filled with any marks already entered for this schedule.
+export async function getMarksRoster(classId: string, scheduleId: string): Promise<MarkInput[]> {
+  if (DEV_FAKE_ROLE) return mock.marksRoster;
+  const [studRes, markRes] = await Promise.all([
+    api.get(`/students?class_id=${classId}`),
+    api.get(`/exams/schedules/${scheduleId}/marks`),
+  ]);
+  const existing: Record<string, any> = {};
+  for (const m of (markRes.data?.data ?? []) as any[]) existing[String(m.student_id)] = m;
+  return ((studRes.data?.data ?? []) as any[]).map((s) => {
+    const id = String(s.id);
+    const ex = existing[id];
+    return {
+      student_id: id,
+      name: s.name || [s.first_name, s.last_name].filter(Boolean).join(" ") || "Student",
+      roll: s.roll_number ? String(s.roll_number) : s.admission_number,
+      marks_obtained: ex && ex.marks_obtained != null ? String(ex.marks_obtained) : "",
+      is_absent: ex ? !!ex.is_absent : false,
+    };
+  });
+}
+
+export async function submitMarks(scheduleId: string, marks: MarkSubmit[]): Promise<void> {
+  if (DEV_FAKE_ROLE) return; // pretend success in preview
+  await api.post("/exams/marks/bulk", { exam_schedule_id: scheduleId, marks });
+}
