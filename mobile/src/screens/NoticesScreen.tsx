@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getNotices } from "../api/portal";
 import { useAsyncData } from "../lib/useAsyncData";
@@ -20,7 +20,7 @@ function relative(s?: string) {
   }
 }
 
-export default function NoticesScreen() {
+export default function NoticesScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const { data, loading, refreshing, error, reload } = useAsyncData(getNotices, []);
 
@@ -38,16 +38,16 @@ export default function NoticesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={colors.gold} />}
         ListEmptyComponent={<Empty text="No notices yet." />}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={() => navigation.navigate("NoticeDetail", { notice: item })}>
             {item.notice_type ? <Text style={styles.tag}>{item.notice_type.toUpperCase()}</Text> : null}
             <Text style={styles.title}>{item.title}</Text>
             {item.content ? (
-              <Text style={styles.body} numberOfLines={4}>
+              <Text style={styles.body} numberOfLines={3}>
                 {item.content}
               </Text>
             ) : null}
             {item.created_at ? <Text style={styles.date}>{relative(item.created_at)}</Text> : null}
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>

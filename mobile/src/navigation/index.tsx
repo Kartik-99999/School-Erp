@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import NoticesScreen from "../screens/NoticesScreen";
+import NoticeDetailScreen from "../screens/NoticeDetailScreen";
 import AttendanceScreen from "../screens/AttendanceScreen";
 import FeesScreen from "../screens/FeesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -25,6 +26,7 @@ import { colors } from "../theme";
 
 const RootStack = createNativeStackNavigator();
 const HomeNav = createNativeStackNavigator();
+const NoticesNav = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const stackOpts = {
@@ -61,6 +63,15 @@ function HomeStack() {
   );
 }
 
+function NoticesStack() {
+  return (
+    <NoticesNav.Navigator screenOptions={stackOpts}>
+      <NoticesNav.Screen name="NoticesList" component={NoticesScreen} options={{ headerShown: false }} />
+      <NoticesNav.Screen name="NoticeDetail" component={NoticeDetailScreen} options={{ title: "Notice" }} />
+    </NoticesNav.Navigator>
+  );
+}
+
 const TAB_ICONS: Record<string, any> = { Home: "home", Notices: "notifications", Profile: "person" };
 
 function MainTabs() {
@@ -78,7 +89,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Notices" component={NoticesScreen} />
+      <Tab.Screen name="Notices" component={NoticesStack} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

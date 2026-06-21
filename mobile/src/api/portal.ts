@@ -8,11 +8,20 @@ export interface Notice {
   content?: string;
   notice_type?: string;
   created_at?: string;
+  attachment_url?: string | null;
 }
 export async function getNotices(): Promise<Notice[]> {
   if (DEV_FAKE_ROLE) return mock.notices;
   const res = await api.get("/communication/notices");
-  return (res.data?.data ?? []) as Notice[];
+  // Real notices use body/category; normalize to the mobile shape (content/notice_type).
+  return ((res.data?.data ?? []) as any[]).map((n) => ({
+    id: String(n.id),
+    title: n.title,
+    content: n.content ?? n.body,
+    notice_type: n.notice_type ?? n.category,
+    created_at: n.created_at,
+    attachment_url: n.attachment_url ?? null,
+  }));
 }
 
 export interface AttendanceSummary {
