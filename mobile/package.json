@@ -30,10 +30,13 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo run:android",
+    "android": "node scripts/pin-gradle.js && expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "device": "EXPO_PUBLIC_DEV_FAKE_ROLE=Student EXPO_PUBLIC_SCHOOL_NAME=\"Demo School\" expo start"
+    "device": "EXPO_PUBLIC_DEV_FAKE_ROLE=Student EXPO_PUBLIC_SCHOOL_NAME=\"Demo School\" expo start",
+    "prebuild": "expo prebuild && node scripts/pin-gradle.js",
+    "pin-gradle": "node scripts/pin-gradle.js",
+    "postinstall": "node scripts/pin-gradle.js"
   },
   "private": true
 }
