@@ -3,6 +3,7 @@
 import type { AttendanceData, FeesData, Homework, Notice, TimetableDay } from "./portal";
 import type { Child } from "./children";
 import type { ExamResult } from "./exams";
+import type { LibraryData } from "./library";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -64,3 +65,12 @@ export const examResults: ExamResult[] = [
   { exam_id: "e2", exam_name: "Unit Test II", obtained_marks: 88, total_marks: 100, percentage: 88, grade: "A", rank: 2, status: "Pass" },
   { exam_id: "e3", exam_name: "Unit Test I", obtained_marks: 71, total_marks: 100, percentage: 71, grade: "B", rank: 9, status: "Pass" },
 ];
+
+export const library: LibraryData = {
+  summary: { active: 2, total: 3, total_fine: 30 },
+  issues: [
+    { id: "l1", book_title: "Wings of Fire", author: "A.P.J. Abdul Kalam", issue_date: "2026-06-05", due_date: "2026-06-19", return_date: null, status: "Overdue", fine_amount: 30 },
+    { id: "l2", book_title: "Malgudi Days", author: "R.K. Narayan", issue_date: "2026-06-12", due_date: "2026-06-26", return_date: null, status: "Issued", fine_amount: 0 },
+    { id: "l3", book_title: "Indian Constitution at Work", author: "NCERT", issue_date: "2026-05-20", due_date: "2026-06-03", return_date: "2026-06-02", status: "Returned", fine_amount: 0 },
+  ],
+};
