@@ -104,7 +104,8 @@ async def tenant(owner_session):
     s.add_all([parent, other_parent])
     await s.flush()
     staff = Staff(school_id=sid, user_id=users["Teacher"].id, first_name="Tina", last_name="Teacher")
-    s.add(staff)
+    staff_acc = Staff(school_id=sid, user_id=users["Accountant"].id, first_name="Amal", last_name="Accountant")
+    s.add_all([staff, staff_acc])
     await s.flush()
 
     year = await ins("INSERT INTO academic_years (school_id,name,start_date,end_date) VALUES (:s,'2026-27','2026-04-01','2027-03-31') RETURNING id", s=sid)
@@ -171,7 +172,7 @@ async def tenant(owner_session):
         "exam": str(exam), "poll": str(poll.id), "opt1": str(opt1.id), "opt2": str(opt2.id),
         "gallery": str(gallery.id), "receipt": str(receipt), "staff": str(staff.id),
         "slot1": str(slot1), "slot2": str(slot2),
-        "es1": str(es1), "cls": str(cls), "sec": str(sec),
+        "es1": str(es1), "cls": str(cls), "sec": str(sec), "staff_acc": str(staff_acc.id),
     }
 
     # FK-safe teardown
@@ -410,3 +411,19 @@ async def test_fees_list_routes_gated_to_finance(tenant, app_client):
         assert (await app_client.get(f"{API}/fees/receipts", headers=h)).status_code == 403
     assert (await app_client.get(f"{API}/fees/dues", headers=ach)).status_code == 200
     assert (await app_client.get(f"{API}/fees/receipts", headers=ach)).status_code == 200
+
+
+async def test_staff_role_filter_join(tenant, app_client):
+    """GET /staff?role= now joins roles.name (it was filtering a non-existent User.role)."""
+    th = await _auth(app_client, tenant, "Teacher")
+    # mobile getMyClasses step 1: ?role=Teacher returns only teachers
+    r = await app_client.get(f"{API}/staff?role=Teacher", headers=th)
+    assert r.status_code == 200, r.text
+    ids = {s["id"] for s in r.json()["data"]}
+    assert tenant["staff"] in ids and tenant["staff_acc"] not in ids
+    # step 2: that staff id resolves the teacher's classes
+    assert (await app_client.get(f"{API}/academics/timetable/teacher/{tenant['staff']}", headers=th)).status_code == 200
+    # the filter is real: a different role returns its own staff, not the teacher
+    r2 = await app_client.get(f"{API}/staff?role=Accountant", headers=th)
+    acc_ids = {s["id"] for s in r2.json()["data"]}
+    assert tenant["staff_acc"] in acc_ids and tenant["staff"] not in acc_ids

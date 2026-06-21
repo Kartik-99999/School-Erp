@@ -102,9 +102,13 @@ async def read_staff(
         query = query.filter(crud_staff.model.department == department)
     # Filter by user role if role param is provided
     if role:
-        from app.models.users import User
+        from app.models.users import Role, User
 
-        query = query.join(User, crud_staff.model.user_id == User.id).filter(User.role == role)
+        query = (
+            query.join(User, crud_staff.model.user_id == User.id)
+            .join(Role, User.role_id == Role.id)
+            .filter(Role.name == role)
+        )
 
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
