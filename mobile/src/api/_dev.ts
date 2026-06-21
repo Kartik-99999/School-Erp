@@ -6,6 +6,7 @@ import type { ExamResult } from "./exams";
 import type { LibraryData } from "./library";
 import type { LeaveApplication } from "./leaves";
 import type { Resource } from "./resources";
+import type { SchoolEvent } from "./events";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -87,4 +88,10 @@ export const resources: Resource[] = [
   { id: "r1", title: "Science Notes — Crop Production (Ch. 5)", description: "Summary notes and key diagrams for the chapter.", category: "Study Material", file_url: "https://example.com/science-ch5.pdf", file_name: "science-ch5.pdf", file_type: "pdf", external_url: null, created_at: "2026-06-18" },
   { id: "r2", title: "Holiday Homework — Mathematics", description: "Practice set for the summer break.", category: "Study Material", file_url: "https://example.com/maths-holiday.pdf", file_name: "maths-holiday.pdf", file_type: "pdf", external_url: null, created_at: "2026-06-15" },
   { id: "r3", title: "Circular — Revised School Timings", description: "New timings effective 1 July. Please read carefully.", category: "Notice Circular", file_url: null, file_name: null, file_type: null, external_url: "https://example.com/circular-timings", created_at: "2026-06-12" },
+];
+
+export const events: SchoolEvent[] = [
+  { id: "ev1", title: "Annual Sports Day", description: "Track and field events on the main ground. Parents are welcome.", start_date: "2026-07-05", end_date: "2026-07-05", event_type: "Sports" },
+  { id: "ev2", title: "Half-Yearly Examinations", description: "Classes VI–X. See the exam timetable for the schedule.", start_date: "2026-07-15", end_date: "2026-07-24", event_type: "Exam" },
+  { id: "ev3", title: "Independence Day", description: "Flag hoisting at 8:00 AM followed by a cultural programme.", start_date: "2026-08-15", end_date: "2026-08-15", event_type: "Holiday" },
 ];

@@ -17,6 +17,7 @@ import LibraryScreen from "../screens/LibraryScreen";
 import LeavesScreen from "../screens/LeavesScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import ResourcesScreen from "../screens/ResourcesScreen";
+import EventsScreen from "../screens/EventsScreen";
 import TeacherClassesScreen from "../screens/TeacherClassesScreen";
 import MarkAttendanceScreen from "../screens/MarkAttendanceScreen";
 import TeacherScheduleScreen from "../screens/TeacherScheduleScreen";
@@ -47,6 +48,7 @@ function HomeStack() {
       <HomeNav.Screen name="Leaves" component={LeavesScreen} />
       <HomeNav.Screen name="Payment" component={PaymentScreen} options={{ title: "Payment" }} />
       <HomeNav.Screen name="Resources" component={ResourcesScreen} />
+      <HomeNav.Screen name="Events" component={EventsScreen} />
       <HomeNav.Screen name="TeacherClasses" component={TeacherClassesScreen} options={{ title: "My classes" }} />
       <HomeNav.Screen name="MarkAttendance" component={MarkAttendanceScreen} />
       <HomeNav.Screen name="TeacherSchedule" component={TeacherScheduleScreen} options={{ title: "My schedule" }} />
