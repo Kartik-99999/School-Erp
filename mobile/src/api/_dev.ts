@@ -7,6 +7,7 @@ import type { LibraryData } from "./library";
 import type { LeaveApplication } from "./leaves";
 import type { Resource } from "./resources";
 import type { SchoolEvent } from "./events";
+import type { StudentProfile } from "./profile";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -95,3 +96,13 @@ export const events: SchoolEvent[] = [
   { id: "ev2", title: "Half-Yearly Examinations", description: "Classes VI–X. See the exam timetable for the schedule.", start_date: "2026-07-15", end_date: "2026-07-24", event_type: "Exam" },
   { id: "ev3", title: "Independence Day", description: "Flag hoisting at 8:00 AM followed by a cultural programme.", start_date: "2026-08-15", end_date: "2026-08-15", event_type: "Holiday" },
 ];
+
+export const profile: StudentProfile = {
+  name: "Aarav Sharma",
+  admission_number: "ADM-2024-0142",
+  roll_number: 12,
+  class_name: "VIII",
+  section_name: "A",
+  blood_group: "O+",
+  photo_url: null,
+};
