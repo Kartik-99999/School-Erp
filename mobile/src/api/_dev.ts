@@ -28,10 +28,11 @@ export const attendance: AttendanceData = {
 };
 
 export const fees: FeesData = {
+  student_id: "s1",
   summary: { total_due: 48000, total_paid: 36000, balance: 12000 },
   dues: [
-    { fee_head: "Term 2 — Tuition", due_date: "2026-07-10", net_due_amount: 12000, amount_paid: 0, balance: 12000 },
-    { fee_head: "Transport (Jul–Sep)", due_date: "2026-07-10", net_due_amount: 4500, amount_paid: 4500, balance: 0 },
+    { id: "fs1", fee_head: "Term 2 — Tuition", due_date: "2026-07-10", net_due_amount: 12000, amount_paid: 0, balance: 12000 },
+    { id: "fs2", fee_head: "Transport (Jul–Sep)", due_date: "2026-07-10", net_due_amount: 4500, amount_paid: 4500, balance: 0 },
   ],
 };
 

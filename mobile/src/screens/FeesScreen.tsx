@@ -1,17 +1,54 @@
 import React from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getMyFees } from "../api/portal";
 import { useAsyncData } from "../lib/useAsyncData";
 import { useChild } from "../child/ChildContext";
 import { ChildHeader } from "../components/child";
+import { DEV_FAKE_ROLE } from "../config";
 import { Empty, Loader, StateView } from "../ui";
 import { colors, radius, space } from "../theme";
 
 const inr = (n: number) => "₹" + (n || 0).toLocaleString("en-IN");
 
-export default function FeesScreen() {
+export default function FeesScreen({ navigation }: any) {
   const { selected } = useChild();
   const { data, loading, refreshing, error, reload } = useAsyncData(() => getMyFees(selected?.id), [selected?.id]);
+
+  // Refresh dues when returning to this screen (e.g. after a payment); skip the first focus.
+  React.useEffect(() => {
+    if (!navigation?.addListener) return;
+    let first = true;
+    const unsub = navigation.addListener("focus", () => {
+      if (first) {
+        first = false;
+        return;
+      }
+      reload();
+    });
+    return unsub;
+  }, [navigation, reload]);
+
+  const pay = () => {
+    if (!data || data.summary.balance <= 0) return;
+    if (DEV_FAKE_ROLE) {
+      Alert.alert("Demo checkout", "Razorpay opens here in the app. Payment is simulated as successful in preview.");
+      return;
+    }
+    const studentId = selected?.id || data.student_id;
+    if (!studentId) {
+      Alert.alert("Unavailable", "Couldn't determine the student for this payment.");
+      return;
+    }
+    const allocations = data.dues
+      .filter((d) => d.balance > 0 && d.id)
+      .map((d) => ({ fee_schedule_id: d.id as string, amount: d.balance }));
+    if (allocations.length === 0) {
+      Alert.alert("Nothing to pay", "There are no payable dues right now.");
+      return;
+    }
+    const amount = allocations.reduce((t, a) => t + a.amount, 0);
+    navigation.navigate("Payment", { amount, studentId, allocations });
+  };
 
   if (loading) return <Loader />;
   if (error || !data) return <StateView text="Couldn't load fees." onRetry={reload} />;
@@ -32,6 +69,11 @@ export default function FeesScreen() {
           <Text style={styles.heroSub}>Paid {inr(s.total_paid)}</Text>
         </View>
       </View>
+      {s.balance > 0 ? (
+        <TouchableOpacity style={styles.pay} onPress={pay} activeOpacity={0.85}>
+          <Text style={styles.payText}>Pay {inr(s.balance)} now</Text>
+        </TouchableOpacity>
+      ) : null}
       <Text style={styles.h}>Dues</Text>
       {data.dues.length === 0 ? (
         <Empty text="Nothing due — you're all paid up." />
@@ -61,4 +103,6 @@ const styles = StyleSheet.create({
   dtitle: { fontSize: 14, fontWeight: "700", color: colors.ink },
   dsub: { fontSize: 12, color: colors.sub, marginTop: 2 },
   damt: { fontSize: 15, fontWeight: "800", color: colors.ink },
+  pay: { backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: space(4), alignItems: "center", marginBottom: space(6) },
+  payText: { color: "#fff", fontSize: 15, fontWeight: "800" },
 });

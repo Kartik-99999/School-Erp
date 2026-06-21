@@ -39,14 +39,17 @@ export async function getMyAttendance(studentId?: string): Promise<AttendanceDat
 }
 
 export interface FeeDue {
+  id?: string;
   fee_head?: string;
   head?: string;
   due_date?: string | null;
   net_due_amount: number;
   amount_paid: number;
   balance: number;
+  status?: string;
 }
 export interface FeesData {
+  student_id?: string;
   dues: FeeDue[];
   summary: { total_due: number; total_paid: number; balance: number };
 }
