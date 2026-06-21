@@ -32,7 +32,7 @@ export default function LeavesScreen() {
     if (!reason.trim()) return Alert.alert("Add a reason", "Please give a short reason.");
     setSubmitting(true);
     try {
-      await applyLeave({ leave_type: type, from_date: from, to_date: to, reason: reason.trim() });
+      await applyLeave({ leave_type: type, from_date: from, to_date: to, reason: reason.trim() }, selected?.id);
       Alert.alert("Submitted", "Your leave application was submitted.");
       setOpen(false);
       setReason("");

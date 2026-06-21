@@ -18,16 +18,16 @@ export interface LeaveApplyPayload {
   reason: string;
 }
 
-// A student's own leave applications. Backend /student-portal/leaves is self-only
-// (apply + list use the authenticated student); a parent-for-child flow would need a
-// new backend endpoint. The dev-mock keeps the screen previewable for both personas.
+// A student's own leaves, or (for a parent) a specific child's via ?student_id — the
+// backend _resolve_student enforces student=self / parent=own-child / else 403. The
+// dev-mock keeps the screen previewable for both personas.
 export async function getMyLeaves(studentId?: string): Promise<LeaveApplication[]> {
   if (DEV_FAKE_ROLE) return mock.leavesById[studentId ?? "s1"] ?? mock.leavesById.s1;
-  const res = await api.get("/student-portal/leaves");
+  const res = await api.get(studentId ? `/student-portal/leaves?student_id=${studentId}` : "/student-portal/leaves");
   return (res.data?.data ?? []) as LeaveApplication[];
 }
 
-export async function applyLeave(payload: LeaveApplyPayload): Promise<void> {
+export async function applyLeave(payload: LeaveApplyPayload, studentId?: string): Promise<void> {
   if (DEV_FAKE_ROLE) return; // pretend success in preview
-  await api.post("/student-portal/leaves", payload);
+  await api.post(studentId ? `/student-portal/leaves?student_id=${studentId}` : "/student-portal/leaves", payload);
 }

@@ -498,3 +498,19 @@ async def test_staff_leave_apply_and_own_list(tenant, app_client):
     # The full staff-leave list is now admin-only
     assert (await app_client.get(f"{API}/leaves/applications", headers=th)).status_code == 403
     assert (await app_client.get(f"{API}/leaves/applications", headers=ah)).status_code == 200
+
+
+async def test_parent_child_leave_scoping(tenant, app_client):
+    """Issue 2: /student-portal/leaves GET+POST resolve via _resolve_student (parent->own child)."""
+    ph = await _auth(app_client, tenant, "Parent")
+    sh = await _auth(app_client, tenant, "Student")
+    c1, other = tenant["child1"], tenant["other_child"]
+    # Parent GET: own child 200, another child 403
+    assert (await app_client.get(f"{API}/student-portal/leaves?student_id={c1}", headers=ph)).status_code == 200
+    assert (await app_client.get(f"{API}/student-portal/leaves?student_id={other}", headers=ph)).status_code == 403
+    # Student self (no student_id) still resolves to self
+    assert (await app_client.get(f"{API}/student-portal/leaves", headers=sh)).status_code == 200
+    # Parent POST: own child 200, another child 403
+    lv = {"leave_type": "Sick", "from_date": "2026-08-01", "to_date": "2026-08-02", "reason": "Fever"}
+    assert (await app_client.post(f"{API}/student-portal/leaves?student_id={c1}", headers=ph, json=lv)).status_code == 200
+    assert (await app_client.post(f"{API}/student-portal/leaves?student_id={other}", headers=ph, json=lv)).status_code == 403

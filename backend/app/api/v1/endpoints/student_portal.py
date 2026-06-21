@@ -354,11 +354,12 @@ async def my_facilities(
 
 @router.get("/leaves", response_model=APIResponse[list[StudentLeaveResponse]])
 async def my_leaves(
+    student_id: Optional[UUID] = None,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
     token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
-    student = await _get_me(db, token_data, school_id)
+    student = await _resolve_student(db, token_data, school_id, student_id)
     leaves = (
         (
             await db.execute(
@@ -376,11 +377,12 @@ async def my_leaves(
 @router.post("/leaves", response_model=APIResponse[StudentLeaveResponse])
 async def apply_leave(
     leave_in: StudentLeaveCreate,
+    student_id: Optional[UUID] = None,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
     token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
-    student = await _get_me(db, token_data, school_id)
+    student = await _resolve_student(db, token_data, school_id, student_id)
     if leave_in.to_date < leave_in.from_date:
         raise HTTPException(status_code=400, detail="End date cannot be before start date.")
 
