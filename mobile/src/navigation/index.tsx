@@ -22,6 +22,7 @@ import EventsScreen from "../screens/EventsScreen";
 import TeacherClassesScreen from "../screens/TeacherClassesScreen";
 import MarkAttendanceScreen from "../screens/MarkAttendanceScreen";
 import TeacherScheduleScreen from "../screens/TeacherScheduleScreen";
+import TeacherHomeworkScreen from "../screens/TeacherHomeworkScreen";
 import { colors } from "../theme";
 
 const RootStack = createNativeStackNavigator();
@@ -54,6 +55,7 @@ function HomeStack() {
       <HomeNav.Screen name="TeacherClasses" component={TeacherClassesScreen} options={{ title: "My classes" }} />
       <HomeNav.Screen name="MarkAttendance" component={MarkAttendanceScreen} />
       <HomeNav.Screen name="TeacherSchedule" component={TeacherScheduleScreen} options={{ title: "My schedule" }} />
+      <HomeNav.Screen name="TeacherHomework" component={TeacherHomeworkScreen} options={{ title: "Homework" }} />
       <HomeNav.Screen
         name="ComingSoon"
         component={ComingSoonScreen}

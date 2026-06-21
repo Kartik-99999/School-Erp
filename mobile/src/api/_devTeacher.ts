@@ -1,5 +1,5 @@
 // DEV-ONLY sample data for the teacher flow (only used when EXPO_PUBLIC_DEV_FAKE_ROLE is set).
-import type { ScheduleDay, SectionStudent, TeacherClass } from "./teacher";
+import type { ScheduleDay, SectionStudent, TeacherClass, TeacherHomework } from "./teacher";
 
 export const classes: TeacherClass[] = [
   { class_id: "c8", section_id: "a", name: "Class VIII-A" },
@@ -30,3 +30,14 @@ export const schedule: ScheduleDay[] = [
     { period_name: "II", start_time: "08:45 AM", end_time: "09:30 AM", subject_name: "Mathematics", class_name: "VIII", section_name: "A" },
   ] },
 ]
+
+export const subjects: { id: string; name: string }[] = [
+  { id: "sub-math", name: "Mathematics" },
+  { id: "sub-eng", name: "English" },
+  { id: "sub-sci", name: "Science" },
+];
+
+export const classHomework: TeacherHomework[] = [
+  { id: "h1", title: "Algebra — Exercise 4.3", subject_id: "sub-math", due_date: "2026-06-25", description: "Solve Q1–Q12 in the classwork notebook; show each step.", status: "Active" },
+  { id: "h2", title: "Read 'The Sermon at Benares'", subject_id: "sub-eng", due_date: "2026-06-24", description: "Prepare a short summary and list three key lessons.", status: "Active" },
+];

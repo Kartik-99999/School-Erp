@@ -85,3 +85,66 @@ export async function getMySchedule(userId?: string): Promise<ScheduleDay[]> {
     .map((day) => ({ day, entries: byDay[day] || [] }))
     .filter((d) => d.entries.length > 0);
 }
+
+// --- Homework (teacher: view + create for a class/section) ---
+export interface TeacherHomework {
+  id?: string;
+  title: string;
+  subject_id?: string;
+  due_date?: string;
+  description?: string;
+  status?: string;
+}
+export interface HomeworkMeta {
+  teacherId: string;
+  academicYearId: string;
+  subjects: { id: string; name: string }[];
+}
+export interface CreateHomeworkInput {
+  class_id: string;
+  section_id: string;
+  subject_id: string;
+  title: string;
+  description?: string;
+  due_date: string;
+}
+
+export async function getClassHomework(classId: string, sectionId: string): Promise<TeacherHomework[]> {
+  if (DEV_FAKE_ROLE) return mock.classHomework;
+  const res = await api.get(`/academics/homework?class_id=${classId}&section_id=${sectionId}`);
+  return (res.data?.data ?? []) as TeacherHomework[];
+}
+
+// Supporting data the create form needs: the teacher's staff id, the active academic year,
+// and the subjects mapped to this class.
+export async function getHomeworkMeta(classId: string, userId?: string): Promise<HomeworkMeta> {
+  if (DEV_FAKE_ROLE) return { teacherId: "t1", academicYearId: "ay1", subjects: mock.subjects };
+  const [staffRes, yrRes, subjRes] = await Promise.all([
+    api.get(`/staff?role=Teacher`),
+    api.get(`/academic-years`),
+    api.get(`/classes/${classId}/subjects`),
+  ]);
+  const me = ((staffRes.data?.data ?? []) as any[]).find((s) => s.user_id === userId);
+  const years = (yrRes.data?.data ?? []) as any[];
+  const activeYear = years.find((y) => y.is_active) || years[0];
+  const subjects = ((subjRes.data?.data ?? []) as any[]).map((s) => ({ id: String(s.id), name: s.name }));
+  return {
+    teacherId: me ? String(me.id) : "",
+    academicYearId: activeYear ? String(activeYear.id) : "",
+    subjects,
+  };
+}
+
+export async function createHomework(input: CreateHomeworkInput, meta: HomeworkMeta): Promise<void> {
+  if (DEV_FAKE_ROLE) return; // pretend success in preview
+  await api.post("/academics/homework", {
+    class_id: input.class_id,
+    section_id: input.section_id,
+    subject_id: input.subject_id,
+    title: input.title,
+    description: input.description,
+    due_date: input.due_date,
+    academic_year_id: meta.academicYearId,
+    teacher_id: meta.teacherId,
+  });
+}
