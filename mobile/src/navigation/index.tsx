@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import { addNotificationTapListener, registerForPush } from "../lib/push";
 import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
+import OverviewScreen from "../screens/OverviewScreen";
 import NoticesScreen from "../screens/NoticesScreen";
 import NoticeDetailScreen from "../screens/NoticeDetailScreen";
 import AttendanceScreen from "../screens/AttendanceScreen";
@@ -49,6 +50,7 @@ function HomeStack() {
   return (
     <HomeNav.Navigator screenOptions={stackOpts}>
       <HomeNav.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
+      <HomeNav.Screen name="Overview" component={OverviewScreen} options={{ title: "Overview" }} />
       <HomeNav.Screen name="Attendance" component={AttendanceScreen} />
       <HomeNav.Screen name="Fees" component={FeesScreen} />
       <HomeNav.Screen name="Timetable" component={TimetableScreen} />

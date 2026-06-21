@@ -17,6 +17,7 @@ function greeting() {
 type Tile = { label: string; icon: any; route: string; params?: any };
 const TILES: Record<string, Tile[]> = {
   Parent: [
+    { label: "Overview", icon: "grid-outline", route: "Overview" },
     { label: "Attendance", icon: "calendar-outline", route: "Attendance" },
     { label: "Fees", icon: "card-outline", route: "Fees" },
     { label: "Exams", icon: "school-outline", route: "Exams" },
@@ -29,6 +30,7 @@ const TILES: Record<string, Tile[]> = {
     { label: "Timetable", icon: "time-outline", route: "Timetable" },
   ],
   Student: [
+    { label: "Overview", icon: "grid-outline", route: "Overview" },
     { label: "Attendance", icon: "calendar-outline", route: "Attendance" },
     { label: "Fees", icon: "card-outline", route: "Fees" },
     { label: "Homework", icon: "book-outline", route: "Homework" },
