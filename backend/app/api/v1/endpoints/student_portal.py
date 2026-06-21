@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Any
+from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,13 +13,13 @@ from app.models.hostel import HostelAllocation, HostelBuilding, HostelRoom
 from app.models.library import LibraryBook, LibraryIssue
 from app.models.setup import FeeHead, FeeStructure
 from app.models.student_leaves import StudentLeaveApplication
-from app.models.students import Student
+from app.models.students import Parent, Student
 from app.models.transport import StudentTransport, TransportRoute, TransportStop, TransportVehicle
 from app.schemas.base import APIResponse
 from app.schemas.student_portal import StudentLeaveCreate, StudentLeaveResponse
 
 # Every route here is the authenticated student's own data.
-router = APIRouter(dependencies=[Depends(deps.require_roles(["Student"]))])
+router = APIRouter(dependencies=[Depends(deps.require_roles(["Student", "Parent"]))])
 
 
 async def _get_me(db: AsyncSession, token_data: deps.TokenData, school_id: str) -> Student:
@@ -30,17 +30,44 @@ async def _get_me(db: AsyncSession, token_data: deps.TokenData, school_id: str) 
     return student
 
 
+async def _resolve_student(
+    db: AsyncSession, token_data: deps.TokenData, school_id: str, student_id: Optional[UUID]
+) -> Student:
+    """Whose data to return: a Student always gets their own record; a Parent must pass
+    student_id and may only read a child that belongs to them."""
+    if token_data.role == "Parent":
+        if not student_id:
+            raise HTTPException(status_code=400, detail="student_id is required.")
+        parent = (
+            (await db.execute(select(Parent).filter(Parent.user_id == UUID(token_data.user_id))))
+            .scalars()
+            .first()
+        )
+        if not parent:
+            raise HTTPException(status_code=404, detail="Parent profile not found")
+        student = (
+            (await db.execute(select(Student).filter(Student.id == student_id))).scalars().first()
+        )
+        if not student or str(student.school_id) != school_id or student.parent_id != parent.id:
+            raise HTTPException(
+                status_code=403, detail="You can only view your own child's records."
+            )
+        return student
+    return await _get_me(db, token_data, school_id)
+
+
 def _t(value) -> str:
     return value.strftime("%I:%M %p") if value else None
 
 
 @router.get("/fees")
 async def my_fees(
+    student_id: Optional[UUID] = None,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
     token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
-    student = await _get_me(db, token_data, school_id)
+    student = await _resolve_student(db, token_data, school_id, student_id)
     school_uuid = UUID(school_id)
 
     # Map fee_structure -> head name for human-friendly labels.
@@ -126,11 +153,12 @@ async def my_fees(
 
 @router.get("/attendance")
 async def my_attendance(
+    student_id: Optional[UUID] = None,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
     token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
-    student = await _get_me(db, token_data, school_id)
+    student = await _resolve_student(db, token_data, school_id, student_id)
 
     records = (
         (

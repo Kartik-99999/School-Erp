@@ -1,7 +1,8 @@
+import os
 from typing import Annotated, Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, BeforeValidator, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -10,6 +11,7 @@ from app.api import deps
 from app.models.school import School
 from app.schemas.base import APIResponse
 from app.schemas.super_admin import SchoolResponse, SchoolSettingsUpdate
+from app.utils.cloudinary import upload_file
 from app.utils.validators import clean_bank_account, clean_external_url, clean_ifsc
 
 router = APIRouter()
@@ -55,6 +57,49 @@ async def update_my_school_settings(
     await db.refresh(school)
 
     return APIResponse(success=True, data=school, message="Settings updated successfully")
+
+
+LOGO_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+LOGO_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post(
+    "/logo",
+    response_model=APIResponse[SchoolResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
+async def upload_school_logo(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+) -> Any:
+    """Upload/replace the school's logo. Stored on Cloudinary; the secure URL is saved to
+    ``logo_url`` and shown on the school's login screen and portal."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided.")
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in LOGO_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image type '{ext}'. Use PNG, JPG, WEBP, GIF or SVG.",
+        )
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(content) > LOGO_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Image too large (max 5 MB).")
+
+    school = (
+        (await db.execute(select(School).filter(School.id == UUID(school_id)))).scalars().first()
+    )
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+
+    school.logo_url = upload_file(content, folder=f"school_erp/{school_id}/branding")
+    db.add(school)
+    await db.commit()
+    await db.refresh(school)
+    return APIResponse(success=True, data=school, message="Logo updated.")
 
 
 class PaymentGatewayStatus(BaseModel):

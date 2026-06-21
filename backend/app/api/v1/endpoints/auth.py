@@ -197,6 +197,26 @@ async def login_access_token(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
+    # White-label apps send an X-School-Code header; reject accounts that belong to a
+    # different school before any token (or MFA challenge) is issued.
+    school_code = request.headers.get("x-school-code")
+    if school_code:
+        from app.models.school import School
+
+        subdomain = None
+        if user.school_id:
+            sch = (
+                (await db.execute(select(School).filter(School.id == user.school_id)))
+                .scalars()
+                .first()
+            )
+            subdomain = sch.subdomain if sch else None
+        if subdomain != school_code:
+            raise HTTPException(
+                status_code=403,
+                detail="This account isn't part of this school's app.",
+            )
+
     # 2FA gate: if the account has confirmed TOTP, don't issue tokens yet. Return a
     # short-lived MFA challenge that the client exchanges (with a code) at
     # /auth/2fa/verify. Returning a JSONResponse bypasses the Token response_model.
