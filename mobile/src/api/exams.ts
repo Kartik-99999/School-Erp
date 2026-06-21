@@ -39,7 +39,7 @@ export interface ReportCard {
 // Published exam results (exam-level). Parent passes the child's id; student omits it.
 // Backend /student-portal/report-cards is ownership-checked and parent-capable.
 export async function getExamResults(studentId?: string): Promise<ExamResult[]> {
-  if (DEV_FAKE_ROLE) return mock.examResults;
+  if (DEV_FAKE_ROLE) return mock.examResultsById[studentId ?? "s1"] ?? mock.examResultsById.s1;
   const q = studentId ? `?student_id=${studentId}` : "";
   const res = await api.get(`/student-portal/report-cards${q}`);
   return (res.data?.data ?? []) as ExamResult[];

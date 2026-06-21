@@ -15,7 +15,7 @@ export interface StudentProfile {
 // A student reads their own profile (/students/me); a parent reads the selected child
 // (/students/{id}). DEV returns a mock so both personas preview without a backend.
 export async function getStudentProfile(studentId?: string): Promise<StudentProfile> {
-  if (DEV_FAKE_ROLE) return mock.profile;
+  if (DEV_FAKE_ROLE) return mock.profileById[studentId ?? "s1"] ?? mock.profileById.s1;
   const res = await api.get(studentId ? `/students/${studentId}` : "/students/me");
   const p = (res.data?.data ?? {}) as any;
   return {

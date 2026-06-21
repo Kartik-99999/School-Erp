@@ -41,7 +41,7 @@ const EMPTY_ATT: AttendanceData = {
 };
 // studentId is supplied by a parent (their child); a student omits it (self).
 export async function getMyAttendance(studentId?: string): Promise<AttendanceData> {
-  if (DEV_FAKE_ROLE) return mock.attendance;
+  if (DEV_FAKE_ROLE) return mock.attendanceById[studentId ?? "s1"] ?? mock.attendanceById.s1;
   const q = studentId ? `?student_id=${studentId}` : "";
   const res = await api.get(`/student-portal/attendance${q}`);
   return (res.data?.data ?? EMPTY_ATT) as AttendanceData;
@@ -72,7 +72,7 @@ export interface FeesData {
 }
 const EMPTY_FEES: FeesData = { dues: [], receipts: [], summary: { total_due: 0, total_paid: 0, balance: 0 } };
 export async function getMyFees(studentId?: string): Promise<FeesData> {
-  if (DEV_FAKE_ROLE) return mock.fees;
+  if (DEV_FAKE_ROLE) return mock.feesById[studentId ?? "s1"] ?? mock.feesById.s1;
   const q = studentId ? `?student_id=${studentId}` : "";
   const res = await api.get(`/student-portal/fees${q}`);
   return (res.data?.data ?? EMPTY_FEES) as FeesData;
@@ -126,7 +126,7 @@ function groupTimetable(slots: any[]): TimetableDay[] {
 }
 // A parent passes the child's class/section; a student resolves their own via /students/me.
 export async function getTimetable(opts?: { classId?: string; sectionId?: string }): Promise<TimetableDay[]> {
-  if (DEV_FAKE_ROLE) return mock.timetable;
+  if (DEV_FAKE_ROLE) return mock.timetableByClass[opts?.classId ?? "c8"] ?? mock.timetableByClass.c8;
   let classId = opts?.classId;
   let sectionId = opts?.sectionId;
   if (!classId || !sectionId) {
@@ -146,7 +146,7 @@ export interface Homework {
   description?: string;
 }
 export async function getHomework(opts?: { classId?: string; sectionId?: string }): Promise<Homework[]> {
-  if (DEV_FAKE_ROLE) return mock.homework;
+  if (DEV_FAKE_ROLE) return mock.homeworkByClass[opts?.classId ?? "c8"] ?? mock.homeworkByClass.c8;
   let classId = opts?.classId;
   let sectionId = opts?.sectionId;
   if (!classId || !sectionId) {

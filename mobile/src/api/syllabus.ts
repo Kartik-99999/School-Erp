@@ -23,7 +23,7 @@ export interface Syllabus {
 
 // Parent passes the child's id (ownership-checked server-side); student omits it.
 export async function getSyllabus(studentId?: string): Promise<Syllabus> {
-  if (DEV_FAKE_ROLE) return mock.syllabus;
+  if (DEV_FAKE_ROLE) return mock.syllabusById[studentId ?? "s1"] ?? mock.syllabusById.s1;
   const q = studentId ? `?student_id=${studentId}` : "";
   const res = await api.get(`/student-portal/syllabus${q}`);
   return (res.data?.data ?? { subjects: [], overall: { total: 0, completed: 0, percent: 0 } }) as Syllabus;

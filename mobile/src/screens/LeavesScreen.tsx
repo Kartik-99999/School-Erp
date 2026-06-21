@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { applyLeave, getMyLeaves } from "../api/leaves";
 import { useAsyncData } from "../lib/useAsyncData";
+import { useChild } from "../child/ChildContext";
+import { ChildHeader } from "../components/child";
 import { Empty, Loader, StateView } from "../ui";
 import { colors, radius, space } from "../theme";
 
@@ -15,7 +17,8 @@ function statusStyle(status: string) {
 }
 
 export default function LeavesScreen() {
-  const { data, loading, refreshing, error, reload } = useAsyncData(getMyLeaves, []);
+  const { selected } = useChild();
+  const { data, loading, refreshing, error, reload } = useAsyncData(() => getMyLeaves(selected?.id), [selected?.id]);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("Sick");
   const [from, setFrom] = useState(today());
@@ -54,6 +57,7 @@ export default function LeavesScreen() {
       contentContainerStyle={{ padding: space(5) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={colors.gold} />}
     >
+      <ChildHeader />
       <TouchableOpacity style={styles.newBtn} onPress={() => setOpen((v) => !v)} activeOpacity={0.85}>
         <Text style={styles.newBtnText}>{open ? "Cancel" : "Apply for leave"}</Text>
       </TouchableOpacity>

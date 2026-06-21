@@ -23,7 +23,7 @@ const EMPTY: LibraryData = { issues: [], summary: { active: 0, total: 0, total_f
 // parent data isn't available yet; studentId is forwarded for forward-compat and the
 // dev-mock keeps the screen previewable for both personas.
 export async function getMyLibrary(studentId?: string): Promise<LibraryData> {
-  if (DEV_FAKE_ROLE) return mock.library;
+  if (DEV_FAKE_ROLE) return mock.libraryById[studentId ?? "s1"] ?? mock.libraryById.s1;
   const q = studentId ? `?student_id=${studentId}` : "";
   const res = await api.get(`/student-portal/library${q}`);
   return (res.data?.data ?? EMPTY) as LibraryData;

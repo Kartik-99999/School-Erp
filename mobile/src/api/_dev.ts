@@ -226,3 +226,101 @@ export const reportCard: ReportCard = {
   ],
   summary: { total_marks: 500, obtained_marks: 389, percentage: 77.8, grade: "A", status: "Pass", rank: 4 },
 };
+
+// --- Per-child dev-mock variants so switching child changes name + numbers ---
+// s1 = Aarav (VIII-A, class c8), s2 = Diya (V-B, class c5). Student-self (no id) -> s1.
+
+export const profileById: Record<string, StudentProfile> = {
+  s1: profile,
+  s2: { name: "Diya Sharma", admission_number: "ADM-2024-0153", roll_number: 7, class_name: "V", section_name: "B", blood_group: "B+", photo_url: null },
+};
+
+export const attendanceById: Record<string, AttendanceData> = {
+  s1: attendance,
+  s2: {
+    summary: { present: 86, absent: 2, late: 2, total: 90, percentage: 95.6 },
+    records: [
+      { date: "2026-06-19", status: "Present" },
+      { date: "2026-06-18", status: "Present" },
+      { date: "2026-06-17", status: "Present" },
+      { date: "2026-06-16", status: "Late" },
+      { date: "2026-06-13", status: "Present" },
+    ],
+  },
+};
+
+export const feesById: Record<string, FeesData> = {
+  s1: fees,
+  s2: {
+    student_id: "s2",
+    summary: { total_due: 36000, total_paid: 30000, balance: 6000 },
+    dues: [{ id: "fs3", fee_head: "Term 2 — Tuition", due_date: "2026-07-10", net_due_amount: 6000, amount_paid: 0, balance: 6000 }],
+    receipts: [{ id: "rc3", receipt_number: "RC-2026-0088", payment_date: "2026-04-12", payment_mode: "Razorpay", total_amount: 30000 }],
+  },
+};
+
+export const timetableByClass: Record<string, TimetableDay[]> = {
+  c8: timetable,
+  c5: [
+    { day: "Monday", periods: [
+      { period: 1, start_time: "08:00 AM", end_time: "08:45 AM", subject: "English", teacher: "Ms. Iyer" },
+      { period: 2, start_time: "08:45 AM", end_time: "09:30 AM", subject: "EVS", teacher: "Mrs. Pillai" },
+      { period: 3, start_time: "09:45 AM", end_time: "10:30 AM", subject: "Mathematics", teacher: "Mr. Rao" },
+    ] },
+    { day: "Tuesday", periods: [
+      { period: 1, start_time: "08:00 AM", end_time: "08:45 AM", subject: "Hindi", teacher: "Mr. Verma" },
+      { period: 2, start_time: "08:45 AM", end_time: "09:30 AM", subject: "Drawing", teacher: "Ms. Bose" },
+    ] },
+  ],
+};
+
+export const homeworkByClass: Record<string, Homework[]> = {
+  c8: homework,
+  c5: [
+    { title: "EVS — My Family worksheet", subject: "EVS", due_date: "2026-06-23", description: "Complete the worksheet and paste a family photo." },
+    { title: "English — recite the poem", subject: "English", due_date: "2026-06-24", description: "Practise 'The Rainbow' for tomorrow." },
+  ],
+};
+
+export const examResultsById: Record<string, ExamResult[]> = {
+  s1: examResults,
+  s2: [
+    { exam_id: "e1", exam_name: "Half-Yearly Examination", obtained_marks: 446, total_marks: 500, percentage: 89.2, grade: "A", rank: 2, status: "Pass" },
+    { exam_id: "e2", exam_name: "Unit Test II", obtained_marks: 93, total_marks: 100, percentage: 93, grade: "A", rank: 1, status: "Pass" },
+  ],
+};
+
+export const libraryById: Record<string, LibraryData> = {
+  s1: library,
+  s2: {
+    summary: { active: 1, total: 2, total_fine: 0 },
+    issues: [
+      { id: "l9", book_title: "Panchatantra Tales", author: "Vishnu Sharma", issue_date: "2026-06-14", due_date: "2026-06-28", return_date: null, status: "Issued", fine_amount: 0 },
+      { id: "l10", book_title: "Amar Chitra Katha — Krishna", author: "Anant Pai", issue_date: "2026-05-20", due_date: "2026-06-03", return_date: "2026-06-01", status: "Returned", fine_amount: 0 },
+    ],
+  },
+};
+
+export const syllabusById: Record<string, Syllabus> = {
+  s1: syllabus,
+  s2: {
+    overall: { total: 4, completed: 3, percent: 75 },
+    subjects: [
+      { subject_id: "en", subject_name: "English", total: 2, completed: 2, percent: 100, chapters: [
+        { id: "en1", chapter_name: "The Rainbow (poem)", description: null, completed: true },
+        { id: "en2", chapter_name: "A Letter to Grandma", description: null, completed: true },
+      ] },
+      { subject_id: "evs", subject_name: "EVS", total: 2, completed: 1, percent: 50, chapters: [
+        { id: "evs1", chapter_name: "My Family", description: null, completed: true },
+        { id: "evs2", chapter_name: "Plants Around Us", description: null, completed: false },
+      ] },
+    ],
+  },
+};
+
+export const leavesById: Record<string, LeaveApplication[]> = {
+  s1: leaves,
+  s2: [
+    { id: "lv9", leave_type: "Sick", from_date: "2026-06-17", to_date: "2026-06-17", reason: "Stomach ache.", status: "Approved", applied_at: "2026-06-16" },
+  ],
+};
