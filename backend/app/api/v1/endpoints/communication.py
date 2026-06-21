@@ -2,13 +2,13 @@ from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from sqlalchemy import extract
+from sqlalchemy import extract, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api import deps
 from app.crud.crud_communication import crud_event, crud_notice
-from app.models.communication import Event, MessageLog, Notice
+from app.models.communication import Event, MessageLog, Notice, Poll, PollOption, PollVote
 from app.models.school import School
 from app.models.staff import Staff
 from app.models.students import Parent, Student
@@ -20,6 +20,9 @@ from app.schemas.communication import (
     MessageLogResponse,
     NoticeCreate,
     NoticeResponse,
+    PollOptionResponse,
+    PollResponse,
+    PollVoteCreate,
 )
 from app.utils.email import send_email
 from app.utils.twilio import send_whatsapp_if_enabled
@@ -251,3 +254,137 @@ async def get_events(
     query = query.order_by(Event.start_date)
     events = (await db.execute(query)).scalars().all()
     return APIResponse(success=True, data=events)
+
+
+# --- POLLS ---
+def _audience_for(role: str) -> str:
+    """Map a portal role to the audience tag polls/notices use."""
+    return {"Student": "Students", "Parent": "Parents", "Teacher": "Staff"}.get(role, "All")
+
+
+@router.get("/polls", response_model=APIResponse[List[PollResponse]])
+async def get_polls(
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+):
+    """Active polls visible to the caller (audience 'All' or their role's audience), with
+    per-option vote counts and the option the caller chose (if any)."""
+    aud = _audience_for(token_data.role)
+    polls = (
+        (
+            await db.execute(
+                select(Poll)
+                .filter(
+                    Poll.school_id == UUID(school_id),
+                    Poll.is_active == True,  # noqa: E712
+                    Poll.is_deleted == False,  # noqa: E712
+                    Poll.target_audience.in_(["All", aud]),
+                )
+                .order_by(Poll.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not polls:
+        return APIResponse(success=True, data=[])
+    poll_ids = [p.id for p in polls]
+    options = (
+        (await db.execute(select(PollOption).filter(PollOption.poll_id.in_(poll_ids)).order_by(PollOption.position)))
+        .scalars()
+        .all()
+    )
+    count_rows = (
+        await db.execute(
+            select(PollVote.option_id, func.count())
+            .filter(PollVote.poll_id.in_(poll_ids))
+            .group_by(PollVote.option_id)
+        )
+    ).all()
+    counts = {oid: c for oid, c in count_rows}
+    my_rows = (
+        await db.execute(
+            select(PollVote.poll_id, PollVote.option_id).filter(
+                PollVote.poll_id.in_(poll_ids), PollVote.user_id == UUID(token_data.user_id)
+            )
+        )
+    ).all()
+    my_vote = {pid: oid for pid, oid in my_rows}
+    opts_by_poll: dict = {}
+    for o in options:
+        opts_by_poll.setdefault(o.poll_id, []).append(o)
+
+    data = []
+    for p in polls:
+        opt_resp = [
+            PollOptionResponse(id=o.id, text=o.text, votes=int(counts.get(o.id, 0)))
+            for o in opts_by_poll.get(p.id, [])
+        ]
+        data.append(
+            PollResponse(
+                id=p.id,
+                question=p.question,
+                target_audience=p.target_audience,
+                is_active=p.is_active,
+                closes_at=p.closes_at,
+                options=opt_resp,
+                total_votes=sum(r.votes for r in opt_resp),
+                my_option_id=my_vote.get(p.id),
+            )
+        )
+    return APIResponse(success=True, data=data)
+
+
+@router.post("/polls/{poll_id}/vote", response_model=APIResponse)
+async def vote_poll(
+    poll_id: UUID,
+    body: PollVoteCreate,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+):
+    """Cast one vote. Tenant + audience checked; a user may vote at most once per poll."""
+    poll = (
+        (await db.execute(select(Poll).filter(Poll.id == poll_id, Poll.school_id == UUID(school_id))))
+        .scalars()
+        .first()
+    )
+    if not poll or poll.is_deleted or not poll.is_active:
+        raise HTTPException(status_code=404, detail="Poll not found or closed.")
+    if poll.target_audience not in ("All", _audience_for(token_data.role)):
+        raise HTTPException(status_code=403, detail="This poll isn't open to you.")
+    option = (
+        (
+            await db.execute(
+                select(PollOption).filter(PollOption.id == body.option_id, PollOption.poll_id == poll_id)
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if not option:
+        raise HTTPException(status_code=400, detail="Invalid option for this poll.")
+    existing = (
+        (
+            await db.execute(
+                select(PollVote).filter(
+                    PollVote.poll_id == poll_id, PollVote.user_id == UUID(token_data.user_id)
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already voted in this poll.")
+    db.add(
+        PollVote(
+            school_id=UUID(school_id),
+            poll_id=poll_id,
+            option_id=body.option_id,
+            user_id=UUID(token_data.user_id),
+        )
+    )
+    await db.commit()
+    return APIResponse(success=True, message="Vote recorded.")

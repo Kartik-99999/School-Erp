@@ -8,6 +8,7 @@ import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import OverviewScreen from "../screens/OverviewScreen";
 import TimelineScreen from "../screens/TimelineScreen";
+import PollsScreen from "../screens/PollsScreen";
 import NoticesScreen from "../screens/NoticesScreen";
 import NoticeDetailScreen from "../screens/NoticeDetailScreen";
 import AttendanceScreen from "../screens/AttendanceScreen";
@@ -60,6 +61,7 @@ function HomeStack() {
       <HomeNav.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
       <HomeNav.Screen name="Overview" component={OverviewScreen} options={{ title: "Overview" }} />
       <HomeNav.Screen name="Timeline" component={TimelineScreen} options={{ title: "Timeline" }} />
+      <HomeNav.Screen name="Polls" component={PollsScreen} />
       <HomeNav.Screen name="Attendance" component={AttendanceScreen} />
       <HomeNav.Screen name="Fees" component={FeesScreen} />
       <HomeNav.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: "Payment history" }} />

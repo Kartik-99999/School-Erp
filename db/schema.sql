@@ -778,3 +778,32 @@ CREATE TABLE resources (
     is_deleted BOOLEAN DEFAULT FALSE
 );
 CREATE INDEX idx_resources_school ON resources(school_id);
+
+-- Polls (audience-scoped, one vote per user)
+CREATE TABLE polls (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    target_audience VARCHAR(50) NOT NULL DEFAULT 'All',
+    is_active BOOLEAN DEFAULT TRUE,
+    closes_at TIMESTAMP WITH TIME ZONE,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE
+);
+CREATE TABLE poll_options (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    poll_id UUID NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    position INTEGER DEFAULT 0
+);
+CREATE TABLE poll_votes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    poll_id UUID NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+    option_id UUID NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_poll_vote_user UNIQUE (poll_id, user_id)
+);

@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -65,3 +65,25 @@ class EventCreate(EventBase):
 class EventResponse(EventBase):
     id: UUID
     model_config = ConfigDict(from_attributes=True)
+
+
+class PollOptionResponse(BaseModel):
+    id: UUID
+    text: str
+    votes: int = 0
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PollResponse(BaseModel):
+    id: UUID
+    question: str
+    target_audience: str
+    is_active: bool
+    closes_at: Optional[datetime] = None
+    options: List[PollOptionResponse] = []
+    total_votes: int = 0
+    my_option_id: Optional[UUID] = None
+
+
+class PollVoteCreate(BaseModel):
+    option_id: UUID

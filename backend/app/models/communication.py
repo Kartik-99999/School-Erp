@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -58,3 +58,38 @@ class Event(Base):
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
     )
+
+
+class Poll(Base):
+    __tablename__ = "polls"
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    school_id = Column(UUID(as_uuid=True), nullable=False)
+    question = Column(Text, nullable=False)
+    target_audience = Column(String(50), nullable=False, server_default="All")  # All, Students, Parents, Staff
+    is_active = Column(Boolean, default=True)
+    closes_at = Column(DateTime(timezone=True))
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
+    is_deleted = Column(Boolean, default=False)
+
+
+class PollOption(Base):
+    __tablename__ = "poll_options"
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    school_id = Column(UUID(as_uuid=True), nullable=False)
+    poll_id = Column(UUID(as_uuid=True), ForeignKey("polls.id", ondelete="CASCADE"), nullable=False)
+    text = Column(Text, nullable=False)
+    position = Column(Integer, default=0)
+
+
+class PollVote(Base):
+    __tablename__ = "poll_votes"
+    __table_args__ = (UniqueConstraint("poll_id", "user_id", name="uq_poll_vote_user"),)
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    school_id = Column(UUID(as_uuid=True), nullable=False)
+    poll_id = Column(UUID(as_uuid=True), ForeignKey("polls.id", ondelete="CASCADE"), nullable=False)
+    option_id = Column(
+        UUID(as_uuid=True), ForeignKey("poll_options.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())

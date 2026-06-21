@@ -10,6 +10,7 @@ import type { SchoolEvent } from "./events";
 import type { StudentProfile } from "./profile";
 import type { ParentMessage } from "./messages";
 import type { AcademicYear } from "./academicYears";
+import type { Poll } from "./polls";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -127,4 +128,22 @@ export const messages: ParentMessage[] = [
 export const academicYears: AcademicYear[] = [
   { id: "ay-2026", name: "2026–27", start_date: "2026-04-01", end_date: "2027-03-31", is_active: true },
   { id: "ay-2025", name: "2025–26", start_date: "2025-04-01", end_date: "2026-03-31", is_active: false },
+];
+
+export const polls: Poll[] = [
+  {
+    id: "p1", question: "Which day works best for the next PTM?", target_audience: "Parents", is_active: true, total_votes: 18, my_option_id: null,
+    options: [
+      { id: "p1o1", text: "Friday afternoon", votes: 7 },
+      { id: "p1o2", text: "Saturday morning", votes: 11 },
+    ],
+  },
+  {
+    id: "p2", question: "Pick the Annual Day theme", target_audience: "All", is_active: true, total_votes: 0, my_option_id: null,
+    options: [
+      { id: "p2o1", text: "Heritage of India", votes: 0 },
+      { id: "p2o2", text: "Space & Science", votes: 0 },
+      { id: "p2o3", text: "Save the Environment", votes: 0 },
+    ],
+  },
 ];
