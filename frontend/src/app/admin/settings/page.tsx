@@ -4,17 +4,18 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Label } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Save } from "lucide-react";
+import { Save, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TwoFactorSettings from "@/components/security/TwoFactorSettings";
 import PaymentGatewaySettings from "@/components/settings/PaymentGatewaySettings";
 import FeePaymentOptionsSettings from "@/components/settings/FeePaymentOptionsSettings";
-import { getMySchool, updateMySchool } from "@/lib/api/settings";
+import { getMySchool, updateMySchool, uploadSchoolLogo } from "@/lib/api/settings";
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [school, setSchool] = useState<any>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -30,6 +31,21 @@ export default function AdminSettingsPage() {
   }, []);
 
   const set = (k: string, v: string) => setSchool((p: any) => ({ ...p, [k]: v }));
+
+  const onLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const updated = await uploadSchoolLogo(file);
+      setSchool((p: any) => ({ ...p, logo_url: updated.logo_url }));
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to upload logo.");
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = "";
+    }
+  };
 
   const saveSettings = async () => {
     setSaving(true);
@@ -85,6 +101,36 @@ export default function AdminSettingsPage() {
       <div className="space-y-6">
         <section className="bg-surface-card rounded-card border border-border shadow-card p-6">
           <h2 className="text-base font-semibold text-ink mb-4">School Profile</h2>
+          <div className="mb-6 flex items-center gap-5">
+            {school?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={school.logo_url}
+                alt="School logo"
+                className="h-20 w-20 rounded-full border border-border object-cover"
+              />
+            ) : (
+              <div className="grid h-20 w-20 place-items-center rounded-full border border-border bg-surface text-lg font-bold text-ink-muted">
+                {school?.name ? school.name.slice(0, 2).toUpperCase() : "SCH"}
+              </div>
+            )}
+            <div>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-input border border-border-strong bg-surface-card px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface">
+                <Upload size={15} />
+                {uploadingLogo ? "Uploading..." : school?.logo_url ? "Change logo" : "Upload logo"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                  className="hidden"
+                  disabled={uploadingLogo}
+                  onChange={onLogoChange}
+                />
+              </label>
+              <p className="mt-2 text-xs text-ink-muted">
+                PNG, JPG, WEBP or SVG &middot; up to 5 MB. Shown on your school&apos;s login screen.
+              </p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <Label>School Name</Label>

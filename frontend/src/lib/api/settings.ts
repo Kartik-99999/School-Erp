@@ -46,6 +46,15 @@ export const getMySchool = async (): Promise<MySchool> =>
 export const updateMySchool = async (payload: Partial<MySchool>): Promise<MySchool> =>
   (await api.put("/settings/me", payload)).data.data;
 
+// Upload/replace the school logo (multipart). Returns the updated school incl. logo_url.
+export const uploadSchoolLogo = async (file: File): Promise<MySchool> => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return (
+    await api.post("/settings/logo", fd, { headers: { "Content-Type": "multipart/form-data" } })
+  ).data.data;
+};
+
 
 // Display/redirect fee options (external payment URL + bank transfer). NON-secret —
 // returned as-is (unlike the write-only Razorpay payment-gateway endpoint).
