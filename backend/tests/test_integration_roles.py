@@ -397,3 +397,16 @@ async def test_student_profile_ownership(tenant, app_client):
     assert (await app_client.get(f"{API}/students/{c1}/documents", headers=ph)).status_code == 200
     assert (await app_client.get(f"{API}/students/{other}/documents", headers=ph)).status_code == 403
     assert (await app_client.get(f"{API}/students/{other}/certificates/bonafide", headers=ph)).status_code == 403
+
+
+async def test_fees_list_routes_gated_to_finance(tenant, app_client):
+    """GET /fees/dues and GET /fees/receipts are finance/admin only (mobile uses the
+    scoped /student-portal/fees + /fees/receipts/{id}/html instead)."""
+    sh = await _auth(app_client, tenant, "Student")
+    ph = await _auth(app_client, tenant, "Parent")
+    ach = await _auth(app_client, tenant, "Accountant")
+    for h in (sh, ph):
+        assert (await app_client.get(f"{API}/fees/dues", headers=h)).status_code == 403
+        assert (await app_client.get(f"{API}/fees/receipts", headers=h)).status_code == 403
+    assert (await app_client.get(f"{API}/fees/dues", headers=ach)).status_code == 200
+    assert (await app_client.get(f"{API}/fees/receipts", headers=ach)).status_code == 200

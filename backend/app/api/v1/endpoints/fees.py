@@ -377,7 +377,11 @@ async def generate_bulk_dues(
         )
 
 
-@router.get("/dues", response_model=APIResponse[List[FeeScheduleResponse]])
+@router.get(
+    "/dues",
+    response_model=APIResponse[List[FeeScheduleResponse]],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Accountant"]))],
+)
 async def get_dues(
     student_id: Optional[UUID] = None,
     class_id: Optional[UUID] = None,
@@ -771,7 +775,11 @@ async def get_payment_options(
     return APIResponse(success=True, data=data)
 
 
-@router.get("/receipts", response_model=APIResponse[List[FeeReceiptResponse]])
+@router.get(
+    "/receipts",
+    response_model=APIResponse[List[FeeReceiptResponse]],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Accountant"]))],
+)
 async def get_receipts(
     student_id: Optional[UUID] = None,
     db: AsyncSession = Depends(deps.set_tenant_context),
