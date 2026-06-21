@@ -155,3 +155,12 @@ def generate_pdf(template_name: str, context: dict) -> bytes:
     # Generate PDF in memory
     pdf_bytes = HTML(string=html_out).write_pdf()
     return pdf_bytes
+
+
+def render_html(template_name: str, context: dict) -> str:
+    """Render a registered Jinja template to an HTML string (no PDF conversion).
+
+    Used for the in-app WebView receipt: Android's WebView can't display PDFs inline, but
+    it renders HTML fine on both platforms.
+    """
+    return env.get_template(template_name).render(**context)

@@ -1,6 +1,7 @@
 import React from "react";
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getMyFees } from "../api/portal";
+import { getPaymentOptions, PaymentOptions } from "../api/fees";
 import { useAsyncData } from "../lib/useAsyncData";
 import { useChild } from "../child/ChildContext";
 import { ChildHeader } from "../components/child";
@@ -28,7 +29,7 @@ export default function FeesScreen({ navigation }: any) {
     return unsub;
   }, [navigation, reload]);
 
-  const pay = () => {
+  const pay = async () => {
     if (!data || data.summary.balance <= 0) return;
     if (DEV_FAKE_ROLE) {
       Alert.alert("Demo checkout", "Razorpay opens here in the app. Payment is simulated as successful in preview.");
@@ -47,7 +48,25 @@ export default function FeesScreen({ navigation }: any) {
       return;
     }
     const amount = allocations.reduce((t, a) => t + a.amount, 0);
-    navigation.navigate("Payment", { amount, studentId, allocations });
+
+    // Honor the school's enabled methods (/fees/payment-options).
+    let opts: PaymentOptions | null = null;
+    try {
+      opts = await getPaymentOptions();
+    } catch {
+      // fall through to a Razorpay attempt; initiate will 409 if unconfigured
+    }
+    if (!opts || opts.razorpay.enabled) {
+      navigation.navigate("Payment", { amount, studentId, allocations });
+    } else if (opts.external.enabled && opts.external.url) {
+      Linking.openURL(opts.external.url).catch(() => Alert.alert("Couldn't open", "Unable to open the payment page."));
+    } else if (opts.bank.enabled) {
+      const b = opts.bank;
+      const lines = [b.bank_name, b.account_number ? `A/C ${b.account_number}` : null, b.ifsc ? `IFSC ${b.ifsc}` : null, b.upi_id ? `UPI ${b.upi_id}` : null].filter(Boolean);
+      Alert.alert("Bank transfer", lines.length ? lines.join("\n") : "Please contact the school office.");
+    } else {
+      Alert.alert("Online payment unavailable", "Please pay at the school office.");
+    }
   };
 
   if (loading) return <Loader />;

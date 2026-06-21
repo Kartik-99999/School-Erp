@@ -1,50 +1,50 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
-import { getItem } from "../lib/storage";
-import { API_URL, DEV_FAKE_ROLE } from "../config";
-import { SESSION_KEY } from "../api/client";
+import { getReceiptHtml } from "../api/fees";
+import { DEV_FAKE_ROLE } from "../config";
 import { Card, Loader, StateView } from "../ui";
 import { colors, space } from "../theme";
 
-// Opens the authenticated receipt PDF. WebView lets us attach the Bearer token (Linking
-// can't). NOTE: iOS WebView renders PDFs inline; Android WebView does not render PDFs
-// natively — a share/download or a server-rendered HTML receipt would be more robust there.
+// Renders the server-built HTML receipt in a WebView. HTML renders inline on both iOS and
+// Android (unlike a PDF), and auth is handled by the shared axios client when fetching.
 export default function ReceiptScreen({ route }: any) {
   const { receiptId, receiptNumber } = route.params || {};
-  const [token, setToken] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+  const [html, setHtml] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (DEV_FAKE_ROLE) return;
+    let active = true;
     (async () => {
       try {
-        const raw = await getItem(SESSION_KEY);
-        const s = raw ? JSON.parse(raw) : null;
-        setToken(s?.token ?? null);
+        const h = await getReceiptHtml(receiptId);
+        if (active) setHtml(h);
       } catch {
-        /* no session */
+        if (active) setError(true);
       }
-      setReady(true);
     })();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [receiptId]);
 
   if (DEV_FAKE_ROLE) {
     return (
       <View style={styles.center}>
         <Card style={{ alignItems: "center" }}>
           <Text style={styles.h}>Receipt {receiptNumber || ""}</Text>
-          <Text style={styles.note}>Receipt PDF preview is available with a live backend.</Text>
+          <Text style={styles.note}>The full receipt opens here with a live backend.</Text>
         </Card>
       </View>
     );
   }
-  if (!ready) return <Loader />;
-  if (!receiptId || !token) return <StateView text="Couldn't open the receipt." />;
+  if (error) return <StateView text="Couldn't open the receipt." />;
+  if (!html) return <Loader />;
 
-  const uri = `${API_URL}/fees/receipts/${receiptId}/pdf`;
   return (
     <View style={styles.fill}>
-      <WebView source={{ uri, headers: { Authorization: `Bearer ${token}` } }} startInLoadingState originWhitelist={["*"]} />
+      <WebView originWhitelist={["*"]} source={{ html }} startInLoadingState />
     </View>
   );
 }

@@ -41,3 +41,37 @@ export async function verifyOnlinePayment(payload: VerifyPayload): Promise<void>
   if (DEV_FAKE_ROLE) return; // preview never reaches a real checkout
   await api.post("/fees/payments/online/verify", payload);
 }
+
+export interface PaymentOptions {
+  razorpay: { enabled: boolean; key_id: string | null };
+  external: { enabled: boolean; url: string | null };
+  bank: {
+    enabled: boolean;
+    bank_name: string | null;
+    account_number: string | null;
+    ifsc: string | null;
+    branch: string | null;
+    account_holder: string | null;
+    upi_id: string | null;
+  };
+}
+
+// Which payment methods the school has enabled (Razorpay / external link / bank transfer).
+export async function getPaymentOptions(): Promise<PaymentOptions> {
+  if (DEV_FAKE_ROLE) {
+    return {
+      razorpay: { enabled: true, key_id: "rzp_test_demo" },
+      external: { enabled: false, url: null },
+      bank: { enabled: false, bank_name: null, account_number: null, ifsc: null, branch: null, account_holder: null, upi_id: null },
+    };
+  }
+  const res = await api.get("/fees/payment-options");
+  return (res.data?.data ?? res.data) as PaymentOptions;
+}
+
+// Android-safe receipt: fetch the server-rendered HTML (auth via the axios interceptor)
+// and render it in a WebView (Android can't display PDFs inline).
+export async function getReceiptHtml(receiptId: string): Promise<string> {
+  const res = await api.get(`/fees/receipts/${receiptId}/html`, { responseType: "text" });
+  return typeof res.data === "string" ? res.data : String(res.data ?? "");
+}

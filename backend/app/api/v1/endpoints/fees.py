@@ -916,3 +916,47 @@ async def generate_receipt_pdf(
             "Content-Disposition": f"attachment; filename=Receipt_{receipt.receipt_number}.pdf"
         },
     )
+
+
+@router.get(
+    "/receipts/{id}/html",
+    dependencies=[
+        Depends(
+            deps.require_roles(["School Admin", "Super Admin", "Accountant", "Student", "Parent"])
+        )
+    ],
+)
+async def generate_receipt_html(
+    id: UUID,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+):
+    """Same data + tenant/ownership scoping as the PDF receipt, returned as HTML so the
+    mobile WebView can render it inline on Android (which can't display PDFs natively)."""
+    receipt = (
+        (
+            await db.execute(
+                select(FeeReceipt).filter(FeeReceipt.id == id, FeeReceipt.school_id == UUID(school_id))
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if not receipt:
+        raise HTTPException(404)
+    if token_data.role in ("Student", "Parent"):
+        allowed = await _resolve_payable_student_ids(db, token_data)
+        if receipt.student_id not in allowed:
+            raise HTTPException(status_code=403, detail="You can only access your own receipts.")
+
+    student = (
+        (await db.execute(select(Student).filter(Student.id == receipt.student_id))).scalars().first()
+    )
+    allocs = (
+        (await db.execute(select(FeePayment).filter(FeePayment.receipt_id == id))).scalars().all()
+    )
+    html = pdf_module.render_html(
+        "fee_receipt.html", {"receipt": receipt, "student": student, "allocations": allocs}
+    )
+    return Response(content=html, media_type="text/html")
