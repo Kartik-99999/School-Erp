@@ -1,5 +1,6 @@
 // DEV-ONLY sample data for the teacher flow (only used when EXPO_PUBLIC_DEV_FAKE_ROLE is set).
 import type { ExamLite, ExamScheduleLite, MarkInput, ScheduleDay, SectionStudent, TeacherClass, TeacherHomework } from "./teacher";
+import type { StudentLeave } from "./leaveApprovals";
 
 export const classes: TeacherClass[] = [
   { class_id: "c8", section_id: "a", name: "Class VIII-A" },
@@ -57,4 +58,9 @@ export const marksRoster: MarkInput[] = [
   { student_id: "2", name: "Diya Patel", roll: "02", marks_obtained: "", is_absent: false },
   { student_id: "3", name: "Ishaan Gupta", roll: "03", marks_obtained: "", is_absent: true },
   { student_id: "4", name: "Kavya Reddy", roll: "04", marks_obtained: "65", is_absent: false },
+];
+
+export const studentLeaves: StudentLeave[] = [
+  { id: "sl1", student_name: "Aarav Sharma", admission_number: "ADM-2024-0142", leave_type: "Sick", from_date: "2026-06-22", to_date: "2026-06-23", reason: "Viral fever; doctor advised two days' rest.", status: "Pending", applied_at: "2026-06-21" },
+  { id: "sl2", student_name: "Diya Patel", admission_number: "ADM-2024-0153", leave_type: "Casual", from_date: "2026-06-25", to_date: "2026-06-25", reason: "Attending a family function.", status: "Pending", applied_at: "2026-06-20" },
 ];
