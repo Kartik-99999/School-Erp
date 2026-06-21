@@ -87,3 +87,27 @@ class PollResponse(BaseModel):
 
 class PollVoteCreate(BaseModel):
     option_id: UUID
+
+
+class GalleryResponse(BaseModel):
+    id: UUID
+    title: str
+    description: Optional[str] = None
+    cover_url: Optional[str] = None
+    event_date: Optional[date] = None
+    photo_count: int = 0
+
+
+class GalleryPhotoResponse(BaseModel):
+    id: UUID
+    image_url: str
+    caption: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GalleryDetailResponse(BaseModel):
+    id: UUID
+    title: str
+    description: Optional[str] = None
+    event_date: Optional[date] = None
+    photos: List[GalleryPhotoResponse] = []

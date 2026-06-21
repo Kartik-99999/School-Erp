@@ -8,7 +8,16 @@ from sqlalchemy.future import select
 
 from app.api import deps
 from app.crud.crud_communication import crud_event, crud_notice
-from app.models.communication import Event, MessageLog, Notice, Poll, PollOption, PollVote
+from app.models.communication import (
+    Event,
+    Gallery,
+    GalleryPhoto,
+    MessageLog,
+    Notice,
+    Poll,
+    PollOption,
+    PollVote,
+)
 from app.models.school import School
 from app.models.staff import Staff
 from app.models.students import Parent, Student
@@ -20,6 +29,9 @@ from app.schemas.communication import (
     MessageLogResponse,
     NoticeCreate,
     NoticeResponse,
+    GalleryResponse,
+    GalleryPhotoResponse,
+    GalleryDetailResponse,
     PollOptionResponse,
     PollResponse,
     PollVoteCreate,
@@ -388,3 +400,95 @@ async def vote_poll(
     )
     await db.commit()
     return APIResponse(success=True, message="Vote recorded.")
+
+
+# --- GALLERIES ---
+@router.get("/galleries", response_model=APIResponse[List[GalleryResponse]])
+async def get_galleries(
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+):
+    """Published galleries visible to the caller, with photo counts + a cover (the gallery
+    cover_url or its first photo)."""
+    aud = _audience_for(token_data.role)
+    gals = (
+        (
+            await db.execute(
+                select(Gallery)
+                .filter(
+                    Gallery.school_id == UUID(school_id),
+                    Gallery.is_published == True,  # noqa: E712
+                    Gallery.is_deleted == False,  # noqa: E712
+                    Gallery.target_audience.in_(["All", aud]),
+                )
+                .order_by(Gallery.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not gals:
+        return APIResponse(success=True, data=[])
+    gids = [g.id for g in gals]
+    count_rows = (
+        await db.execute(
+            select(GalleryPhoto.gallery_id, func.count())
+            .filter(GalleryPhoto.gallery_id.in_(gids))
+            .group_by(GalleryPhoto.gallery_id)
+        )
+    ).all()
+    counts = {gid: c for gid, c in count_rows}
+    first_photo: dict = {}
+    if any(not g.cover_url for g in gals):
+        photos = (
+            (await db.execute(select(GalleryPhoto).filter(GalleryPhoto.gallery_id.in_(gids)).order_by(GalleryPhoto.position)))
+            .scalars()
+            .all()
+        )
+        for p in photos:
+            first_photo.setdefault(p.gallery_id, p.image_url)
+    data = [
+        GalleryResponse(
+            id=g.id,
+            title=g.title,
+            description=g.description,
+            cover_url=g.cover_url or first_photo.get(g.id),
+            event_date=g.event_date,
+            photo_count=int(counts.get(g.id, 0)),
+        )
+        for g in gals
+    ]
+    return APIResponse(success=True, data=data)
+
+
+@router.get("/galleries/{gallery_id}", response_model=APIResponse[GalleryDetailResponse])
+async def get_gallery(
+    gallery_id: UUID,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+):
+    aud = _audience_for(token_data.role)
+    g = (
+        (await db.execute(select(Gallery).filter(Gallery.id == gallery_id, Gallery.school_id == UUID(school_id))))
+        .scalars()
+        .first()
+    )
+    if not g or g.is_deleted or not g.is_published or g.target_audience not in ("All", aud):
+        raise HTTPException(status_code=404, detail="Gallery not found.")
+    photos = (
+        (await db.execute(select(GalleryPhoto).filter(GalleryPhoto.gallery_id == gallery_id).order_by(GalleryPhoto.position)))
+        .scalars()
+        .all()
+    )
+    return APIResponse(
+        success=True,
+        data=GalleryDetailResponse(
+            id=g.id,
+            title=g.title,
+            description=g.description,
+            event_date=g.event_date,
+            photos=[GalleryPhotoResponse.model_validate(p) for p in photos],
+        ),
+    )

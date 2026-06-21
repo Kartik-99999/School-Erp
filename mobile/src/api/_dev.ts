@@ -11,6 +11,7 @@ import type { StudentProfile } from "./profile";
 import type { ParentMessage } from "./messages";
 import type { AcademicYear } from "./academicYears";
 import type { Poll } from "./polls";
+import type { Gallery, GalleryDetail } from "./galleries";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -147,3 +148,28 @@ export const polls: Poll[] = [
     ],
   },
 ];
+
+export const galleries: Gallery[] = [
+  { id: "g1", title: "Annual Sports Day", description: "Track & field highlights.", cover_url: "https://picsum.photos/seed/sports/600/400", event_date: "2026-06-01", photo_count: 4 },
+  { id: "g2", title: "Science Exhibition", description: "Class project showcase.", cover_url: "https://picsum.photos/seed/science/600/400", event_date: "2026-05-20", photo_count: 3 },
+];
+
+export const galleryDetails: Record<string, GalleryDetail> = {
+  g1: {
+    id: "g1", title: "Annual Sports Day", description: "Track & field highlights.", event_date: "2026-06-01",
+    photos: [
+      { id: "g1p1", image_url: "https://picsum.photos/seed/sp1/800/600", caption: "100m final" },
+      { id: "g1p2", image_url: "https://picsum.photos/seed/sp2/800/600", caption: "Relay" },
+      { id: "g1p3", image_url: "https://picsum.photos/seed/sp3/800/600", caption: "Long jump" },
+      { id: "g1p4", image_url: "https://picsum.photos/seed/sp4/800/600", caption: "Medal ceremony" },
+    ],
+  },
+  g2: {
+    id: "g2", title: "Science Exhibition", description: "Class project showcase.", event_date: "2026-05-20",
+    photos: [
+      { id: "g2p1", image_url: "https://picsum.photos/seed/sc1/800/600" },
+      { id: "g2p2", image_url: "https://picsum.photos/seed/sc2/800/600" },
+      { id: "g2p3", image_url: "https://picsum.photos/seed/sc3/800/600" },
+    ],
+  },
+};

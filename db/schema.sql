@@ -807,3 +807,27 @@ CREATE TABLE poll_votes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_poll_vote_user UNIQUE (poll_id, user_id)
 );
+
+-- Galleries (photo albums)
+CREATE TABLE galleries (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    cover_url TEXT,
+    event_date DATE,
+    target_audience VARCHAR(50) NOT NULL DEFAULT 'All',
+    is_published BOOLEAN DEFAULT TRUE,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE
+);
+CREATE TABLE gallery_photos (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    gallery_id UUID NOT NULL REFERENCES galleries(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    caption VARCHAR(255),
+    position INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

@@ -93,3 +93,31 @@ class PollVote(Base):
     )
     user_id = Column(UUID(as_uuid=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
+
+
+class Gallery(Base):
+    __tablename__ = "galleries"
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    school_id = Column(UUID(as_uuid=True), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    cover_url = Column(Text)
+    event_date = Column(Date)
+    target_audience = Column(String(50), nullable=False, server_default="All")
+    is_published = Column(Boolean, default=True)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
+    is_deleted = Column(Boolean, default=False)
+
+
+class GalleryPhoto(Base):
+    __tablename__ = "gallery_photos"
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
+    school_id = Column(UUID(as_uuid=True), nullable=False)
+    gallery_id = Column(
+        UUID(as_uuid=True), ForeignKey("galleries.id", ondelete="CASCADE"), nullable=False
+    )
+    image_url = Column(Text, nullable=False)
+    caption = Column(String(255))
+    position = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.current_timestamp())
