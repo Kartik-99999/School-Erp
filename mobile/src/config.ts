@@ -7,3 +7,6 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000
 // DEV ONLY — never set in production.
 export const DEV_FAKE_ROLE: string | null = process.env.EXPO_PUBLIC_DEV_FAKE_ROLE || null;
 export const DEV_FORCE_2FA = !!process.env.EXPO_PUBLIC_DEV_FORCE_2FA;
+// White-label contact/privacy links.
+export const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL || "support@erpcore.tech";
+export const PRIVACY_URL = process.env.EXPO_PUBLIC_PRIVACY_URL || "https://erpcore.tech/privacy";

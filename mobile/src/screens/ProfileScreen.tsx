@@ -1,12 +1,16 @@
-import React from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Image, Linking, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../auth/AuthContext";
 import { useChild } from "../child/ChildContext";
 import { getStudentProfile } from "../api/profile";
 import { useAsyncData } from "../lib/useAsyncData";
-import { SCHOOL_NAME } from "../config";
+import { getItem, setItem } from "../lib/storage";
+import { PRIVACY_URL, SCHOOL_NAME, SUPPORT_EMAIL } from "../config";
 import { colors, radius, space } from "../theme";
+
+const NOTIF_PREF_KEY = "erpcore.notifPref";
 
 function initials(name?: string) {
   if (!name) return "?";
@@ -23,7 +27,29 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
   );
 }
 
-export default function ProfileScreen() {
+function ActionRow({
+  icon,
+  label,
+  onPress,
+  right,
+  last,
+}: {
+  icon: any;
+  label: string;
+  onPress?: () => void;
+  right?: React.ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <TouchableOpacity style={[styles.action, last && { borderBottomWidth: 0 }]} onPress={onPress} disabled={!onPress} activeOpacity={0.85}>
+      <Ionicons name={icon} size={18} color={colors.goldDeep} />
+      <Text style={styles.actionLabel}>{label}</Text>
+      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={colors.sub} /> : null)}
+    </TouchableOpacity>
+  );
+}
+
+export default function ProfileScreen({ navigation }: any) {
   const { session, signOut } = useAuth();
   const { selected } = useChild();
   const insets = useSafeAreaInsets();
@@ -34,6 +60,18 @@ export default function ProfileScreen() {
     () => (isStudentSide ? getStudentProfile(selected?.id) : Promise.resolve(null)),
     [selected?.id, role]
   );
+
+  const [notif, setNotif] = useState(true);
+  useEffect(() => {
+    (async () => {
+      const v = await getItem(NOTIF_PREF_KEY);
+      if (v != null) setNotif(v === "1");
+    })();
+  }, []);
+  const toggleNotif = async (v: boolean) => {
+    setNotif(v);
+    await setItem(NOTIF_PREF_KEY, v ? "1" : "0");
+  };
 
   const cls = profile ? [profile.class_name, profile.section_name].filter(Boolean).join("-") : "";
 
@@ -73,6 +111,37 @@ export default function ProfileScreen() {
 
       {isStudentSide && loading && !profile ? <Text style={styles.note}>Loading profile…</Text> : null}
 
+      <Text style={styles.section}>Settings</Text>
+      <View style={styles.card}>
+        <ActionRow
+          icon="notifications-outline"
+          label="Notifications"
+          right={<Switch value={notif} onValueChange={toggleNotif} trackColor={{ true: colors.gold }} />}
+        />
+        <ActionRow
+          icon="lock-closed-outline"
+          label="Change password"
+          onPress={() =>
+            navigation.navigate("ComingSoon", {
+              title: "Change password",
+              note: "Needs an authenticated endpoint: POST /auth/change-password { current_password, new_password }.",
+            })
+          }
+        />
+        <ActionRow
+          icon="swap-horizontal-outline"
+          label="Switch academic year"
+          onPress={() =>
+            navigation.navigate("ComingSoon", {
+              title: "Switch academic year",
+              note: "/academic-years lists sessions, but switching the active one needs a backend endpoint (e.g. PUT /auth/session/academic-year).",
+            })
+          }
+        />
+        <ActionRow icon="shield-checkmark-outline" label="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL)} />
+        <ActionRow icon="mail-outline" label="Contact support" onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} last />
+      </View>
+
       <TouchableOpacity style={styles.signout} onPress={signOut} activeOpacity={0.85}>
         <Text style={styles.signoutText}>Sign out</Text>
       </TouchableOpacity>
@@ -89,10 +158,13 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 30, fontWeight: "800", color: colors.goldDeep },
   name: { fontSize: 20, fontWeight: "800", color: colors.ink },
   sub: { fontSize: 14, color: colors.sub, marginTop: 2 },
+  section: { fontSize: 12, fontWeight: "800", color: colors.sub, letterSpacing: 0.5, marginTop: space(6), marginBottom: space(3) },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(5) },
   row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: space(4), borderBottomWidth: 1, borderBottomColor: colors.line },
   rl: { fontSize: 14, color: colors.sub },
   rv: { fontSize: 14, fontWeight: "700", color: colors.ink },
+  action: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(4), borderBottomWidth: 1, borderBottomColor: colors.line },
+  actionLabel: { flex: 1, fontSize: 14, fontWeight: "600", color: colors.ink },
   note: { fontSize: 13, color: colors.sub, textAlign: "center", marginTop: space(4) },
   signout: { marginTop: space(6), backgroundColor: "#FCEBE7", borderRadius: radius.md, paddingVertical: space(4), alignItems: "center" },
   signoutText: { color: colors.danger, fontSize: 15, fontWeight: "700" },

@@ -41,6 +41,7 @@ import { colors } from "../theme";
 const RootStack = createNativeStackNavigator();
 const HomeNav = createNativeStackNavigator();
 const NoticesNav = createNativeStackNavigator();
+const ProfileNav = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const stackOpts = {
@@ -99,6 +100,19 @@ function NoticesStack() {
   );
 }
 
+function ProfileStack() {
+  return (
+    <ProfileNav.Navigator screenOptions={stackOpts}>
+      <ProfileNav.Screen name="ProfileMain" component={ProfileScreen} options={{ headerShown: false }} />
+      <ProfileNav.Screen
+        name="ComingSoon"
+        component={ComingSoonScreen}
+        options={({ route }: any) => ({ title: route?.params?.title || "Coming soon" })}
+      />
+    </ProfileNav.Navigator>
+  );
+}
+
 const TAB_ICONS: Record<string, any> = { Home: "home", Notices: "notifications", Profile: "person" };
 
 function MainTabs() {
@@ -117,7 +131,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Notices" component={NoticesStack} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Profile" component={ProfileStack} />
     </Tab.Navigator>
   );
 }
