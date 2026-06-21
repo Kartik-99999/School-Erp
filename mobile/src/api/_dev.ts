@@ -13,6 +13,7 @@ import type { AcademicYear } from "./academicYears";
 import type { Poll } from "./polls";
 import type { Gallery, GalleryDetail } from "./galleries";
 import type { Syllabus } from "./syllabus";
+import type { Appointment, Slot } from "./appointments";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -196,3 +197,12 @@ export const syllabus: Syllabus = {
     },
   ],
 };
+
+export const appointmentSlots: Slot[] = [
+  { id: "sl1", teacher_id: "t1", teacher_name: "Asha Rao · Mathematics", start_time: "2026-06-24T04:30:00Z", end_time: "2026-06-24T05:00:00Z" },
+  { id: "sl2", teacher_id: "t2", teacher_name: "Vikram Nair · Science", start_time: "2026-06-25T05:30:00Z", end_time: "2026-06-25T06:00:00Z" },
+];
+
+export const myAppointments: Appointment[] = [
+  { id: "ap1", teacher_name: "Priya Menon · Class Teacher", start_time: "2026-06-20T05:00:00Z", end_time: "2026-06-20T05:30:00Z", status: "Booked", note: "Mid-term review" },
+];

@@ -831,3 +831,25 @@ CREATE TABLE gallery_photos (
     position INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Parent–teacher appointments
+CREATE TABLE appointment_slots (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    teacher_id UUID NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_booked BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE appointments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    slot_id UUID NOT NULL UNIQUE REFERENCES appointment_slots(id) ON DELETE CASCADE,
+    teacher_id UUID NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+    booked_by_user_id UUID NOT NULL,
+    student_id UUID,
+    note TEXT,
+    status VARCHAR(20) DEFAULT 'Booked',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     academics,
     activities,
     admissions,
+    appointments,
     attendance,
     audit,
     auth,
@@ -43,6 +44,7 @@ api_router.include_router(staff.router, prefix="/staff", tags=["staff"])
 api_router.include_router(leaves.router, prefix="/leaves", tags=["leaves"])
 api_router.include_router(payroll.router, prefix="/payroll", tags=["payroll"])
 api_router.include_router(attendance.router, prefix="/attendance", tags=["attendance"])
+api_router.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
 api_router.include_router(academics.router, prefix="/academics", tags=["academics"])
 api_router.include_router(exams.router, prefix="/exams", tags=["exams"])
 api_router.include_router(transport.router, prefix="/transport", tags=["transport"])
