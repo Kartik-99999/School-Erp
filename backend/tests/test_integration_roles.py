@@ -374,3 +374,26 @@ async def test_security_gates_block_unauthorized(tenant, app_client):
     # itself 500s on real data (serializes a raw ORM Staff with no response schema) -- reported as a
     # finding; we assert the gate via the response-modeled /structure endpoint instead.
     assert (await app_client.get(f"{API}/payroll/structure/{staff}", headers=ach)).status_code in (200, 404)
+
+
+# --------------------------------------------------------------------------- #
+# Audit gap closures (ownership logic + real bugs)
+# --------------------------------------------------------------------------- #
+async def test_student_profile_ownership(tenant, app_client):
+    """GET /students/{id} (+ /documents, /certificates) is ownership-aware."""
+    ph = await _auth(app_client, tenant, "Parent")
+    th = await _auth(app_client, tenant, "Teacher")
+    sh = await _auth(app_client, tenant, "Student")
+    c1, other = tenant["child1"], tenant["other_child"]
+    # Parent: own child 200, another parent's child 403
+    assert (await app_client.get(f"{API}/students/{c1}", headers=ph)).status_code == 200
+    assert (await app_client.get(f"{API}/students/{other}", headers=ph)).status_code == 403
+    # Teacher (staff): any student in their school
+    assert (await app_client.get(f"{API}/students/{other}", headers=th)).status_code == 200
+    # Student: self only
+    assert (await app_client.get(f"{API}/students/{c1}", headers=sh)).status_code == 200
+    assert (await app_client.get(f"{API}/students/{other}", headers=sh)).status_code == 403
+    # Same guard protects the documents + certificate routes (guard runs before any PDF work)
+    assert (await app_client.get(f"{API}/students/{c1}/documents", headers=ph)).status_code == 200
+    assert (await app_client.get(f"{API}/students/{other}/documents", headers=ph)).status_code == 403
+    assert (await app_client.get(f"{API}/students/{other}/certificates/bonafide", headers=ph)).status_code == 403

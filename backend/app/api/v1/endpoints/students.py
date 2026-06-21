@@ -37,6 +37,33 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+async def _authorize_student_access(
+    db: AsyncSession, token_data: deps.TokenData, school_id: str, student: Student
+) -> None:
+    """Ownership guard for a single student's profile / certificates / documents.
+
+    Staff (School Admin / Super Admin / Teacher) may read any student in their school;
+    a Parent only their own child; a Student only themselves; anyone else is 403.
+    `student` is already school-scoped by the caller's crud_student.get(school_id=...),
+    so this never crosses a tenant boundary.
+    """
+    role = token_data.role
+    if role in ("School Admin", "Super Admin", "Teacher"):
+        return
+    if role == "Parent":
+        parent = (
+            (await db.execute(select(Parent).filter(Parent.user_id == UUID(token_data.user_id))))
+            .scalars()
+            .first()
+        )
+        if parent and student.parent_id == parent.id:
+            return
+        raise HTTPException(status_code=403, detail="You can only view your own child's records.")
+    if role == "Student" and student.user_id and str(student.user_id) == token_data.user_id:
+        return
+    raise HTTPException(status_code=403, detail="Not authorized to view this student.")
+
+
 def _cell(row, key):
     """Read a CSV cell as a trimmed string, treating blanks/NaN as None."""
     v = row.get(key)
@@ -212,10 +239,12 @@ async def get_student_profile(
     id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
     student = await crud_student.get(db, id=id, school_id=school_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+    await _authorize_student_access(db, token_data, school_id, student)
 
     return await _get_full_student_profile(db, student)
 
@@ -476,11 +505,13 @@ async def generate_student_certificate(
     type: str,  # "tc", "bonafide", "character"
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
     # 1. Fetch data
     student = await crud_student.get(db, id=id, school_id=school_id)
     if not student:
         raise HTTPException(status_code=404)
+    await _authorize_student_access(db, token_data, school_id, student)
 
     parent = (
         (await db.execute(select(Parent).filter(Parent.id == student.parent_id))).scalars().first()
@@ -531,10 +562,12 @@ async def list_student_documents(
     id: UUID,
     db: AsyncSession = Depends(deps.set_tenant_context),
     school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
 ) -> Any:
     student = await crud_student.get(db, id=id, school_id=school_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+    await _authorize_student_access(db, token_data, school_id, student)
     rows = (
         (
             await db.execute(
