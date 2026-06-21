@@ -12,6 +12,7 @@ import type { ParentMessage } from "./messages";
 import type { AcademicYear } from "./academicYears";
 import type { Poll } from "./polls";
 import type { Gallery, GalleryDetail } from "./galleries";
+import type { Syllabus } from "./syllabus";
 
 export const notices: Notice[] = [
   { id: "1", title: "Annual Sports Day — 12 December", notice_type: "event", created_at: "2026-06-16", content: "Track and field events begin at 8:00 AM on the main ground. Parents are warmly invited to attend and cheer." },
@@ -172,4 +173,26 @@ export const galleryDetails: Record<string, GalleryDetail> = {
       { id: "g2p3", image_url: "https://picsum.photos/seed/sc3/800/600" },
     ],
   },
+};
+
+export const syllabus: Syllabus = {
+  overall: { total: 6, completed: 3, percent: 50 },
+  subjects: [
+    {
+      subject_id: "m", subject_name: "Mathematics", total: 3, completed: 2, percent: 67,
+      chapters: [
+        { id: "m1", chapter_name: "Algebra Basics", description: "Variables and expressions", completed: true },
+        { id: "m2", chapter_name: "Linear Equations", description: "Solving for one variable", completed: true },
+        { id: "m3", chapter_name: "Quadratic Equations", description: null, completed: false },
+      ],
+    },
+    {
+      subject_id: "s", subject_name: "Science", total: 3, completed: 1, percent: 33,
+      chapters: [
+        { id: "s1", chapter_name: "Cell — Structure & Function", description: null, completed: true },
+        { id: "s2", chapter_name: "Photosynthesis", description: null, completed: false },
+        { id: "s3", chapter_name: "Force & Motion", description: null, completed: false },
+      ],
+    },
+  ],
 };

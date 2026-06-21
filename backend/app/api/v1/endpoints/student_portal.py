@@ -11,7 +11,8 @@ from app.models.attendance import AttendanceStudent
 from app.models.fees import FeeReceipt, FeeSchedule
 from app.models.hostel import HostelAllocation, HostelBuilding, HostelRoom
 from app.models.library import LibraryBook, LibraryIssue
-from app.models.setup import FeeHead, FeeStructure
+from app.models.academics import SyllabusChapter, SyllabusProgress
+from app.models.setup import FeeHead, FeeStructure, Subject
 from app.models.student_leaves import StudentLeaveApplication
 from app.models.students import Parent, Student
 from app.models.transport import StudentTransport, TransportRoute, TransportStop, TransportVehicle
@@ -395,3 +396,107 @@ async def apply_leave(
     await db.commit()
     await db.refresh(leave)
     return APIResponse(success=True, data=leave, message="Leave application submitted.")
+
+
+@router.get("/syllabus")
+async def my_syllabus(
+    student_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+) -> Any:
+    """Read-only syllabus + completion progress for the student's class, grouped by subject.
+    A chapter counts as completed when a SyllabusProgress row exists for the student's
+    section. Parent passes their child's student_id (ownership-checked via _resolve_student)."""
+    student = await _resolve_student(db, token_data, school_id, student_id)
+    empty = {"subjects": [], "overall": {"total": 0, "completed": 0, "percent": 0}}
+    if not student.current_class_id:
+        return APIResponse(success=True, data=empty)
+
+    school_uuid = UUID(school_id)
+    chapters = (
+        (
+            await db.execute(
+                select(SyllabusChapter)
+                .filter(
+                    SyllabusChapter.school_id == school_uuid,
+                    SyllabusChapter.class_id == student.current_class_id,
+                )
+                .order_by(SyllabusChapter.order_index)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not chapters:
+        return APIResponse(success=True, data=empty)
+
+    chapter_ids = [c.id for c in chapters]
+    completed_ids = set()
+    if student.current_section_id:
+        completed_ids = set(
+            (
+                await db.execute(
+                    select(SyllabusProgress.chapter_id).filter(
+                        SyllabusProgress.chapter_id.in_(chapter_ids),
+                        SyllabusProgress.section_id == student.current_section_id,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    subj_ids = list({c.subject_id for c in chapters})
+    subjects = (
+        (await db.execute(select(Subject).filter(Subject.id.in_(subj_ids)))).scalars().all()
+    )
+    subj_name = {s.id: s.name for s in subjects}
+
+    by_subject: dict = {}
+    for c in chapters:
+        by_subject.setdefault(c.subject_id, []).append(c)
+
+    subj_data = []
+    total_all = 0
+    done_all = 0
+    for sid, chs in by_subject.items():
+        ch_list = []
+        done = 0
+        for c in chs:
+            comp = c.id in completed_ids
+            if comp:
+                done += 1
+            ch_list.append(
+                {
+                    "id": str(c.id),
+                    "chapter_name": c.chapter_name,
+                    "description": c.description,
+                    "completed": comp,
+                }
+            )
+        total = len(chs)
+        total_all += total
+        done_all += done
+        subj_data.append(
+            {
+                "subject_id": str(sid),
+                "subject_name": subj_name.get(sid, "Subject"),
+                "total": total,
+                "completed": done,
+                "percent": round(done / total * 100) if total else 0,
+                "chapters": ch_list,
+            }
+        )
+
+    return APIResponse(
+        success=True,
+        data={
+            "subjects": subj_data,
+            "overall": {
+                "total": total_all,
+                "completed": done_all,
+                "percent": round(done_all / total_all * 100) if total_all else 0,
+            },
+        },
+    )
