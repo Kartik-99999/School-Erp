@@ -12,7 +12,8 @@ from app.models.fees import FeeReceipt, FeeSchedule
 from app.models.hostel import HostelAllocation, HostelBuilding, HostelRoom
 from app.models.library import LibraryBook, LibraryIssue
 from app.models.academics import SyllabusChapter, SyllabusProgress
-from app.models.setup import FeeHead, FeeStructure, Subject
+from app.models.exams import Exam, ExamSchedule, GradeScale, Result, StudentMark
+from app.models.setup import ClassModel, FeeHead, FeeStructure, Subject
 from app.models.student_leaves import StudentLeaveApplication
 from app.models.students import Parent, Student
 from app.models.transport import StudentTransport, TransportRoute, TransportStop, TransportVehicle
@@ -497,6 +498,181 @@ async def my_syllabus(
                 "total": total_all,
                 "completed": done_all,
                 "percent": round(done_all / total_all * 100) if total_all else 0,
+            },
+        },
+    )
+
+
+def _grade_for(pct, rules):
+    """Map a percentage to a grade letter using the school's grade-scale rules."""
+    if pct is None:
+        return None
+    for r in rules or []:
+        try:
+            if float(r.get("min", 0)) <= pct <= float(r.get("max", 100)):
+                return r.get("grade")
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+@router.get("/report-cards")
+async def my_report_cards(
+    student_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+) -> Any:
+    """Published exam results (exam-level) for the student. Parent passes their child's
+    student_id (ownership-checked via _resolve_student)."""
+    student = await _resolve_student(db, token_data, school_id, student_id)
+    results = (
+        (
+            await db.execute(
+                select(Result).filter(Result.student_id == student.id).order_by(Result.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not results:
+        return APIResponse(success=True, data=[])
+    exam_ids = [r.exam_id for r in results]
+    exams = (await db.execute(select(Exam).filter(Exam.id.in_(exam_ids)))).scalars().all()
+    name = {e.id: e.name for e in exams}
+    data = [
+        {
+            "exam_id": str(r.exam_id),
+            "exam_name": name.get(r.exam_id, "Exam"),
+            "total_marks": float(r.total_marks or 0),
+            "obtained_marks": float(r.obtained_marks or 0),
+            "percentage": float(r.percentage or 0),
+            "grade": r.grade,
+            "rank": r.rank,
+            "status": r.status,
+        }
+        for r in results
+    ]
+    return APIResponse(success=True, data=data)
+
+
+@router.get("/report-cards/{exam_id}")
+async def my_report_card(
+    exam_id: UUID,
+    student_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+    token_data: deps.TokenData = Depends(deps.get_current_user_token_data),
+) -> Any:
+    """Per-subject report card for one exam: subject rows (max/obtained/grade) + totals.
+    Ownership-scoped; 404 until results are published."""
+    student = await _resolve_student(db, token_data, school_id, student_id)
+    school_uuid = UUID(school_id)
+    result = (
+        (
+            await db.execute(
+                select(Result).filter(Result.exam_id == exam_id, Result.student_id == student.id)
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Result not published yet.")
+    exam = (
+        (await db.execute(select(Exam).filter(Exam.id == exam_id, Exam.school_id == school_uuid)))
+        .scalars()
+        .first()
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found.")
+
+    schedules = (
+        (await db.execute(select(ExamSchedule).filter(ExamSchedule.exam_id == exam_id))).scalars().all()
+    )
+    sched_ids = [s.id for s in schedules]
+    marks = (
+        (
+            await db.execute(
+                select(StudentMark).filter(
+                    StudentMark.student_id == student.id,
+                    StudentMark.exam_schedule_id.in_(sched_ids),
+                )
+            )
+        )
+        .scalars()
+        .all()
+        if sched_ids
+        else []
+    )
+    mark_by_sched = {m.exam_schedule_id: m for m in marks}
+    subj_ids = list({s.subject_id for s in schedules})
+    subjects = (
+        (await db.execute(select(Subject).filter(Subject.id.in_(subj_ids)))).scalars().all()
+        if subj_ids
+        else []
+    )
+    subj_name = {s.id: s.name for s in subjects}
+    scale = (
+        (
+            await db.execute(
+                select(GradeScale).filter(GradeScale.school_id == school_uuid).order_by(GradeScale.is_default.desc())
+            )
+        )
+        .scalars()
+        .first()
+    )
+    rules = scale.rules if scale else None
+
+    subj_rows = []
+    for s in schedules:
+        m = mark_by_sched.get(s.id)
+        obtained = float(m.marks_obtained) if (m and m.marks_obtained is not None) else None
+        maxm = float(s.max_marks or 0)
+        pct = (obtained / maxm * 100) if (obtained is not None and maxm) else None
+        subj_rows.append(
+            {
+                "subject_id": str(s.subject_id),
+                "subject_name": subj_name.get(s.subject_id, "Subject"),
+                "max_marks": maxm,
+                "passing_marks": float(s.passing_marks or 0),
+                "obtained": obtained,
+                "is_absent": bool(m.is_absent) if m else False,
+                "grade": _grade_for(pct, rules),
+            }
+        )
+
+    cls = None
+    if student.current_class_id:
+        cls = (
+            (await db.execute(select(ClassModel).filter(ClassModel.id == student.current_class_id)))
+            .scalars()
+            .first()
+        )
+
+    return APIResponse(
+        success=True,
+        data={
+            "exam": {
+                "id": str(exam.id),
+                "name": exam.name,
+                "start_date": exam.start_date.isoformat() if exam.start_date else None,
+                "end_date": exam.end_date.isoformat() if exam.end_date else None,
+            },
+            "student": {
+                "id": str(student.id),
+                "name": f"{student.first_name} {student.last_name}".strip(),
+                "admission_number": student.admission_number,
+                "class_name": cls.name if cls else None,
+            },
+            "subjects": subj_rows,
+            "summary": {
+                "total_marks": float(result.total_marks or 0),
+                "obtained_marks": float(result.obtained_marks or 0),
+                "percentage": float(result.percentage or 0),
+                "grade": result.grade,
+                "status": result.status,
+                "rank": result.rank,
             },
         },
     )

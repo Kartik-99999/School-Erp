@@ -2,7 +2,7 @@
 // Only returned when EXPO_PUBLIC_DEV_FAKE_ROLE is set (see config DEV_FAKE_ROLE).
 import type { AttendanceData, FeesData, Homework, Notice, TimetableDay } from "./portal";
 import type { Child } from "./children";
-import type { ExamResult } from "./exams";
+import type { ExamResult, ReportCard } from "./exams";
 import type { LibraryData } from "./library";
 import type { LeaveApplication } from "./leaves";
 import type { Resource } from "./resources";
@@ -213,3 +213,16 @@ export const notifications: AppNotification[] = [
   { id: "n2", title: "Term 2 fees due", body: "₹12,000 due by 10 July.", type: "fee", ref_id: null, is_read: false, created_at: "2026-06-20T06:00:00Z" },
   { id: "n3", title: "Attendance update", body: "Marked present today.", type: "absence", ref_id: null, is_read: true, created_at: "2026-06-19T04:00:00Z" },
 ];
+
+export const reportCard: ReportCard = {
+  exam: { id: "e1", name: "Half-Yearly Examination", start_date: "2026-09-10", end_date: "2026-09-20" },
+  student: { id: "s1", name: "Aarav Sharma", admission_number: "ADM-2024-0142", class_name: "VIII" },
+  subjects: [
+    { subject_id: "m", subject_name: "Mathematics", max_marks: 100, passing_marks: 33, obtained: 88, is_absent: false, grade: "A" },
+    { subject_id: "sc", subject_name: "Science", max_marks: 100, passing_marks: 33, obtained: 76, is_absent: false, grade: "B" },
+    { subject_id: "en", subject_name: "English", max_marks: 100, passing_marks: 33, obtained: 82, is_absent: false, grade: "A" },
+    { subject_id: "hi", subject_name: "Hindi", max_marks: 100, passing_marks: 33, obtained: 69, is_absent: false, grade: "B" },
+    { subject_id: "ss", subject_name: "Social Science", max_marks: 100, passing_marks: 33, obtained: 74, is_absent: false, grade: "B" },
+  ],
+  summary: { total_marks: 500, obtained_marks: 389, percentage: 77.8, grade: "A", status: "Pass", rank: 4 },
+};

@@ -8,33 +8,47 @@ export interface ExamResult {
   obtained_marks: number;
   total_marks: number;
   percentage: number;
-  grade?: string;
+  grade?: string | null;
   rank?: number | null;
-  status?: string; // "Pass" | "Fail"
+  status?: string | null;
 }
 
-// A student's published results across exams.
-// Backend: GET /exams/student/me/results (self only) + /exams for human-friendly names.
-// NOTE: a parent passes the child's id, but the backend exam-results route is self-only
-// today (unlike /student-portal/{fees,attendance} which accept ?student_id=). Until a
-// parent-scoped results endpoint exists, real parent data falls back to empty; the
-// dev-mock keeps the screen previewable for both personas.
+export interface ReportCardSubject {
+  subject_id: string;
+  subject_name: string;
+  max_marks: number;
+  passing_marks: number;
+  obtained: number | null;
+  is_absent: boolean;
+  grade?: string | null;
+}
+export interface ReportCard {
+  exam: { id: string; name: string; start_date?: string | null; end_date?: string | null };
+  student: { id: string; name: string; admission_number?: string | null; class_name?: string | null };
+  subjects: ReportCardSubject[];
+  summary: {
+    total_marks: number;
+    obtained_marks: number;
+    percentage: number;
+    grade?: string | null;
+    status?: string | null;
+    rank?: number | null;
+  };
+}
+
+// Published exam results (exam-level). Parent passes the child's id; student omits it.
+// Backend /student-portal/report-cards is ownership-checked and parent-capable.
 export async function getExamResults(studentId?: string): Promise<ExamResult[]> {
   if (DEV_FAKE_ROLE) return mock.examResults;
-  const [resR, resE] = await Promise.all([
-    api.get("/exams/student/me/results"),
-    api.get("/exams").catch(() => ({ data: { data: [] } })),
-  ]);
-  const names: Record<string, string> = {};
-  for (const e of (resE.data?.data ?? []) as any[]) names[String(e.id)] = e.name;
-  return ((resR.data?.data ?? []) as any[]).map((r) => ({
-    exam_id: String(r.exam_id ?? r.id ?? ""),
-    exam_name: names[String(r.exam_id)] ?? r.exam_name ?? "Exam",
-    obtained_marks: Number(r.obtained_marks ?? 0),
-    total_marks: Number(r.total_marks ?? 0),
-    percentage: Number(r.percentage ?? 0),
-    grade: r.grade ?? undefined,
-    rank: r.rank ?? null,
-    status: r.status ?? undefined,
-  }));
+  const q = studentId ? `?student_id=${studentId}` : "";
+  const res = await api.get(`/student-portal/report-cards${q}`);
+  return (res.data?.data ?? []) as ExamResult[];
+}
+
+// Per-subject report card for one exam.
+export async function getReportCard(examId: string, studentId?: string): Promise<ReportCard> {
+  if (DEV_FAKE_ROLE) return mock.reportCard;
+  const q = studentId ? `?student_id=${studentId}` : "";
+  const res = await api.get(`/student-portal/report-cards/${examId}${q}`);
+  return res.data?.data as ReportCard;
 }

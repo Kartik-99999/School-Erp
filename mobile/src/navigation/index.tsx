@@ -30,6 +30,7 @@ import ChangePasswordScreen from "../screens/ChangePasswordScreen";
 import AcademicYearScreen from "../screens/AcademicYearScreen";
 import HomeworkScreen from "../screens/HomeworkScreen";
 import ExamsScreen from "../screens/ExamsScreen";
+import ReportCardScreen from "../screens/ReportCardScreen";
 import LibraryScreen from "../screens/LibraryScreen";
 import LeavesScreen from "../screens/LeavesScreen";
 import PaymentScreen from "../screens/PaymentScreen";
@@ -82,6 +83,7 @@ function HomeStack() {
       <HomeNav.Screen name="Messages" component={MessagesScreen} options={{ title: "Messages" }} />
       <HomeNav.Screen name="Homework" component={HomeworkScreen} />
       <HomeNav.Screen name="Exams" component={ExamsScreen} options={{ title: "Exams & Results" }} />
+      <HomeNav.Screen name="ReportCard" component={ReportCardScreen} options={{ title: "Report card" }} />
       <HomeNav.Screen name="Library" component={LibraryScreen} />
       <HomeNav.Screen name="Leaves" component={LeavesScreen} />
       <HomeNav.Screen name="Payment" component={PaymentScreen} options={{ title: "Payment" }} />

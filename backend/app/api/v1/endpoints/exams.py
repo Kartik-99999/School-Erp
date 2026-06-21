@@ -292,7 +292,10 @@ pdf_module.TEMPLATES[
 """
 
 
-@router.get("/{exam_id}/report-card/{student_id}")
+@router.get(
+    "/{exam_id}/report-card/{student_id}",
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin", "Teacher"]))],
+)
 async def generate_report_card(
     exam_id: UUID,
     student_id: UUID,

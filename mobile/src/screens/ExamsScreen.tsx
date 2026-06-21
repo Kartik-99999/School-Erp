@@ -1,5 +1,6 @@
 import React from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { getExamResults } from "../api/exams";
 import { useAsyncData } from "../lib/useAsyncData";
 import { useChild } from "../child/ChildContext";
@@ -22,7 +23,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function ExamsScreen() {
+export default function ExamsScreen({ navigation }: any) {
   const { selected } = useChild();
   const { data, loading, refreshing, error, reload } = useAsyncData(
     () => getExamResults(selected?.id),
@@ -44,7 +45,12 @@ export default function ExamsScreen() {
         <Empty text="No published results yet." />
       ) : (
         items.map((r) => (
-          <View key={r.exam_id} style={styles.card}>
+          <TouchableOpacity
+            key={r.exam_id}
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("ReportCard", { examId: r.exam_id, examName: r.exam_name, studentId: selected?.id })}
+          >
             <View style={styles.top}>
               <Text style={styles.name}>{r.exam_name}</Text>
               {r.status ? <Text style={[styles.badge, statusStyle(r.status)]}>{r.status}</Text> : null}
@@ -55,7 +61,11 @@ export default function ExamsScreen() {
               <Metric label="Grade" value={r.grade || "—"} />
               {r.rank ? <Metric label="Rank" value={`#${r.rank}`} /> : null}
             </View>
-          </View>
+            <View style={styles.cardFoot}>
+              <Text style={styles.footText}>View subject-wise report</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.sub} />
+            </View>
+          </TouchableOpacity>
         ))
       )}
     </ScrollView>
@@ -71,4 +81,6 @@ const styles = StyleSheet.create({
   metric: { flex: 1, backgroundColor: colors.bg, borderRadius: radius.md, paddingVertical: space(3), alignItems: "center" },
   metricVal: { fontSize: 16, fontWeight: "800", color: colors.ink },
   metricLabel: { fontSize: 11, color: colors.sub, marginTop: 2 },
+  cardFoot: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: space(3) },
+  footText: { fontSize: 12, fontWeight: "700", color: colors.sub },
 });
