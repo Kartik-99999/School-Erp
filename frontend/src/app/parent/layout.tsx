@@ -14,6 +14,7 @@ import {
   GraduationCap,
   User,
   BarChart3,
+  Images,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -30,6 +31,7 @@ const nav: NavGroup[] = [
     label: "Community",
     items: [
       { name: "Polls", href: "/parent/polls", icon: BarChart3 },
+      { name: "Galleries", href: "/parent/galleries", icon: Images },
     ],
   },
   {

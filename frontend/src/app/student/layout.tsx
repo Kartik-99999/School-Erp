@@ -17,6 +17,7 @@ import {
   FolderOpen,
   User,
   BarChart3,
+  Images,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -48,6 +49,7 @@ const nav: NavGroup[] = [
     items: [
       { name: "Noticeboard", href: "/student/notices", icon: Megaphone },
       { name: "Polls", href: "/student/polls", icon: BarChart3 },
+      { name: "Galleries", href: "/student/galleries", icon: Images },
     ],
   },
 ];
