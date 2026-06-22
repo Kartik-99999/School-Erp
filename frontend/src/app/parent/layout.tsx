@@ -16,6 +16,7 @@ import {
   BarChart3,
   Images,
   Bell,
+  Newspaper,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -34,6 +35,7 @@ const nav: NavGroup[] = [
       { name: "Polls", href: "/parent/polls", icon: BarChart3 },
       { name: "Galleries", href: "/parent/galleries", icon: Images },
       { name: "Notifications", href: "/parent/notifications", icon: Bell },
+      { name: "Timeline", href: "/parent/timeline", icon: Newspaper },
     ],
   },
   {
