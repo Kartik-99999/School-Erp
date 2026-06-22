@@ -13,6 +13,8 @@ export const getMyLeaves = async () => (await api.get("/student-portal/leaves"))
 const sidQ = (studentId?: string) => (studentId ? `?student_id=${studentId}` : "");
 export const getAttendance = async (studentId?: string) =>
   (await api.get(`/student-portal/attendance${sidQ(studentId)}`)).data;
+export const getFees = async (studentId?: string) =>
+  (await api.get(`/student-portal/fees${sidQ(studentId)}`)).data;
 export const getSyllabus = async (studentId?: string) =>
   (await api.get(`/student-portal/syllabus${sidQ(studentId)}`)).data;
 export const getReportCards = async (studentId?: string) =>
