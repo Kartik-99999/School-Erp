@@ -136,111 +136,164 @@ export default function TeacherHomeworkPage() {
     return <div className="max-w-4xl mx-auto py-16 text-center text-ink-muted">No classes are assigned to you yet.</div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-border">
         <div>
-          <h2 className="text-2xl font-bold text-ink">Homework</h2>
-          <p className="text-ink-muted mt-1">Assign homework and review what you've set.</p>
+          <h2 className="text-3xl font-extrabold text-ink tracking-tight">Homework Management</h2>
+          <p className="text-ink-muted mt-2 text-lg">Assign homework and monitor academic progress seamlessly.</p>
         </div>
-        <select
-          value={sel}
-          onChange={(e) => setSel(e.target.value)}
-          className="px-4 py-2 bg-surface border border-border rounded-xl text-ink font-medium outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          {classes.map((c) => (
-            <option key={`${c.class_id}|${c.section_id}`} value={`${c.class_id}|${c.section_id}`}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={sel}
+            onChange={(e) => setSel(e.target.value)}
+            className="appearance-none pl-4 pr-10 py-2.5 bg-surface border border-border rounded-xl text-ink font-semibold outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm w-full sm:w-auto"
+          >
+            {classes.map((c) => (
+              <option key={`${c.class_id}|${c.section_id}`} value={`${c.class_id}|${c.section_id}`}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-ink-muted">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-surface-card rounded-card border border-border shadow-sm p-6">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 inline-flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> {open ? "Cancel" : "Assign homework"}
-        </button>
+      <div className="bg-surface-card rounded-2xl border border-border shadow-sm overflow-hidden transition-all duration-300">
+        <div className="p-6 sm:p-8 flex items-center justify-between bg-gradient-to-r from-surface-card to-surface-card/50">
+          <div>
+            <h3 className="text-xl font-bold text-ink">Assign New Task</h3>
+            <p className="text-ink-muted text-sm mt-1">Create a new homework assignment for the selected class.</p>
+          </div>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className={`px-5 py-2.5 rounded-xl text-white text-sm font-bold inline-flex items-center gap-2 transition-all duration-200 shadow-sm shrink-0 ${open ? 'bg-red-500 hover:bg-red-600 focus:ring-4 focus:ring-red-500/20' : 'bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-500/20'}`}
+          >
+            <Plus className={`w-5 h-5 transition-transform duration-300 ${open ? 'rotate-45' : ''}`} /> 
+            {open ? "Cancel" : "Assign homework"}
+          </button>
+        </div>
+        
         {open && (
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-ink-muted">Subject</label>
-              <select
-                value={subjectId}
-                onChange={(e) => setSubjectId(e.target.value)}
-                className="mt-1 w-full px-3 py-2 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">Select subject…</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+          <div className="px-6 pb-6 sm:px-8 sm:pb-8 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in slide-in-from-top-4 fade-in duration-300">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-ink-muted uppercase tracking-wider">Subject</label>
+              <div className="relative">
+                <select
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  className="appearance-none w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm"
+                >
+                  <option value="">Select subject…</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-ink-muted">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-ink-muted">Due date</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-ink-muted uppercase tracking-wider">Due date</label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="mt-1 w-full px-3 py-2 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm"
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-ink-muted">Title</label>
+            <div className="sm:col-span-2 space-y-1.5">
+              <label className="text-sm font-semibold text-ink-muted uppercase tracking-wider">Title</label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Algebra — Exercise 4.3"
-                className="mt-1 w-full px-3 py-2 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm"
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-ink-muted">Description</label>
+            <div className="sm:col-span-2 space-y-1.5">
+              <label className="text-sm font-semibold text-ink-muted uppercase tracking-wider">Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="mt-1 w-full px-3 py-2 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Add details, instructions, or links here..."
+                rows={4}
+                className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm resize-none"
               />
             </div>
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 pt-2">
               <button
                 onClick={submit}
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-ink text-white font-bold disabled:opacity-60"
+                className="w-full sm:w-auto px-8 py-3 rounded-xl bg-ink text-white font-bold disabled:opacity-60 hover:bg-ink/90 transition-all shadow-md active:scale-[0.98]"
               >
-                {saving ? "Assigning…" : "Assign"}
+                {saving ? "Assigning Task…" : "Assign Homework"}
               </button>
             </div>
           </div>
         )}
       </div>
 
-      <div className="space-y-3">
-        <h3 className="font-bold text-ink">Assigned homework</h3>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-ink">Assigned Tasks</h3>
+          {homework.length > 0 && (
+            <span className="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-bold tracking-wider uppercase">
+              {homework.length} total
+            </span>
+          )}
+        </div>
         {hwLoading ? (
-          <div className="py-10 text-center text-ink-muted">Loading…</div>
+          <div className="py-20 flex flex-col items-center justify-center space-y-4 text-ink-muted">
+            <div className="w-8 h-8 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
+            <p className="font-medium animate-pulse">Loading assignments...</p>
+          </div>
         ) : homework.length === 0 ? (
-          <div className="bg-surface-card rounded-card border border-border p-8 text-center text-ink-muted">
-            No homework assigned for this class yet.
+          <div className="bg-surface-card rounded-2xl border border-border border-dashed p-12 text-center text-ink-muted flex flex-col items-center justify-center">
+            <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center mb-4 shadow-inner">
+              <BookOpen className="w-8 h-8 text-ink-muted/50" />
+            </div>
+            <h4 className="text-lg font-bold text-ink mb-1">No homework assigned yet</h4>
+            <p className="text-sm max-w-sm">You haven't assigned any homework for this class section. Click "Assign homework" above to get started.</p>
           </div>
         ) : (
-          homework.map((h) => (
-            <div key={h.id} className="bg-surface-card rounded-card border border-border shadow-sm p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-5 h-5 text-primary-600 shrink-0" />
-                  <h4 className="font-bold text-ink">{h.title}</h4>
+          <div className="grid grid-cols-1 gap-4">
+            {homework.map((h) => (
+              <div key={h.id} className="group bg-surface-card rounded-2xl border border-border shadow-sm p-6 hover:shadow-md transition-all duration-200 hover:border-primary-500/30">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <BookOpen className="w-6 h-6 text-primary-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-ink group-hover:text-primary-600 transition-colors">{h.title}</h4>
+                      {h.subject_id && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="inline-block w-2 h-2 rounded-full bg-primary-500"></span>
+                          <p className="text-sm font-medium text-ink-muted">{subjName(h.subject_id)}</p>
+                        </div>
+                      )}
+                      {h.description && (
+                        <p className="text-sm text-ink-muted mt-3 leading-relaxed max-w-2xl">{h.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  {h.due_date && (
+                    <div className="shrink-0 flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-amber-200/50">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Due {fmt(h.due_date)}
+                    </div>
+                  )}
                 </div>
-                {h.due_date ? <span className="text-xs text-ink-muted">Due {fmt(h.due_date)}</span> : null}
               </div>
-              {h.subject_id ? <p className="text-sm text-ink-muted mt-1 ml-8">{subjName(h.subject_id)}</p> : null}
-              {h.description ? <p className="text-sm text-ink-muted mt-1 ml-8">{h.description}</p> : null}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
