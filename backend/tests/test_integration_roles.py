@@ -536,3 +536,19 @@ async def test_attendance_bulk_contract(tenant, app_client):
         "records": [{"student_id": c1, "status": "Present"}],  # old mobile shape
     }
     assert (await app_client.post(f"{API}/attendance/students/bulk", headers=th, json=bad)).status_code == 422
+
+
+async def test_student_report_card_contract(tenant, app_client):
+    """P0#2: the web student page now reads the portal JSON route (Student-allowed) with the keys
+    it renders, instead of the staff PDF route (correctly 403 for students)."""
+    sh = await _auth(app_client, tenant, "Student")
+    exam, c1 = tenant["exam"], tenant["child1"]
+    rc = await app_client.get(f"{API}/student-portal/report-cards/{exam}", headers=sh)
+    assert rc.status_code == 200, rc.text
+    d = rc.json()["data"]
+    assert d["exam"]["name"] and d["student"]["name"]
+    assert len(d["subjects"]) == 2
+    assert {"subject_name", "max_marks", "obtained", "grade"} <= set(d["subjects"][0].keys())
+    assert {"obtained_marks", "total_marks", "percentage", "status"} <= set(d["summary"].keys())
+    # the staff PDF route the page used before is correctly forbidden for a student
+    assert (await app_client.get(f"{API}/exams/{exam}/report-card/{c1}", headers=sh)).status_code == 403

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { GraduationCap, FileText, Download } from "lucide-react";
+import { GraduationCap, FileText } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 export default function ExamsPage() {
@@ -10,6 +10,8 @@ export default function ExamsPage() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [card, setCard] = useState<any>(null);
+  const [cardLoading, setCardLoading] = useState(false);
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -41,23 +43,25 @@ export default function ExamsPage() {
     fetchExams();
   }, []);
 
-  const handleDownloadReportCard = async (examId: string) => {
-    if (!studentProfile?.id) return;
+  // Students are (correctly) blocked from the staff report-card PDF route, so fetch the
+  // ownership-scoped portal JSON and render it inline (mirrors the mobile ReportCardScreen).
+  const handleViewReportCard = async (examId: string) => {
+    setCard(null);
+    setCardLoading(true);
     try {
-      const res = await api.get(`/exams/${examId}/report-card/${studentProfile.id}`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `report_card_${examId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const res = await api.get(`/student-portal/report-cards/${examId}`);
+      setCard(res.data.data);
     } catch (err) {
-      console.error("Failed to download report card", err);
-      alert("Failed to download report card. Result might not be published yet.");
+      console.error("Failed to load report card", err);
+      alert("Report card isn't available yet. Results may not be published.");
+    } finally {
+      setCardLoading(false);
     }
+  };
+
+  const closeCard = () => {
+    setCard(null);
+    setCardLoading(false);
   };
 
   return (
@@ -66,7 +70,7 @@ export default function ExamsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-ink">Exams & Results</h2>
-            <p className="text-ink-muted mt-1">View your exams and download report cards.</p>
+            <p className="text-ink-muted mt-1">View your exams and report cards.</p>
           </div>
         </div>
 
@@ -120,11 +124,11 @@ export default function ExamsPage() {
                           {result.grade}
                         </div>
                         <button
-                          onClick={() => handleDownloadReportCard(exam.id)}
-                          className="p-3 bg-surface hover:bg-surface text-ink rounded-xl transition-colors shrink-0"
-                          title="Download Report Card"
+                          onClick={() => handleViewReportCard(exam.id)}
+                          className="flex items-center gap-2 px-4 py-3 bg-surface hover:bg-surface text-ink rounded-xl transition-colors shrink-0 font-medium text-sm"
+                          title="View Report Card"
                         >
-                          <Download className="w-5 h-5" />
+                          <FileText className="w-5 h-5" /> Report card
                         </button>
                       </>
                     ) : (
@@ -139,6 +143,99 @@ export default function ExamsPage() {
           </div>
         )}
       </div>
+
+      {(cardLoading || card) && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={closeCard}
+        >
+          <div
+            className="bg-surface-card rounded-card border border-border shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {cardLoading && !card ? (
+              <p className="text-ink-muted text-center py-8">Loading report card…</p>
+            ) : (
+              <>
+                <div className="flex items-start justify-between mb-1">
+                  <h3 className="text-xl font-bold text-ink">{card.exam?.name}</h3>
+                  <button
+                    onClick={closeCard}
+                    className="text-ink-muted hover:text-ink text-2xl leading-none"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-sm text-ink-muted mb-5">
+                  {card.student?.name}
+                  {card.student?.class_name ? ` · Class ${card.student.class_name}` : ""}
+                </p>
+
+                <div className="rounded-card border border-border overflow-hidden mb-5">
+                  <table className="w-full text-sm">
+                    <thead className="bg-surface text-ink-muted">
+                      <tr>
+                        <th className="text-left font-semibold px-4 py-2">Subject</th>
+                        <th className="text-center font-semibold px-3 py-2">Max</th>
+                        <th className="text-center font-semibold px-3 py-2">Obtained</th>
+                        <th className="text-center font-semibold px-3 py-2">Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(card.subjects || []).map((s: any) => (
+                        <tr key={s.subject_id} className="border-t border-border">
+                          <td className="px-4 py-2 text-ink font-medium">{s.subject_name}</td>
+                          <td className="px-3 py-2 text-center text-ink">{s.max_marks}</td>
+                          <td
+                            className={`px-3 py-2 text-center ${s.is_absent ? "text-red-600" : "text-ink"}`}
+                          >
+                            {s.is_absent ? "AB" : (s.obtained ?? "—")}
+                          </td>
+                          <td className="px-3 py-2 text-center font-bold text-primary-700">
+                            {s.grade || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="rounded-card border border-border divide-y divide-border">
+                  <div className="flex justify-between px-4 py-3">
+                    <span className="text-ink-muted text-sm">Total</span>
+                    <span className="text-ink font-bold text-sm">
+                      {card.summary?.obtained_marks} / {card.summary?.total_marks}
+                    </span>
+                  </div>
+                  <div className="flex justify-between px-4 py-3">
+                    <span className="text-ink-muted text-sm">Percentage</span>
+                    <span className="text-ink font-bold text-sm">{card.summary?.percentage}%</span>
+                  </div>
+                  {card.summary?.grade && (
+                    <div className="flex justify-between px-4 py-3">
+                      <span className="text-ink-muted text-sm">Grade</span>
+                      <span className="text-ink font-bold text-sm">{card.summary.grade}</span>
+                    </div>
+                  )}
+                  {card.summary?.rank != null && (
+                    <div className="flex justify-between px-4 py-3">
+                      <span className="text-ink-muted text-sm">Rank</span>
+                      <span className="text-ink font-bold text-sm">#{card.summary.rank}</span>
+                    </div>
+                  )}
+                  {card.summary?.status && (
+                    <div className="flex justify-between px-4 py-3">
+                      <span className="text-ink-muted text-sm">Result</span>
+                      <span className="text-ink font-bold text-sm">{card.summary.status}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
