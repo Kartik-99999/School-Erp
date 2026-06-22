@@ -15,6 +15,7 @@ import {
   Megaphone,
   Trophy,
   FolderOpen,
+  User,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -28,6 +29,7 @@ const nav: NavGroup[] = [
       { name: "Syllabus", href: "/student/syllabus", icon: ListChecks },
       { name: "Homework", href: "/student/homework", icon: BookOpen },
       { name: "My Activities", href: "/student/activities", icon: Trophy },
+      { name: "Profile", href: "/student/profile", icon: User },
       { name: "Resources", href: "/student/resources", icon: FolderOpen },
     ],
   },
