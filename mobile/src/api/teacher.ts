@@ -52,11 +52,13 @@ export async function submitAttendance(
   marks: AttendanceMark[]
 ): Promise<void> {
   if (DEV_FAKE_ROLE) return; // pretend success in preview
+  const date = new Date().toISOString().split("T")[0];
+  // Backend AttendanceStudentBulkMark expects `attendance_records` with a `date` per record.
   await api.post("/attendance/students/bulk", {
     class_id: classId,
     section_id: sectionId,
-    date: new Date().toISOString().split("T")[0],
-    records: marks,
+    date,
+    attendance_records: marks.map((m) => ({ ...m, date })),
   });
 }
 

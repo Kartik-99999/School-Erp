@@ -514,3 +514,25 @@ async def test_parent_child_leave_scoping(tenant, app_client):
     lv = {"leave_type": "Sick", "from_date": "2026-08-01", "to_date": "2026-08-02", "reason": "Fever"}
     assert (await app_client.post(f"{API}/student-portal/leaves?student_id={c1}", headers=ph, json=lv)).status_code == 200
     assert (await app_client.post(f"{API}/student-portal/leaves?student_id={other}", headers=ph, json=lv)).status_code == 403
+
+
+async def test_attendance_bulk_contract(tenant, app_client):
+    """P0#1: the body the mobile now sends (attendance_records + per-record date) is accepted;
+    the previously-sent shape (key `records`, no per-record date) is rejected with 422."""
+    th = await _auth(app_client, tenant, "Teacher")
+    cls, sec, c1 = tenant["cls"], tenant["sec"], tenant["child1"]
+    today = date.today().isoformat()
+    good = {
+        "class_id": cls,
+        "section_id": sec,
+        "date": today,
+        "attendance_records": [{"student_id": c1, "date": today, "status": "Present"}],
+    }
+    assert (await app_client.post(f"{API}/attendance/students/bulk", headers=th, json=good)).status_code == 200
+    bad = {
+        "class_id": cls,
+        "section_id": sec,
+        "date": today,
+        "records": [{"student_id": c1, "status": "Present"}],  # old mobile shape
+    }
+    assert (await app_client.post(f"{API}/attendance/students/bulk", headers=th, json=bad)).status_code == 422
