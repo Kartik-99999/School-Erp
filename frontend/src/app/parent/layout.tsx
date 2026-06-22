@@ -17,6 +17,7 @@ import {
   Images,
   Bell,
   Newspaper,
+  CalendarClock,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -27,6 +28,7 @@ const nav: NavGroup[] = [
       { name: "Syllabus", href: "/parent/syllabus", icon: ListChecks },
       { name: "Report Cards", href: "/parent/exams", icon: GraduationCap },
       { name: "Profile", href: "/parent/profile", icon: User },
+      { name: "Appointments", href: "/parent/appointments", icon: CalendarClock },
     ],
   },
   {

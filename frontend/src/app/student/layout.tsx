@@ -20,6 +20,7 @@ import {
   Images,
   Bell,
   Newspaper,
+  CalendarClock,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -44,6 +45,7 @@ const nav: NavGroup[] = [
       { name: "Fees & Dues", href: "/student/fees", icon: DollarSign },
       { name: "My Library", href: "/student/library", icon: BookOpenCheck },
       { name: "Facilities", href: "/student/facilities", icon: Bus },
+      { name: "Appointments", href: "/student/appointments", icon: CalendarClock },
     ],
   },
   {
