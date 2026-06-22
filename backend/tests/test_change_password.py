@@ -90,17 +90,23 @@ async def test_change_password_flow(user, app_client):
     h = {"Authorization": f"Bearer {tok}"}
     # too short
     r_short = await app_client.post(
-        f"{API}/auth/change-password", headers=h, json={"current_password": user["password"], "new_password": "x1"}
+        f"{API}/auth/change-password",
+        headers=h,
+        json={"current_password": user["password"], "new_password": "x1"},
     )
     assert r_short.status_code == 400, r_short.text
     # wrong current
     r_wrong = await app_client.post(
-        f"{API}/auth/change-password", headers=h, json={"current_password": "nope", "new_password": "Brand0New!"}
+        f"{API}/auth/change-password",
+        headers=h,
+        json={"current_password": "nope", "new_password": "Brand0New!"},
     )
     assert r_wrong.status_code == 400, r_wrong.text
     # happy path
     r_ok = await app_client.post(
-        f"{API}/auth/change-password", headers=h, json={"current_password": user["password"], "new_password": "Brand0New!"}
+        f"{API}/auth/change-password",
+        headers=h,
+        json={"current_password": user["password"], "new_password": "Brand0New!"},
     )
     assert r_ok.status_code == 200, r_ok.text
     # old password no longer works; new one does

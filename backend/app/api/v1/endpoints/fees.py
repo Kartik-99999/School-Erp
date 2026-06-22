@@ -949,7 +949,9 @@ async def generate_receipt_html(
     receipt = (
         (
             await db.execute(
-                select(FeeReceipt).filter(FeeReceipt.id == id, FeeReceipt.school_id == UUID(school_id))
+                select(FeeReceipt).filter(
+                    FeeReceipt.id == id, FeeReceipt.school_id == UUID(school_id)
+                )
             )
         )
         .scalars()
@@ -963,7 +965,9 @@ async def generate_receipt_html(
             raise HTTPException(status_code=403, detail="You can only access your own receipts.")
 
     student = (
-        (await db.execute(select(Student).filter(Student.id == receipt.student_id))).scalars().first()
+        (await db.execute(select(Student).filter(Student.id == receipt.student_id)))
+        .scalars()
+        .first()
     )
     allocs = (
         (await db.execute(select(FeePayment).filter(FeePayment.receipt_id == id))).scalars().all()

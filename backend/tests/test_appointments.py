@@ -57,9 +57,21 @@ async def env(owner_session):
     s.add_all([trole, prole])
     await s.flush()
     te, tp = f"t-{suf}@example.com", "Teach3r!a"
-    tuser = User(school_id=a.id, email=te, hashed_password=get_password_hash(tp), role_id=trole.id, is_active=True)
+    tuser = User(
+        school_id=a.id,
+        email=te,
+        hashed_password=get_password_hash(tp),
+        role_id=trole.id,
+        is_active=True,
+    )
     pe, pp = f"p-{suf}@example.com", "Par3nt!a"
-    puser = User(school_id=a.id, email=pe, hashed_password=get_password_hash(pp), role_id=prole.id, is_active=True)
+    puser = User(
+        school_id=a.id,
+        email=pe,
+        hashed_password=get_password_hash(pp),
+        role_id=prole.id,
+        is_active=True,
+    )
     s.add_all([tuser, puser])
     await s.flush()
     staff = Staff(school_id=a.id, user_id=tuser.id, first_name="Asha", last_name="Rao")
@@ -74,17 +86,31 @@ async def env(owner_session):
     s.add(prole_b)
     await s.flush()
     pe_b, pp_b = f"pb-{suf}@example.com", "Par3nt!b"
-    puser_b = User(school_id=b.id, email=pe_b, hashed_password=get_password_hash(pp_b), role_id=prole_b.id, is_active=True)
+    puser_b = User(
+        school_id=b.id,
+        email=pe_b,
+        hashed_password=get_password_hash(pp_b),
+        role_id=prole_b.id,
+        is_active=True,
+    )
     s.add(puser_b)
     await s.commit()
 
     yield {
-        "t_email": te, "t_pw": tp, "p_email": pe, "p_pw": pp,
-        "pb_email": pe_b, "pb_pw": pp_b, "a_id": a.id, "b_id": b.id,
+        "t_email": te,
+        "t_pw": tp,
+        "p_email": pe,
+        "p_pw": pp,
+        "pb_email": pe_b,
+        "pb_pw": pp_b,
+        "a_id": a.id,
+        "b_id": b.id,
     }
 
     for tbl in ("appointments", "appointment_slots", "staff", "users", "roles"):
-        await s.execute(text(f"DELETE FROM {tbl} WHERE school_id IN (:a, :b)"), {"a": a.id, "b": b.id})
+        await s.execute(
+            text(f"DELETE FROM {tbl} WHERE school_id IN (:a, :b)"), {"a": a.id, "b": b.id}
+        )
     await s.execute(text("DELETE FROM schools WHERE id IN (:a, :b)"), {"a": a.id, "b": b.id})
     await s.commit()
 
@@ -112,9 +138,13 @@ async def test_appointment_flow(env, app_client):
     end = (datetime.now(timezone.utc) + timedelta(days=1, minutes=30)).isoformat()
 
     # teacher creates a slot; bad window rejected
-    bad = await app_client.post(f"{API}/appointments/slots", headers=th, json={"start_time": end, "end_time": start})
+    bad = await app_client.post(
+        f"{API}/appointments/slots", headers=th, json={"start_time": end, "end_time": start}
+    )
     assert bad.status_code == 400, bad.text
-    made = await app_client.post(f"{API}/appointments/slots", headers=th, json={"start_time": start, "end_time": end})
+    made = await app_client.post(
+        f"{API}/appointments/slots", headers=th, json={"start_time": start, "end_time": end}
+    )
     assert made.status_code == 200, made.text
     slot_id = made.json()["data"]["id"]
 
@@ -124,7 +154,9 @@ async def test_appointment_flow(env, app_client):
     assert len(mine) == 1 and mine[0]["teacher_name"] == "Asha Rao"
 
     # parent books it
-    booked = await app_client.post(f"{API}/appointments", headers=ph, json={"slot_id": slot_id, "note": "Discuss progress"})
+    booked = await app_client.post(
+        f"{API}/appointments", headers=ph, json={"slot_id": slot_id, "note": "Discuss progress"}
+    )
     assert booked.status_code == 200, booked.text
 
     # double-book rejected
@@ -146,7 +178,11 @@ async def test_appointments_tenant_isolation(env, app_client):
     th = {"Authorization": f"Bearer {await _token(app_client, env['t_email'], env['t_pw'])}"}
     start = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
     end = (datetime.now(timezone.utc) + timedelta(days=2, minutes=30)).isoformat()
-    slot_id = (await app_client.post(f"{API}/appointments/slots", headers=th, json={"start_time": start, "end_time": end})).json()["data"]["id"]
+    slot_id = (
+        await app_client.post(
+            f"{API}/appointments/slots", headers=th, json={"start_time": start, "end_time": end}
+        )
+    ).json()["data"]["id"]
 
     pbh = {"Authorization": f"Bearer {await _token(app_client, env['pb_email'], env['pb_pw'])}"}
     # school B parent can't see school A's slot

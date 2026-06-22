@@ -55,7 +55,15 @@ async def admin(owner_session):
     s.add(role)
     await s.flush()
     email, pw = f"rcpt-{suf}@example.com", "Adm1n!pass"
-    s.add(User(school_id=school.id, email=email, hashed_password=get_password_hash(pw), role_id=role.id, is_active=True))
+    s.add(
+        User(
+            school_id=school.id,
+            email=email,
+            hashed_password=get_password_hash(pw),
+            role_id=role.id,
+            is_active=True,
+        )
+    )
     await s.commit()
     yield {"email": email, "pw": pw, "school_id": school.id}
     await s.execute(text("DELETE FROM users WHERE school_id=:s"), {"s": school.id})
@@ -80,6 +88,12 @@ async def test_receipt_html_requires_auth(app_client):
 
 
 async def test_receipt_html_unknown_is_404(admin, app_client):
-    tok = (await app_client.post(f"{API}/auth/login", data={"username": admin["email"], "password": admin["pw"]})).json()["access_token"]
-    r = await app_client.get(f"{API}/fees/receipts/{uuid.uuid4()}/html", headers={"Authorization": f"Bearer {tok}"})
+    tok = (
+        await app_client.post(
+            f"{API}/auth/login", data={"username": admin["email"], "password": admin["pw"]}
+        )
+    ).json()["access_token"]
+    r = await app_client.get(
+        f"{API}/fees/receipts/{uuid.uuid4()}/html", headers={"Authorization": f"Bearer {tok}"}
+    )
     assert r.status_code == 404, r.text

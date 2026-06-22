@@ -26,12 +26,12 @@ from app.schemas.communication import (
     BroadcastMessageCreate,
     EventCreate,
     EventResponse,
+    GalleryDetailResponse,
+    GalleryPhotoResponse,
+    GalleryResponse,
     MessageLogResponse,
     NoticeCreate,
     NoticeResponse,
-    GalleryResponse,
-    GalleryPhotoResponse,
-    GalleryDetailResponse,
     PollOptionResponse,
     PollResponse,
     PollVoteCreate,
@@ -69,14 +69,24 @@ async def create_notice(
         roles = role_map.get(notice.target_audience, [])
         if roles:
             uids = (
-                await db.execute(
-                    select(User.id)
-                    .join(Role, Role.id == User.role_id)
-                    .filter(User.school_id == UUID(school_id), Role.name.in_(roles))
+                (
+                    await db.execute(
+                        select(User.id)
+                        .join(Role, Role.id == User.role_id)
+                        .filter(User.school_id == UUID(school_id), Role.name.in_(roles))
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             await notify_users(
-                db, school_id, uids, notice.title, (notice.body or "")[:140], ntype="notice", ref_id=notice.id
+                db,
+                school_id,
+                uids,
+                notice.title,
+                (notice.body or "")[:140],
+                ntype="notice",
+                ref_id=notice.id,
             )
             await db.commit()
     except Exception:
@@ -328,7 +338,13 @@ async def get_polls(
         return APIResponse(success=True, data=[])
     poll_ids = [p.id for p in polls]
     options = (
-        (await db.execute(select(PollOption).filter(PollOption.poll_id.in_(poll_ids)).order_by(PollOption.position)))
+        (
+            await db.execute(
+                select(PollOption)
+                .filter(PollOption.poll_id.in_(poll_ids))
+                .order_by(PollOption.position)
+            )
+        )
         .scalars()
         .all()
     )
@@ -383,7 +399,11 @@ async def vote_poll(
 ):
     """Cast one vote. Tenant + audience checked; a user may vote at most once per poll."""
     poll = (
-        (await db.execute(select(Poll).filter(Poll.id == poll_id, Poll.school_id == UUID(school_id))))
+        (
+            await db.execute(
+                select(Poll).filter(Poll.id == poll_id, Poll.school_id == UUID(school_id))
+            )
+        )
         .scalars()
         .first()
     )
@@ -394,7 +414,9 @@ async def vote_poll(
     option = (
         (
             await db.execute(
-                select(PollOption).filter(PollOption.id == body.option_id, PollOption.poll_id == poll_id)
+                select(PollOption).filter(
+                    PollOption.id == body.option_id, PollOption.poll_id == poll_id
+                )
             )
         )
         .scalars()
@@ -467,7 +489,13 @@ async def get_galleries(
     first_photo: dict = {}
     if any(not g.cover_url for g in gals):
         photos = (
-            (await db.execute(select(GalleryPhoto).filter(GalleryPhoto.gallery_id.in_(gids)).order_by(GalleryPhoto.position)))
+            (
+                await db.execute(
+                    select(GalleryPhoto)
+                    .filter(GalleryPhoto.gallery_id.in_(gids))
+                    .order_by(GalleryPhoto.position)
+                )
+            )
             .scalars()
             .all()
         )
@@ -496,14 +524,26 @@ async def get_gallery(
 ):
     aud = _audience_for(token_data.role)
     g = (
-        (await db.execute(select(Gallery).filter(Gallery.id == gallery_id, Gallery.school_id == UUID(school_id))))
+        (
+            await db.execute(
+                select(Gallery).filter(
+                    Gallery.id == gallery_id, Gallery.school_id == UUID(school_id)
+                )
+            )
+        )
         .scalars()
         .first()
     )
     if not g or g.is_deleted or not g.is_published or g.target_audience not in ("All", aud):
         raise HTTPException(status_code=404, detail="Gallery not found.")
     photos = (
-        (await db.execute(select(GalleryPhoto).filter(GalleryPhoto.gallery_id == gallery_id).order_by(GalleryPhoto.position)))
+        (
+            await db.execute(
+                select(GalleryPhoto)
+                .filter(GalleryPhoto.gallery_id == gallery_id)
+                .order_by(GalleryPhoto.position)
+            )
+        )
         .scalars()
         .all()
     )

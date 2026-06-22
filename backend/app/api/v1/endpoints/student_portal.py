@@ -7,12 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
+from app.models.academics import SyllabusChapter, SyllabusProgress
 from app.models.attendance import AttendanceStudent
+from app.models.exams import Exam, ExamSchedule, GradeScale, Result, StudentMark
 from app.models.fees import FeeReceipt, FeeSchedule
 from app.models.hostel import HostelAllocation, HostelBuilding, HostelRoom
 from app.models.library import LibraryBook, LibraryIssue
-from app.models.academics import SyllabusChapter, SyllabusProgress
-from app.models.exams import Exam, ExamSchedule, GradeScale, Result, StudentMark
 from app.models.setup import ClassModel, FeeHead, FeeStructure, Subject
 from app.models.student_leaves import StudentLeaveApplication
 from app.models.students import Parent, Student
@@ -451,9 +451,7 @@ async def my_syllabus(
         )
 
     subj_ids = list({c.subject_id for c in chapters})
-    subjects = (
-        (await db.execute(select(Subject).filter(Subject.id.in_(subj_ids)))).scalars().all()
-    )
+    subjects = (await db.execute(select(Subject).filter(Subject.id.in_(subj_ids)))).scalars().all()
     subj_name = {s.id: s.name for s in subjects}
 
     by_subject: dict = {}
@@ -531,7 +529,9 @@ async def my_report_cards(
     results = (
         (
             await db.execute(
-                select(Result).filter(Result.student_id == student.id).order_by(Result.created_at.desc())
+                select(Result)
+                .filter(Result.student_id == student.id)
+                .order_by(Result.created_at.desc())
             )
         )
         .scalars()
@@ -590,7 +590,9 @@ async def my_report_card(
         raise HTTPException(status_code=404, detail="Exam not found.")
 
     schedules = (
-        (await db.execute(select(ExamSchedule).filter(ExamSchedule.exam_id == exam_id))).scalars().all()
+        (await db.execute(select(ExamSchedule).filter(ExamSchedule.exam_id == exam_id)))
+        .scalars()
+        .all()
     )
     sched_ids = [s.id for s in schedules]
     marks = (
@@ -618,7 +620,9 @@ async def my_report_card(
     scale = (
         (
             await db.execute(
-                select(GradeScale).filter(GradeScale.school_id == school_uuid).order_by(GradeScale.is_default.desc())
+                select(GradeScale)
+                .filter(GradeScale.school_id == school_uuid)
+                .order_by(GradeScale.is_default.desc())
             )
         )
         .scalars()

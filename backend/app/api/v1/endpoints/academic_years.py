@@ -54,7 +54,9 @@ async def get_active_academic_year(
 ) -> Any:
     """The user's selected active academic year (per-user setting), or null."""
     user = (
-        (await db.execute(select(User).filter(User.id == UUID(token_data.user_id)))).scalars().first()
+        (await db.execute(select(User).filter(User.id == UUID(token_data.user_id))))
+        .scalars()
+        .first()
     )
     active = str(user.active_academic_year_id) if user and user.active_academic_year_id else None
     return APIResponse(success=True, data={"active_academic_year_id": active})
@@ -74,7 +76,9 @@ async def set_active_academic_year(
     if not year:
         raise HTTPException(status_code=404, detail="Academic year not found for this school.")
     user = (
-        (await db.execute(select(User).filter(User.id == UUID(token_data.user_id)))).scalars().first()
+        (await db.execute(select(User).filter(User.id == UUID(token_data.user_id))))
+        .scalars()
+        .first()
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

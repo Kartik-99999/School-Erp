@@ -57,10 +57,18 @@ async def env(owner_session):
     s.add(ra)
     await s.flush()
     ea, pa = f"sa-{suf}@example.com", "Stud3nt!a"
-    ua = User(school_id=a.id, email=ea, hashed_password=get_password_hash(pa), role_id=ra.id, is_active=True)
+    ua = User(
+        school_id=a.id,
+        email=ea,
+        hashed_password=get_password_hash(pa),
+        role_id=ra.id,
+        is_active=True,
+    )
     s.add(ua)
     await s.flush()
-    poll = Poll(school_id=a.id, question="Favourite sport?", target_audience="Students", is_active=True)
+    poll = Poll(
+        school_id=a.id, question="Favourite sport?", target_audience="Students", is_active=True
+    )
     s.add(poll)
     await s.flush()
     o1 = PollOption(school_id=a.id, poll_id=poll.id, text="Cricket", position=0)
@@ -75,18 +83,32 @@ async def env(owner_session):
     s.add(rb)
     await s.flush()
     eb, pb = f"sb-{suf}@example.com", "Stud3nt!b"
-    ub = User(school_id=b.id, email=eb, hashed_password=get_password_hash(pb), role_id=rb.id, is_active=True)
+    ub = User(
+        school_id=b.id,
+        email=eb,
+        hashed_password=get_password_hash(pb),
+        role_id=rb.id,
+        is_active=True,
+    )
     s.add(ub)
     await s.commit()
 
     yield {
-        "a_email": ea, "a_pw": pa, "b_email": eb, "b_pw": pb,
-        "poll_id": str(poll.id), "opt1": str(o1.id), "opt2": str(o2.id),
-        "a_id": a.id, "b_id": b.id,
+        "a_email": ea,
+        "a_pw": pa,
+        "b_email": eb,
+        "b_pw": pb,
+        "poll_id": str(poll.id),
+        "opt1": str(o1.id),
+        "opt2": str(o2.id),
+        "a_id": a.id,
+        "b_id": b.id,
     }
 
     for tbl in ("poll_votes", "poll_options", "polls", "users", "roles"):
-        await s.execute(text(f"DELETE FROM {tbl} WHERE school_id IN (:a, :b)"), {"a": a.id, "b": b.id})
+        await s.execute(
+            text(f"DELETE FROM {tbl} WHERE school_id IN (:a, :b)"), {"a": a.id, "b": b.id}
+        )
     await s.execute(text("DELETE FROM schools WHERE id IN (:a, :b)"), {"a": a.id, "b": b.id})
     await s.commit()
 
@@ -118,23 +140,33 @@ async def test_polls_vote_flow(env, app_client):
     assert len(mine[0]["options"]) == 2
 
     rv = await app_client.post(
-        f"{API}/communication/polls/{env['poll_id']}/vote", headers=ha, json={"option_id": env["opt1"]}
+        f"{API}/communication/polls/{env['poll_id']}/vote",
+        headers=ha,
+        json={"option_id": env["opt1"]},
     )
     assert rv.status_code == 200, rv.text
 
-    p2 = [p for p in (await app_client.get(f"{API}/communication/polls", headers=ha)).json()["data"] if p["id"] == env["poll_id"]][0]
+    p2 = [
+        p
+        for p in (await app_client.get(f"{API}/communication/polls", headers=ha)).json()["data"]
+        if p["id"] == env["poll_id"]
+    ][0]
     assert p2["total_votes"] == 1
     assert p2["my_option_id"] == env["opt1"]
     assert [o for o in p2["options"] if o["id"] == env["opt1"]][0]["votes"] == 1
 
     # double vote rejected
     rv2 = await app_client.post(
-        f"{API}/communication/polls/{env['poll_id']}/vote", headers=ha, json={"option_id": env["opt2"]}
+        f"{API}/communication/polls/{env['poll_id']}/vote",
+        headers=ha,
+        json={"option_id": env["opt2"]},
     )
     assert rv2.status_code == 400, rv2.text
     # invalid option rejected
     rbad = await app_client.post(
-        f"{API}/communication/polls/{env['poll_id']}/vote", headers=ha, json={"option_id": str(uuid.uuid4())}
+        f"{API}/communication/polls/{env['poll_id']}/vote",
+        headers=ha,
+        json={"option_id": str(uuid.uuid4())},
     )
     assert rbad.status_code == 400, rbad.text
 
@@ -145,6 +177,8 @@ async def test_polls_tenant_isolation(env, app_client):
     polls = (await app_client.get(f"{API}/communication/polls", headers=hb)).json()["data"]
     assert all(p["id"] != env["poll_id"] for p in polls)
     rv = await app_client.post(
-        f"{API}/communication/polls/{env['poll_id']}/vote", headers=hb, json={"option_id": env["opt1"]}
+        f"{API}/communication/polls/{env['poll_id']}/vote",
+        headers=hb,
+        json={"option_id": env["opt1"]},
     )
     assert rv.status_code == 404, rv.text

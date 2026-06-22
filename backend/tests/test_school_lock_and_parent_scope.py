@@ -74,7 +74,11 @@ async def graph(owner_session):
     s.add(parent)
     await s.flush()
     child = Student(
-        school_id=school.id, parent_id=parent.id, first_name="Aarav", last_name="A", dob=date(2014, 1, 1)
+        school_id=school.id,
+        parent_id=parent.id,
+        first_name="Aarav",
+        last_name="A",
+        dob=date(2014, 1, 1),
     )
     s.add(child)
     await s.flush()
@@ -83,7 +87,11 @@ async def graph(owner_session):
     s.add(parent2)
     await s.flush()
     other = Student(
-        school_id=school.id, parent_id=parent2.id, first_name="Bina", last_name="B", dob=date(2014, 2, 2)
+        school_id=school.id,
+        parent_id=parent2.id,
+        first_name="Bina",
+        last_name="B",
+        dob=date(2014, 2, 2),
     )
     s.add(other)
     await s.flush()
@@ -147,10 +155,14 @@ async def test_parent_scope_on_portal_fees(graph, app_client):
     tok = await _parent_token(app_client, graph)
     h = {"Authorization": f"Bearer {tok}"}
     # Own child -> 200
-    r_own = await app_client.get(f"{API}/student-portal/fees?student_id={graph['child_id']}", headers=h)
+    r_own = await app_client.get(
+        f"{API}/student-portal/fees?student_id={graph['child_id']}", headers=h
+    )
     assert r_own.status_code == 200, r_own.text
     # Another parent's child -> 403
-    r_other = await app_client.get(f"{API}/student-portal/fees?student_id={graph['other_id']}", headers=h)
+    r_other = await app_client.get(
+        f"{API}/student-portal/fees?student_id={graph['other_id']}", headers=h
+    )
     assert r_other.status_code == 403, r_other.text
     # Parent without student_id -> 400
     r_none = await app_client.get(f"{API}/student-portal/fees", headers=h)

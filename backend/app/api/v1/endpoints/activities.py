@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api import deps
+from app.api.v1.endpoints.students import _authorize_student_access
 from app.models.activities import (
     Club,
     ClubMembership,
@@ -25,7 +26,6 @@ from app.models.activities import (
     Sport,
     SportMembership,
 )
-from app.api.v1.endpoints.students import _authorize_student_access
 from app.models.students import Parent, Student
 from app.schemas.activities import (
     ClubCreate,

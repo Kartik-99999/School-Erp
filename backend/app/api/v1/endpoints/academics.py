@@ -30,7 +30,6 @@ from app.models.academics import (
 )
 from app.models.setup import ClassModel, Section, Subject
 from app.models.staff import Staff
-from app.models.staff import Staff
 from app.models.students import Student
 from app.schemas.academics import (
     HomeworkCreate,

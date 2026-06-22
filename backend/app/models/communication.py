@@ -1,4 +1,14 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -65,7 +75,9 @@ class Poll(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.uuid_generate_v4())
     school_id = Column(UUID(as_uuid=True), nullable=False)
     question = Column(Text, nullable=False)
-    target_audience = Column(String(50), nullable=False, server_default="All")  # All, Students, Parents, Staff
+    target_audience = Column(
+        String(50), nullable=False, server_default="All"
+    )  # All, Students, Parents, Staff
     is_active = Column(Boolean, default=True)
     closes_at = Column(DateTime(timezone=True))
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))

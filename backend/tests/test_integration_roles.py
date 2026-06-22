@@ -54,7 +54,9 @@ async def app_client():
     from app.db.session import engine as app_engine
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=True) as ac:
+    async with AsyncClient(
+        transport=transport, base_url="http://test", follow_redirects=True
+    ) as ac:
         yield ac
     await app_engine.dispose()
 
@@ -66,8 +68,8 @@ async def tenant(owner_session):
     from app.models.communication import Gallery, GalleryPhoto, Poll, PollOption
     from app.models.notifications import Notification
     from app.models.school import School
-    from app.models.students import Parent, Student
     from app.models.staff import Staff
+    from app.models.students import Parent, Student
     from app.models.users import Role, User
 
     s = owner_session
@@ -92,7 +94,13 @@ async def tenant(owner_session):
     users = {}
     for rn in role_objs:
         email = f"{rn.replace(' ', '').lower()}-{suf}@e.com"
-        u = User(school_id=sid, email=email, hashed_password=get_password_hash(PW), role_id=role_objs[rn].id, is_active=True)
+        u = User(
+            school_id=sid,
+            email=email,
+            hashed_password=get_password_hash(PW),
+            role_id=role_objs[rn].id,
+            is_active=True,
+        )
         s.add(u)
         await s.flush()
         users[rn] = u
@@ -103,56 +111,193 @@ async def tenant(owner_session):
     other_parent = Parent(school_id=sid, father_name="Mr Other")
     s.add_all([parent, other_parent])
     await s.flush()
-    staff = Staff(school_id=sid, user_id=users["Teacher"].id, first_name="Tina", last_name="Teacher")
-    staff_acc = Staff(school_id=sid, user_id=users["Accountant"].id, first_name="Amal", last_name="Accountant")
+    staff = Staff(
+        school_id=sid, user_id=users["Teacher"].id, first_name="Tina", last_name="Teacher"
+    )
+    staff_acc = Staff(
+        school_id=sid, user_id=users["Accountant"].id, first_name="Amal", last_name="Accountant"
+    )
     s.add_all([staff, staff_acc])
     await s.flush()
     # A second teacher (own user + staff) so timetable ownership can be tested teacher-vs-teacher.
-    teacher2 = User(school_id=sid, email=f"teacher2-{suf}@e.com", hashed_password=get_password_hash(PW), role_id=role_objs["Teacher"].id, is_active=True)
+    teacher2 = User(
+        school_id=sid,
+        email=f"teacher2-{suf}@e.com",
+        hashed_password=get_password_hash(PW),
+        role_id=role_objs["Teacher"].id,
+        is_active=True,
+    )
     s.add(teacher2)
     await s.flush()
     staff_t2 = Staff(school_id=sid, user_id=teacher2.id, first_name="Tom", last_name="Two")
     s.add(staff_t2)
     await s.flush()
 
-    year = await ins("INSERT INTO academic_years (school_id,name,start_date,end_date) VALUES (:s,'2026-27','2026-04-01','2027-03-31') RETURNING id", s=sid)
-    cls = await ins("INSERT INTO classes (school_id,name,numeric_value) VALUES (:s,'VIII',8) RETURNING id", s=sid)
-    sec = await ins("INSERT INTO sections (school_id,class_id,name) VALUES (:s,:c,'A') RETURNING id", s=sid, c=cls)
-    sub1 = await ins("INSERT INTO subjects (school_id,name,code,type) VALUES (:s,'Mathematics','MATH','Core') RETURNING id", s=sid)
-    sub2 = await ins("INSERT INTO subjects (school_id,name,code,type) VALUES (:s,'Science','SCI','Core') RETURNING id", s=sid)
+    year = await ins(
+        "INSERT INTO academic_years (school_id,name,start_date,end_date) VALUES (:s,'2026-27','2026-04-01','2027-03-31') RETURNING id",
+        s=sid,
+    )
+    cls = await ins(
+        "INSERT INTO classes (school_id,name,numeric_value) VALUES (:s,'VIII',8) RETURNING id",
+        s=sid,
+    )
+    sec = await ins(
+        "INSERT INTO sections (school_id,class_id,name) VALUES (:s,:c,'A') RETURNING id",
+        s=sid,
+        c=cls,
+    )
+    sub1 = await ins(
+        "INSERT INTO subjects (school_id,name,code,type) VALUES (:s,'Mathematics','MATH','Core') RETURNING id",
+        s=sid,
+    )
+    sub2 = await ins(
+        "INSERT INTO subjects (school_id,name,code,type) VALUES (:s,'Science','SCI','Core') RETURNING id",
+        s=sid,
+    )
 
-    child1 = Student(school_id=sid, parent_id=parent.id, user_id=users["Student"].id, first_name="Aarav", last_name="A", dob=date(2014, 1, 1), current_class_id=cls, current_section_id=sec, admission_number=f"ADM-{suf}-1")
-    child2 = Student(school_id=sid, parent_id=parent.id, first_name="Diya", last_name="A", dob=date(2016, 1, 1), current_class_id=cls, current_section_id=sec, admission_number=f"ADM-{suf}-2")
-    other_child = Student(school_id=sid, parent_id=other_parent.id, first_name="Zoya", last_name="Z", dob=date(2014, 5, 5), admission_number=f"ADM-{suf}-3")
+    child1 = Student(
+        school_id=sid,
+        parent_id=parent.id,
+        user_id=users["Student"].id,
+        first_name="Aarav",
+        last_name="A",
+        dob=date(2014, 1, 1),
+        current_class_id=cls,
+        current_section_id=sec,
+        admission_number=f"ADM-{suf}-1",
+    )
+    child2 = Student(
+        school_id=sid,
+        parent_id=parent.id,
+        first_name="Diya",
+        last_name="A",
+        dob=date(2016, 1, 1),
+        current_class_id=cls,
+        current_section_id=sec,
+        admission_number=f"ADM-{suf}-2",
+    )
+    other_child = Student(
+        school_id=sid,
+        parent_id=other_parent.id,
+        first_name="Zoya",
+        last_name="Z",
+        dob=date(2014, 5, 5),
+        admission_number=f"ADM-{suf}-3",
+    )
     s.add_all([child1, child2, other_child])
     await s.flush()
 
     # Exam + per-subject marks + processed result for child1
-    etype = await ins("INSERT INTO exam_types (school_id,name) VALUES (:s,'Half-Yearly') RETURNING id", s=sid)
-    exam = await ins("INSERT INTO exams (school_id,academic_year_id,exam_type_id,class_id,name,status) VALUES (:s,:y,:t,:c,'Half-Yearly','Published') RETURNING id", s=sid, y=year, t=etype, c=cls)
-    es1 = await ins("INSERT INTO exam_schedules (school_id,exam_id,subject_id,exam_date,max_marks,passing_marks) VALUES (:s,:e,:su,'2026-09-10',100,33) RETURNING id", s=sid, e=exam, su=sub1)
-    es2 = await ins("INSERT INTO exam_schedules (school_id,exam_id,subject_id,exam_date,max_marks,passing_marks) VALUES (:s,:e,:su,'2026-09-12',100,33) RETURNING id", s=sid, e=exam, su=sub2)
-    await ins("INSERT INTO student_marks (school_id,exam_schedule_id,student_id,marks_obtained,is_absent) VALUES (:s,:es,:st,88,false) RETURNING id", s=sid, es=es1, st=child1.id)
-    await ins("INSERT INTO student_marks (school_id,exam_schedule_id,student_id,marks_obtained,is_absent) VALUES (:s,:es,:st,76,false) RETURNING id", s=sid, es=es2, st=child1.id)
-    await ins("INSERT INTO results (school_id,exam_id,student_id,total_marks,obtained_marks,percentage,grade,status,rank) VALUES (:s,:e,:st,200,164,82,'A','Pass',1) RETURNING id", s=sid, e=exam, st=child1.id)
-    rules = json.dumps([{"min": 80, "max": 100, "grade": "A"}, {"min": 33, "max": 79.99, "grade": "B"}, {"min": 0, "max": 32.99, "grade": "F"}])
-    await ins("INSERT INTO grade_scales (school_id,name,rules,is_default) VALUES (:s,'Default',CAST(:r AS json),true) RETURNING id", s=sid, r=rules)
+    etype = await ins(
+        "INSERT INTO exam_types (school_id,name) VALUES (:s,'Half-Yearly') RETURNING id", s=sid
+    )
+    exam = await ins(
+        "INSERT INTO exams (school_id,academic_year_id,exam_type_id,class_id,name,status) VALUES (:s,:y,:t,:c,'Half-Yearly','Published') RETURNING id",
+        s=sid,
+        y=year,
+        t=etype,
+        c=cls,
+    )
+    es1 = await ins(
+        "INSERT INTO exam_schedules (school_id,exam_id,subject_id,exam_date,max_marks,passing_marks) VALUES (:s,:e,:su,'2026-09-10',100,33) RETURNING id",
+        s=sid,
+        e=exam,
+        su=sub1,
+    )
+    es2 = await ins(
+        "INSERT INTO exam_schedules (school_id,exam_id,subject_id,exam_date,max_marks,passing_marks) VALUES (:s,:e,:su,'2026-09-12',100,33) RETURNING id",
+        s=sid,
+        e=exam,
+        su=sub2,
+    )
+    await ins(
+        "INSERT INTO student_marks (school_id,exam_schedule_id,student_id,marks_obtained,is_absent) VALUES (:s,:es,:st,88,false) RETURNING id",
+        s=sid,
+        es=es1,
+        st=child1.id,
+    )
+    await ins(
+        "INSERT INTO student_marks (school_id,exam_schedule_id,student_id,marks_obtained,is_absent) VALUES (:s,:es,:st,76,false) RETURNING id",
+        s=sid,
+        es=es2,
+        st=child1.id,
+    )
+    await ins(
+        "INSERT INTO results (school_id,exam_id,student_id,total_marks,obtained_marks,percentage,grade,status,rank) VALUES (:s,:e,:st,200,164,82,'A','Pass',1) RETURNING id",
+        s=sid,
+        e=exam,
+        st=child1.id,
+    )
+    rules = json.dumps(
+        [
+            {"min": 80, "max": 100, "grade": "A"},
+            {"min": 33, "max": 79.99, "grade": "B"},
+            {"min": 0, "max": 32.99, "grade": "F"},
+        ]
+    )
+    await ins(
+        "INSERT INTO grade_scales (school_id,name,rules,is_default) VALUES (:s,'Default',CAST(:r AS json),true) RETURNING id",
+        s=sid,
+        r=rules,
+    )
 
     # Fees: head/structure/schedule + a receipt for child1
-    head = await ins("INSERT INTO fee_heads (school_id,name) VALUES (:s,'Tuition') RETURNING id", s=sid)
-    await ins("INSERT INTO fee_structures (school_id,academic_year_id,class_id,fee_head_id,amount,frequency) VALUES (:s,:y,:c,:h,12000,'Term') RETURNING id", s=sid, y=year, c=cls, h=head)
-    await ins("INSERT INTO fee_schedules (school_id,student_id,academic_year_id,due_date,base_amount,net_due_amount,amount_paid,status) VALUES (:s,:st,:y,'2026-07-10',12000,12000,0,'Pending') RETURNING id", s=sid, st=child1.id, y=year)
-    receipt = await ins("INSERT INTO fee_receipts (school_id,student_id,receipt_number,total_amount,payment_mode,payment_date) VALUES (:s,:st,:rn,12000,'Cash','2026-04-10') RETURNING id", s=sid, st=child1.id, rn=f"RC-{suf}")
+    head = await ins(
+        "INSERT INTO fee_heads (school_id,name) VALUES (:s,'Tuition') RETURNING id", s=sid
+    )
+    await ins(
+        "INSERT INTO fee_structures (school_id,academic_year_id,class_id,fee_head_id,amount,frequency) VALUES (:s,:y,:c,:h,12000,'Term') RETURNING id",
+        s=sid,
+        y=year,
+        c=cls,
+        h=head,
+    )
+    await ins(
+        "INSERT INTO fee_schedules (school_id,student_id,academic_year_id,due_date,base_amount,net_due_amount,amount_paid,status) VALUES (:s,:st,:y,'2026-07-10',12000,12000,0,'Pending') RETURNING id",
+        s=sid,
+        st=child1.id,
+        y=year,
+    )
+    receipt = await ins(
+        "INSERT INTO fee_receipts (school_id,student_id,receipt_number,total_amount,payment_mode,payment_date) VALUES (:s,:st,:rn,12000,'Cash','2026-04-10') RETURNING id",
+        s=sid,
+        st=child1.id,
+        rn=f"RC-{suf}",
+    )
 
     # Communication + library + leave
     # is_pinned / send_reminder intentionally left NULL to exercise the Optional schema fix
-    await ins("INSERT INTO notices (school_id,title,body,category,target_audience) VALUES (:s,'Welcome','Hello','Notice','All') RETURNING id", s=sid)
-    await ins("INSERT INTO events (school_id,title,start_date,end_date,event_type,target_audience) VALUES (:s,'Sports Day','2026-07-05','2026-07-05','Sports','All') RETURNING id", s=sid)
-    await ins("INSERT INTO resources (school_id,title,category,target_audience,file_url) VALUES (:s,'Notes','Study Material','All','https://x/n.pdf') RETURNING id", s=sid)
-    book = await ins("INSERT INTO library_books (school_id,title) VALUES (:s,'Wings of Fire') RETURNING id", s=sid)
-    await ins("INSERT INTO library_issues (school_id,book_id,student_id,due_date) VALUES (:s,:b,:st,'2026-07-01') RETURNING id", s=sid, b=book, st=child1.id)
-    await ins("INSERT INTO student_leave_applications (school_id,student_id,leave_type,from_date,to_date,reason,status) VALUES (:s,:st,'Sick','2026-06-15','2026-06-16','Fever','Pending') RETURNING id", s=sid, st=child1.id)
-    leave_type = await ins("INSERT INTO leave_types (school_id,name,days_allowed) VALUES (:s,'Casual',12) RETURNING id", s=sid)
+    await ins(
+        "INSERT INTO notices (school_id,title,body,category,target_audience) VALUES (:s,'Welcome','Hello','Notice','All') RETURNING id",
+        s=sid,
+    )
+    await ins(
+        "INSERT INTO events (school_id,title,start_date,end_date,event_type,target_audience) VALUES (:s,'Sports Day','2026-07-05','2026-07-05','Sports','All') RETURNING id",
+        s=sid,
+    )
+    await ins(
+        "INSERT INTO resources (school_id,title,category,target_audience,file_url) VALUES (:s,'Notes','Study Material','All','https://x/n.pdf') RETURNING id",
+        s=sid,
+    )
+    book = await ins(
+        "INSERT INTO library_books (school_id,title) VALUES (:s,'Wings of Fire') RETURNING id",
+        s=sid,
+    )
+    await ins(
+        "INSERT INTO library_issues (school_id,book_id,student_id,due_date) VALUES (:s,:b,:st,'2026-07-01') RETURNING id",
+        s=sid,
+        b=book,
+        st=child1.id,
+    )
+    await ins(
+        "INSERT INTO student_leave_applications (school_id,student_id,leave_type,from_date,to_date,reason,status) VALUES (:s,:st,'Sick','2026-06-15','2026-06-16','Fever','Pending') RETURNING id",
+        s=sid,
+        st=child1.id,
+    )
+    leave_type = await ins(
+        "INSERT INTO leave_types (school_id,name,days_allowed) VALUES (:s,'Casual',12) RETURNING id",
+        s=sid,
+    )
 
     poll = Poll(school_id=sid, question="Theme?", target_audience="All", is_active=True)
     s.add(poll)
@@ -162,39 +307,110 @@ async def tenant(owner_session):
     gallery = Gallery(school_id=sid, title="Trip", target_audience="All", is_published=True)
     s.add_all([opt1, opt2, gallery])
     await s.flush()
-    s.add(GalleryPhoto(school_id=sid, gallery_id=gallery.id, image_url="https://x/1.jpg", position=0))
-    s.add(Notification(school_id=sid, user_id=users["Student"].id, title="Hi", body="b", type="general"))
+    s.add(
+        GalleryPhoto(school_id=sid, gallery_id=gallery.id, image_url="https://x/1.jpg", position=0)
+    )
+    s.add(
+        Notification(
+            school_id=sid, user_id=users["Student"].id, title="Hi", body="b", type="general"
+        )
+    )
 
     # Two open appointment slots (so student + parent can each book one)
-    slot1 = await ins("INSERT INTO appointment_slots (school_id,teacher_id,start_time,end_time,is_booked) VALUES (:s,:t, now()+interval '1 day', now()+interval '1 day 30 minutes', false) RETURNING id", s=sid, t=staff.id)
-    slot2 = await ins("INSERT INTO appointment_slots (school_id,teacher_id,start_time,end_time,is_booked) VALUES (:s,:t, now()+interval '2 day', now()+interval '2 day 30 minutes', false) RETURNING id", s=sid, t=staff.id)
+    slot1 = await ins(
+        "INSERT INTO appointment_slots (school_id,teacher_id,start_time,end_time,is_booked) VALUES (:s,:t, now()+interval '1 day', now()+interval '1 day 30 minutes', false) RETURNING id",
+        s=sid,
+        t=staff.id,
+    )
+    slot2 = await ins(
+        "INSERT INTO appointment_slots (school_id,teacher_id,start_time,end_time,is_booked) VALUES (:s,:t, now()+interval '2 day', now()+interval '2 day 30 minutes', false) RETURNING id",
+        s=sid,
+        t=staff.id,
+    )
 
     # Teacher timetable slot
-    period = await ins("INSERT INTO timetable_periods (school_id,name,start_time,end_time) VALUES (:s,'Period 1','08:00','08:45') RETURNING id", s=sid)
-    await ins("INSERT INTO timetable_slots (school_id,academic_year_id,class_id,section_id,period_id,day_of_week,subject_id,teacher_id) VALUES (:s,:y,:c,:sec,:p,'Monday',:su,:t) RETURNING id", s=sid, y=year, c=cls, sec=sec, p=period, su=sub1, t=staff.id)
+    period = await ins(
+        "INSERT INTO timetable_periods (school_id,name,start_time,end_time) VALUES (:s,'Period 1','08:00','08:45') RETURNING id",
+        s=sid,
+    )
+    await ins(
+        "INSERT INTO timetable_slots (school_id,academic_year_id,class_id,section_id,period_id,day_of_week,subject_id,teacher_id) VALUES (:s,:y,:c,:sec,:p,'Monday',:su,:t) RETURNING id",
+        s=sid,
+        y=year,
+        c=cls,
+        sec=sec,
+        p=period,
+        su=sub1,
+        t=staff.id,
+    )
 
     await s.commit()
 
     yield {
-        "subdomain": school.subdomain, "school_id": sid, "creds": creds,
-        "child1": str(child1.id), "child2": str(child2.id), "other_child": str(other_child.id),
-        "exam": str(exam), "poll": str(poll.id), "opt1": str(opt1.id), "opt2": str(opt2.id),
-        "gallery": str(gallery.id), "receipt": str(receipt), "staff": str(staff.id),
-        "slot1": str(slot1), "slot2": str(slot2),
-        "es1": str(es1), "cls": str(cls), "sec": str(sec), "staff_acc": str(staff_acc.id),
-        "staff_t2": str(staff_t2.id), "leave_type": str(leave_type),
+        "subdomain": school.subdomain,
+        "school_id": sid,
+        "creds": creds,
+        "child1": str(child1.id),
+        "child2": str(child2.id),
+        "other_child": str(other_child.id),
+        "exam": str(exam),
+        "poll": str(poll.id),
+        "opt1": str(opt1.id),
+        "opt2": str(opt2.id),
+        "gallery": str(gallery.id),
+        "receipt": str(receipt),
+        "staff": str(staff.id),
+        "slot1": str(slot1),
+        "slot2": str(slot2),
+        "es1": str(es1),
+        "cls": str(cls),
+        "sec": str(sec),
+        "staff_acc": str(staff_acc.id),
+        "staff_t2": str(staff_t2.id),
+        "leave_type": str(leave_type),
     }
 
     # FK-safe teardown
     order = [
-        "poll_votes", "poll_options", "polls", "gallery_photos", "galleries",
-        "appointments", "appointment_slots", "fee_payments", "fee_receipts", "fee_schedules",
-        "fee_structures", "fee_heads", "results", "student_marks", "exam_schedules", "exams",
-        "exam_types", "grade_scales", "timetable_slots", "timetable_periods", "library_issues",
-        "library_books", "student_leave_applications", "leave_applications", "leave_types",
-        "notifications", "device_tokens",
-        "notices", "events", "resources", "students", "parents", "sections", "classes",
-        "subjects", "academic_years", "staff", "users", "roles",
+        "poll_votes",
+        "poll_options",
+        "polls",
+        "gallery_photos",
+        "galleries",
+        "appointments",
+        "appointment_slots",
+        "fee_payments",
+        "fee_receipts",
+        "fee_schedules",
+        "fee_structures",
+        "fee_heads",
+        "results",
+        "student_marks",
+        "exam_schedules",
+        "exams",
+        "exam_types",
+        "grade_scales",
+        "timetable_slots",
+        "timetable_periods",
+        "library_issues",
+        "library_books",
+        "student_leave_applications",
+        "leave_applications",
+        "leave_types",
+        "notifications",
+        "device_tokens",
+        "notices",
+        "events",
+        "resources",
+        "students",
+        "parents",
+        "sections",
+        "classes",
+        "subjects",
+        "academic_years",
+        "staff",
+        "users",
+        "roles",
     ]
     for tbl in order:
         await s.execute(text(f"DELETE FROM {tbl} WHERE school_id=:s"), {"s": sid})
@@ -204,7 +420,9 @@ async def tenant(owner_session):
 
 async def _login(ac, email, code=None, pw=PW):
     headers = {"X-School-Code": code} if code else {}
-    return await ac.post(f"{API}/auth/login", data={"username": email, "password": pw}, headers=headers)
+    return await ac.post(
+        f"{API}/auth/login", data={"username": email, "password": pw}, headers=headers
+    )
 
 
 async def _auth(ac, t, role):
@@ -253,47 +471,105 @@ async def test_student_surface(tenant, app_client):
     h = await _auth(app_client, tenant, "Student")
     fees = await app_client.get(f"{API}/student-portal/fees", headers=h)
     assert fees.status_code == 200 and fees.json()["data"]["student_id"] == tenant["child1"]
-    for path in ["/student-portal/attendance", "/student-portal/syllabus", "/student-portal/library",
-                 "/student-portal/leaves", "/student-portal/report-cards", "/communication/notices",
-                 "/communication/events", "/communication/polls", "/communication/galleries",
-                 "/appointments/slots", "/notifications", "/academic-years", "/academic-years/active",
-                 "/fees/payment-options", "/exams/student/me/results"]:
+    for path in [
+        "/student-portal/attendance",
+        "/student-portal/syllabus",
+        "/student-portal/library",
+        "/student-portal/leaves",
+        "/student-portal/report-cards",
+        "/communication/notices",
+        "/communication/events",
+        "/communication/polls",
+        "/communication/galleries",
+        "/appointments/slots",
+        "/notifications",
+        "/academic-years",
+        "/academic-years/active",
+        "/fees/payment-options",
+        "/exams/student/me/results",
+    ]:
         r = await app_client.get(f"{API}{path}", headers=h)
         assert r.status_code == 200, (path, r.text)
     # report-card detail (own)
     rc = await app_client.get(f"{API}/student-portal/report-cards/{tenant['exam']}", headers=h)
     assert rc.status_code == 200 and len(rc.json()["data"]["subjects"]) == 2
     # vote, book, register device, set active year, own receipt as HTML
-    assert (await app_client.post(f"{API}/communication/polls/{tenant['poll']}/vote", headers=h, json={"option_id": tenant["opt1"]})).status_code == 200
-    assert (await app_client.post(f"{API}/appointments", headers=h, json={"slot_id": tenant["slot1"]})).status_code == 200
-    assert (await app_client.post(f"{API}/notifications/register-device", headers=h, json={"expo_push_token": f"ExponentPushToken[{uuid.uuid4().hex}]"})).status_code == 200
-    assert (await app_client.get(f"{API}/notifications", headers=h)).json()["data"]  # has the seeded one
-    assert (await app_client.get(f"{API}/fees/receipts/{tenant['receipt']}/html", headers=h)).status_code == 200
+    assert (
+        await app_client.post(
+            f"{API}/communication/polls/{tenant['poll']}/vote",
+            headers=h,
+            json={"option_id": tenant["opt1"]},
+        )
+    ).status_code == 200
+    assert (
+        await app_client.post(f"{API}/appointments", headers=h, json={"slot_id": tenant["slot1"]})
+    ).status_code == 200
+    assert (
+        await app_client.post(
+            f"{API}/notifications/register-device",
+            headers=h,
+            json={"expo_push_token": f"ExponentPushToken[{uuid.uuid4().hex}]"},
+        )
+    ).status_code == 200
+    assert (await app_client.get(f"{API}/notifications", headers=h)).json()[
+        "data"
+    ]  # has the seeded one
+    assert (
+        await app_client.get(f"{API}/fees/receipts/{tenant['receipt']}/html", headers=h)
+    ).status_code == 200
 
 
 async def test_parent_surface_scoped_to_child(tenant, app_client):
     h = await _auth(app_client, tenant, "Parent")
-    fees = await app_client.get(f"{API}/student-portal/fees?student_id={tenant['child1']}", headers=h)
+    fees = await app_client.get(
+        f"{API}/student-portal/fees?student_id={tenant['child1']}", headers=h
+    )
     assert fees.status_code == 200 and fees.json()["data"]["student_id"] == tenant["child1"]
-    rc = await app_client.get(f"{API}/student-portal/report-cards/{tenant['exam']}?student_id={tenant['child1']}", headers=h)
+    rc = await app_client.get(
+        f"{API}/student-portal/report-cards/{tenant['exam']}?student_id={tenant['child1']}",
+        headers=h,
+    )
     assert rc.status_code == 200
     assert (await app_client.get(f"{API}/messages/me", headers=h)).status_code == 200
-    assert (await app_client.post(f"{API}/appointments", headers=h, json={"slot_id": tenant["slot2"]})).status_code == 200
-    assert (await app_client.get(f"{API}/fees/receipts/{tenant['receipt']}/html?student_id={tenant['child1']}", headers=h)).status_code == 200
+    assert (
+        await app_client.post(f"{API}/appointments", headers=h, json={"slot_id": tenant["slot2"]})
+    ).status_code == 200
+    assert (
+        await app_client.get(
+            f"{API}/fees/receipts/{tenant['receipt']}/html?student_id={tenant['child1']}", headers=h
+        )
+    ).status_code == 200
 
 
 async def test_teacher_surface(tenant, app_client):
     h = await _auth(app_client, tenant, "Teacher")
     # Teacher may post a notice (Admin+Teacher gate) and create homework
-    n = await app_client.post(f"{API}/communication/notices", headers=h, json={"title": "Test", "body": "x", "category": "Notice", "target_audience": "All"})
+    n = await app_client.post(
+        f"{API}/communication/notices",
+        headers=h,
+        json={"title": "Test", "body": "x", "category": "Notice", "target_audience": "All"},
+    )
     assert n.status_code == 200, n.text
-    sub = await app_client.post(f"{API}/appointments/slots", headers=h, json={"start_time": (datetime.now(timezone.utc) + timedelta(days=3)).isoformat(), "end_time": (datetime.now(timezone.utc) + timedelta(days=3, minutes=30)).isoformat()})
+    sub = await app_client.post(
+        f"{API}/appointments/slots",
+        headers=h,
+        json={
+            "start_time": (datetime.now(timezone.utc) + timedelta(days=3)).isoformat(),
+            "end_time": (datetime.now(timezone.utc) + timedelta(days=3, minutes=30)).isoformat(),
+        },
+    )
     assert sub.status_code == 200, sub.text
 
 
 async def test_admin_and_accountant_surface(tenant, app_client):
     ah = await _auth(app_client, tenant, "School Admin")
-    assert (await app_client.post(f"{API}/academic-years", headers=ah, json={"name": "2027-28", "start_date": "2027-04-01", "end_date": "2028-03-31"})).status_code in (200, 201)
+    assert (
+        await app_client.post(
+            f"{API}/academic-years",
+            headers=ah,
+            json={"name": "2027-28", "start_date": "2027-04-01", "end_date": "2028-03-31"},
+        )
+    ).status_code in (200, 201)
     assert (await app_client.get(f"{API}/students", headers=ah)).status_code == 200
     ach = await _auth(app_client, tenant, "Accountant")
     rep = await app_client.get(f"{API}/reports/dashboard-stats", headers=ach)
@@ -310,9 +586,14 @@ async def test_wrong_school_code_rejected(tenant, app_client):
 
 async def test_parent_cannot_read_other_child(tenant, app_client):
     h = await _auth(app_client, tenant, "Parent")
-    r = await app_client.get(f"{API}/student-portal/fees?student_id={tenant['other_child']}", headers=h)
+    r = await app_client.get(
+        f"{API}/student-portal/fees?student_id={tenant['other_child']}", headers=h
+    )
     assert r.status_code == 403, r.text
-    rc = await app_client.get(f"{API}/student-portal/report-cards/{tenant['exam']}?student_id={tenant['other_child']}", headers=h)
+    rc = await app_client.get(
+        f"{API}/student-portal/report-cards/{tenant['exam']}?student_id={tenant['other_child']}",
+        headers=h,
+    )
     assert rc.status_code == 403, rc.text
 
 
@@ -323,17 +604,39 @@ async def test_role_gates_hold(tenant, app_client):
     suh = await _auth(app_client, tenant, "Super Admin")
     ach = await _auth(app_client, tenant, "Accountant")
     # Student/Parent cannot post a notice (Admin+Teacher only)
-    assert (await app_client.post(f"{API}/communication/notices", headers=sh, json={"title": "x", "body": "y", "category": "Notice", "target_audience": "All"})).status_code == 403
+    assert (
+        await app_client.post(
+            f"{API}/communication/notices",
+            headers=sh,
+            json={"title": "x", "body": "y", "category": "Notice", "target_audience": "All"},
+        )
+    ).status_code == 403
     # Student/Parent cannot pull the staff report-card PDF (IDOR fix)
-    assert (await app_client.get(f"{API}/exams/{tenant['exam']}/report-card/{tenant['child1']}", headers=ph)).status_code == 403
+    assert (
+        await app_client.get(
+            f"{API}/exams/{tenant['exam']}/report-card/{tenant['child1']}", headers=ph
+        )
+    ).status_code == 403
     # Teacher cannot use the student portal (router gate)
     assert (await app_client.get(f"{API}/student-portal/fees", headers=th)).status_code == 403
     # Parent cannot publish a teacher appointment slot
-    assert (await app_client.post(f"{API}/appointments/slots", headers=ph, json={"start_time": "2026-09-01T10:00:00Z", "end_time": "2026-09-01T10:30:00Z"})).status_code == 403
+    assert (
+        await app_client.post(
+            f"{API}/appointments/slots",
+            headers=ph,
+            json={"start_time": "2026-09-01T10:00:00Z", "end_time": "2026-09-01T10:30:00Z"},
+        )
+    ).status_code == 403
     # Super Admin is not a portal user
     assert (await app_client.get(f"{API}/student-portal/fees", headers=suh)).status_code == 403
     # Accountant cannot create an academic year (Admin/Super only)
-    assert (await app_client.post(f"{API}/academic-years", headers=ach, json={"name": "x", "start_date": "2027-04-01", "end_date": "2028-03-31"})).status_code == 403
+    assert (
+        await app_client.post(
+            f"{API}/academic-years",
+            headers=ach,
+            json={"name": "x", "start_date": "2027-04-01", "end_date": "2028-03-31"},
+        )
+    ).status_code == 403
     # Student cannot reach the staff/finance reports (router gate: Admin/Super/Accountant)
     assert (await app_client.get(f"{API}/reports/dashboard-stats", headers=sh)).status_code == 403
 
@@ -342,11 +645,19 @@ async def test_change_password_self_service(tenant, app_client):
     # Each test re-seeds a fresh tenant, so mutating this user's password is isolated.
     h = await _auth(app_client, tenant, "Accountant")
     new_pw = "Rotated!456"
-    r = await app_client.post(f"{API}/auth/change-password", headers=h, json={"current_password": PW, "new_password": new_pw})
+    r = await app_client.post(
+        f"{API}/auth/change-password",
+        headers=h,
+        json={"current_password": PW, "new_password": new_pw},
+    )
     assert r.status_code == 200, r.text
     # New secret logs in; the old one no longer does.
-    assert (await _login(app_client, tenant["creds"]["Accountant"], code=tenant["subdomain"], pw=new_pw)).status_code == 200
-    assert (await _login(app_client, tenant["creds"]["Accountant"], code=tenant["subdomain"], pw=PW)).status_code in (400, 401)
+    assert (
+        await _login(app_client, tenant["creds"]["Accountant"], code=tenant["subdomain"], pw=new_pw)
+    ).status_code == 200
+    assert (
+        await _login(app_client, tenant["creds"]["Accountant"], code=tenant["subdomain"], pw=PW)
+    ).status_code in (400, 401)
 
 
 async def test_security_gates_block_unauthorized(tenant, app_client):
@@ -358,30 +669,48 @@ async def test_security_gates_block_unauthorized(tenant, app_client):
     sh = await _auth(app_client, tenant, "Student")
     th = await _auth(app_client, tenant, "Teacher")
     ach = await _auth(app_client, tenant, "Accountant")
-    es1, exam, staff, cls, sec, child1 = (tenant[k] for k in ("es1", "exam", "staff", "cls", "sec", "child1"))
+    es1, exam, staff, cls, sec, child1 = (
+        tenant[k] for k in ("es1", "exam", "staff", "cls", "sec", "child1")
+    )
     today = date.today().isoformat()
-    marks_body = {"exam_schedule_id": es1, "marks": [{"student_id": child1, "marks_obtained": 70, "is_absent": False}]}
-    att_body = {"date": today, "class_id": cls, "section_id": sec, "attendance_records": [{"student_id": child1, "date": today, "status": "Present"}]}
+    marks_body = {
+        "exam_schedule_id": es1,
+        "marks": [{"student_id": child1, "marks_obtained": 70, "is_absent": False}],
+    }
+    att_body = {
+        "date": today,
+        "class_id": cls,
+        "section_id": sec,
+        "attendance_records": [{"student_id": child1, "date": today, "status": "Present"}],
+    }
 
     blocked = [
-        ("get", f"/exams/schedules/{es1}/marks", None),     # whole-class marks leak
-        ("get", f"/exams/{exam}/results", None),            # whole-class results leak
-        ("post", f"/exams/{exam}/process", None),           # publish results
-        ("post", "/exams/marks/bulk", marks_body),          # grade tampering
-        ("post", "/attendance/students/bulk", att_body),    # attendance tampering
-        ("get", "/payroll/employees", None),                # salary PII (all staff)
-        ("get", f"/payroll/structure/{staff}", None),       # salary PII
+        ("get", f"/exams/schedules/{es1}/marks", None),  # whole-class marks leak
+        ("get", f"/exams/{exam}/results", None),  # whole-class results leak
+        ("post", f"/exams/{exam}/process", None),  # publish results
+        ("post", "/exams/marks/bulk", marks_body),  # grade tampering
+        ("post", "/attendance/students/bulk", att_body),  # attendance tampering
+        ("get", "/payroll/employees", None),  # salary PII (all staff)
+        ("get", f"/payroll/structure/{staff}", None),  # salary PII
         ("get", f"/payroll/payslip/{staff}?month=April&year=2026", None),
-        ("get", "/library/lookup/isbn/9780143", None),      # was fully unauthenticated
+        ("get", "/library/lookup/isbn/9780143", None),  # was fully unauthenticated
     ]
     for method, path, body in blocked:
         call = getattr(app_client, method)
-        r = await (call(f"{API}{path}", headers=sh, json=body) if body is not None else call(f"{API}{path}", headers=sh))
+        r = await (
+            call(f"{API}{path}", headers=sh, json=body)
+            if body is not None
+            else call(f"{API}{path}", headers=sh)
+        )
         assert r.status_code == 403, (path, r.status_code, r.text)
 
     # The gates did not over-restrict the roles that legitimately use these.
-    assert (await app_client.get(f"{API}/exams/schedules/{es1}/marks", headers=th)).status_code == 200
-    assert (await app_client.post(f"{API}/exams/marks/bulk", headers=th, json=marks_body)).status_code == 200
+    assert (
+        await app_client.get(f"{API}/exams/schedules/{es1}/marks", headers=th)
+    ).status_code == 200
+    assert (
+        await app_client.post(f"{API}/exams/marks/bulk", headers=th, json=marks_body)
+    ).status_code == 200
     # Accountant passes the payroll gate, and the listing now serializes (concern 4 fix).
     assert (await app_client.get(f"{API}/payroll/employees", headers=ach)).status_code == 200
 
@@ -405,8 +734,12 @@ async def test_student_profile_ownership(tenant, app_client):
     assert (await app_client.get(f"{API}/students/{other}", headers=sh)).status_code == 403
     # Same guard protects the documents + certificate routes (guard runs before any PDF work)
     assert (await app_client.get(f"{API}/students/{c1}/documents", headers=ph)).status_code == 200
-    assert (await app_client.get(f"{API}/students/{other}/documents", headers=ph)).status_code == 403
-    assert (await app_client.get(f"{API}/students/{other}/certificates/bonafide", headers=ph)).status_code == 403
+    assert (
+        await app_client.get(f"{API}/students/{other}/documents", headers=ph)
+    ).status_code == 403
+    assert (
+        await app_client.get(f"{API}/students/{other}/certificates/bonafide", headers=ph)
+    ).status_code == 403
 
 
 async def test_fees_list_routes_gated_to_finance(tenant, app_client):
@@ -431,7 +764,9 @@ async def test_staff_role_filter_join(tenant, app_client):
     ids = {s["id"] for s in r.json()["data"]}
     assert tenant["staff"] in ids and tenant["staff_acc"] not in ids
     # step 2: that staff id resolves the teacher's classes
-    assert (await app_client.get(f"{API}/academics/timetable/teacher/{tenant['staff']}", headers=th)).status_code == 200
+    assert (
+        await app_client.get(f"{API}/academics/timetable/teacher/{tenant['staff']}", headers=th)
+    ).status_code == 200
     # the filter is real: a different role returns its own staff, not the teacher
     r2 = await app_client.get(f"{API}/staff?role=Accountant", headers=th)
     acc_ids = {s["id"] for s in r2.json()["data"]}
@@ -459,11 +794,19 @@ async def test_teacher_timetable_ownership(tenant, app_client):
     sh = await _auth(app_client, tenant, "Student")
     own, other_teacher = tenant["staff"], tenant["staff_t2"]
     # Teacher: own id 200 (the mobile schedule path), another teacher's id 403
-    assert (await app_client.get(f"{API}/academics/timetable/teacher/{own}", headers=th)).status_code == 200
-    assert (await app_client.get(f"{API}/academics/timetable/teacher/{other_teacher}", headers=th)).status_code == 403
+    assert (
+        await app_client.get(f"{API}/academics/timetable/teacher/{own}", headers=th)
+    ).status_code == 200
+    assert (
+        await app_client.get(f"{API}/academics/timetable/teacher/{other_teacher}", headers=th)
+    ).status_code == 403
     # Admin: any teacher; Student: never
-    assert (await app_client.get(f"{API}/academics/timetable/teacher/{other_teacher}", headers=ah)).status_code == 200
-    assert (await app_client.get(f"{API}/academics/timetable/teacher/{own}", headers=sh)).status_code == 403
+    assert (
+        await app_client.get(f"{API}/academics/timetable/teacher/{other_teacher}", headers=ah)
+    ).status_code == 200
+    assert (
+        await app_client.get(f"{API}/academics/timetable/teacher/{own}", headers=sh)
+    ).status_code == 403
 
 
 async def test_student_activities_ownership(tenant, app_client):
@@ -474,10 +817,16 @@ async def test_student_activities_ownership(tenant, app_client):
     ah = await _auth(app_client, tenant, "School Admin")
     c1, other = tenant["child1"], tenant["other_child"]
     assert (await app_client.get(f"{API}/activities/student/{c1}", headers=sh)).status_code == 200
-    assert (await app_client.get(f"{API}/activities/student/{other}", headers=sh)).status_code == 403
+    assert (
+        await app_client.get(f"{API}/activities/student/{other}", headers=sh)
+    ).status_code == 403
     assert (await app_client.get(f"{API}/activities/student/{c1}", headers=ph)).status_code == 200
-    assert (await app_client.get(f"{API}/activities/student/{other}", headers=ph)).status_code == 403
-    assert (await app_client.get(f"{API}/activities/student/{other}", headers=ah)).status_code == 200
+    assert (
+        await app_client.get(f"{API}/activities/student/{other}", headers=ph)
+    ).status_code == 403
+    assert (
+        await app_client.get(f"{API}/activities/student/{other}", headers=ah)
+    ).status_code == 200
 
 
 async def test_staff_leave_apply_and_own_list(tenant, app_client):
@@ -485,7 +834,12 @@ async def test_staff_leave_apply_and_own_list(tenant, app_client):
     th = await _auth(app_client, tenant, "Teacher")
     sh = await _auth(app_client, tenant, "Student")
     ah = await _auth(app_client, tenant, "School Admin")
-    body = {"leave_type_id": tenant["leave_type"], "start_date": "2026-07-01", "end_date": "2026-07-03", "reason": "Family"}
+    body = {
+        "leave_type_id": tenant["leave_type"],
+        "start_date": "2026-07-01",
+        "end_date": "2026-07-03",
+        "reason": "Family",
+    }
     # Teacher applies for their own leave -> Pending
     r = await app_client.post(f"{API}/leaves/applications", headers=th, json=body)
     assert r.status_code == 200, r.text
@@ -494,7 +848,9 @@ async def test_staff_leave_apply_and_own_list(tenant, app_client):
     mine = await app_client.get(f"{API}/leaves/applications/me", headers=th)
     assert mine.status_code == 200 and len(mine.json()["data"]) >= 1
     # A Student cannot apply for staff leave
-    assert (await app_client.post(f"{API}/leaves/applications", headers=sh, json=body)).status_code == 403
+    assert (
+        await app_client.post(f"{API}/leaves/applications", headers=sh, json=body)
+    ).status_code == 403
     # The full staff-leave list is now admin-only
     assert (await app_client.get(f"{API}/leaves/applications", headers=th)).status_code == 403
     assert (await app_client.get(f"{API}/leaves/applications", headers=ah)).status_code == 200
@@ -506,14 +862,29 @@ async def test_parent_child_leave_scoping(tenant, app_client):
     sh = await _auth(app_client, tenant, "Student")
     c1, other = tenant["child1"], tenant["other_child"]
     # Parent GET: own child 200, another child 403
-    assert (await app_client.get(f"{API}/student-portal/leaves?student_id={c1}", headers=ph)).status_code == 200
-    assert (await app_client.get(f"{API}/student-portal/leaves?student_id={other}", headers=ph)).status_code == 403
+    assert (
+        await app_client.get(f"{API}/student-portal/leaves?student_id={c1}", headers=ph)
+    ).status_code == 200
+    assert (
+        await app_client.get(f"{API}/student-portal/leaves?student_id={other}", headers=ph)
+    ).status_code == 403
     # Student self (no student_id) still resolves to self
     assert (await app_client.get(f"{API}/student-portal/leaves", headers=sh)).status_code == 200
     # Parent POST: own child 200, another child 403
-    lv = {"leave_type": "Sick", "from_date": "2026-08-01", "to_date": "2026-08-02", "reason": "Fever"}
-    assert (await app_client.post(f"{API}/student-portal/leaves?student_id={c1}", headers=ph, json=lv)).status_code == 200
-    assert (await app_client.post(f"{API}/student-portal/leaves?student_id={other}", headers=ph, json=lv)).status_code == 403
+    lv = {
+        "leave_type": "Sick",
+        "from_date": "2026-08-01",
+        "to_date": "2026-08-02",
+        "reason": "Fever",
+    }
+    assert (
+        await app_client.post(f"{API}/student-portal/leaves?student_id={c1}", headers=ph, json=lv)
+    ).status_code == 200
+    assert (
+        await app_client.post(
+            f"{API}/student-portal/leaves?student_id={other}", headers=ph, json=lv
+        )
+    ).status_code == 403
 
 
 async def test_attendance_bulk_contract(tenant, app_client):
@@ -528,14 +899,18 @@ async def test_attendance_bulk_contract(tenant, app_client):
         "date": today,
         "attendance_records": [{"student_id": c1, "date": today, "status": "Present"}],
     }
-    assert (await app_client.post(f"{API}/attendance/students/bulk", headers=th, json=good)).status_code == 200
+    assert (
+        await app_client.post(f"{API}/attendance/students/bulk", headers=th, json=good)
+    ).status_code == 200
     bad = {
         "class_id": cls,
         "section_id": sec,
         "date": today,
         "records": [{"student_id": c1, "status": "Present"}],  # old mobile shape
     }
-    assert (await app_client.post(f"{API}/attendance/students/bulk", headers=th, json=bad)).status_code == 422
+    assert (
+        await app_client.post(f"{API}/attendance/students/bulk", headers=th, json=bad)
+    ).status_code == 422
 
 
 async def test_student_report_card_contract(tenant, app_client):
@@ -551,4 +926,6 @@ async def test_student_report_card_contract(tenant, app_client):
     assert {"subject_name", "max_marks", "obtained", "grade"} <= set(d["subjects"][0].keys())
     assert {"obtained_marks", "total_marks", "percentage", "status"} <= set(d["summary"].keys())
     # the staff PDF route the page used before is correctly forbidden for a student
-    assert (await app_client.get(f"{API}/exams/{exam}/report-card/{c1}", headers=sh)).status_code == 403
+    assert (
+        await app_client.get(f"{API}/exams/{exam}/report-card/{c1}", headers=sh)
+    ).status_code == 403

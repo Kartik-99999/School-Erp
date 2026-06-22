@@ -43,13 +43,21 @@ async def notify_users(db, school_id, user_ids, title, body, ntype="general", re
     sid = UUID(str(school_id))
     for uid in user_ids:
         db.add(
-            Notification(school_id=sid, user_id=uid, title=title, body=body, type=ntype, ref_id=ref_id)
+            Notification(
+                school_id=sid, user_id=uid, title=title, body=body, type=ntype, ref_id=ref_id
+            )
         )
     await db.flush()
     tokens = (
-        (await db.execute(select(DeviceToken.expo_push_token).filter(DeviceToken.user_id.in_(user_ids))))
+        (
+            await db.execute(
+                select(DeviceToken.expo_push_token).filter(DeviceToken.user_id.in_(user_ids))
+            )
+        )
         .scalars()
         .all()
     )
     if tokens:
-        send_expo_push(tokens, title, body, {"type": ntype, "ref_id": str(ref_id) if ref_id else None})
+        send_expo_push(
+            tokens, title, body, {"type": ntype, "ref_id": str(ref_id) if ref_id else None}
+        )

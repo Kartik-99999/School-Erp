@@ -59,7 +59,11 @@ async def register_device(
         existing.school_id = UUID(school_id)
         db.add(existing)
     else:
-        db.add(DeviceToken(school_id=UUID(school_id), user_id=UUID(token_data.user_id), expo_push_token=tok))
+        db.add(
+            DeviceToken(
+                school_id=UUID(school_id), user_id=UUID(token_data.user_id), expo_push_token=tok
+            )
+        )
     await db.commit()
     return APIResponse(success=True, message="Device registered for notifications.")
 

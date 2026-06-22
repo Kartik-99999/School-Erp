@@ -168,7 +168,9 @@ async def change_password(
     if len(req.new_password) < 8:
         raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
     user = (
-        (await db.execute(select(User).filter(User.id == UUID(token_data.user_id)))).scalars().first()
+        (await db.execute(select(User).filter(User.id == UUID(token_data.user_id))))
+        .scalars()
+        .first()
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

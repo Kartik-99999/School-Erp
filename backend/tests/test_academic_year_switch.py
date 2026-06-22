@@ -107,11 +107,15 @@ async def test_active_year_set_get_and_validation(setup, app_client):
     rl = await app_client.get(f"{API}/academic-years/", headers=h)
     assert any(y["id"] == setup["year_id"] for y in rl.json()["data"])
     # set a valid year
-    rs = await app_client.put(f"{API}/academic-years/active", headers=h, json={"academic_year_id": setup["year_id"]})
+    rs = await app_client.put(
+        f"{API}/academic-years/active", headers=h, json={"academic_year_id": setup["year_id"]}
+    )
     assert rs.status_code == 200, rs.text
     # get reflects it
     r1 = await app_client.get(f"{API}/academic-years/active", headers=h)
     assert r1.json()["data"]["active_academic_year_id"] == setup["year_id"]
     # an unknown / cross-school year is rejected
-    rb = await app_client.put(f"{API}/academic-years/active", headers=h, json={"academic_year_id": str(uuid.uuid4())})
+    rb = await app_client.put(
+        f"{API}/academic-years/active", headers=h, json={"academic_year_id": str(uuid.uuid4())}
+    )
     assert rb.status_code == 404, rb.text

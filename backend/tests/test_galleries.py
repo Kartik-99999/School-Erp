@@ -58,10 +58,22 @@ async def env(owner_session):
     s.add(ra)
     await s.flush()
     ea, pa = f"ga-{suf}@example.com", "Stud3nt!a"
-    ua = User(school_id=a.id, email=ea, hashed_password=get_password_hash(pa), role_id=ra.id, is_active=True)
+    ua = User(
+        school_id=a.id,
+        email=ea,
+        hashed_password=get_password_hash(pa),
+        role_id=ra.id,
+        is_active=True,
+    )
     s.add(ua)
     await s.flush()
-    g = Gallery(school_id=a.id, title="Sports Day", target_audience="All", is_published=True, event_date=date(2026, 6, 1))
+    g = Gallery(
+        school_id=a.id,
+        title="Sports Day",
+        target_audience="All",
+        is_published=True,
+        event_date=date(2026, 6, 1),
+    )
     s.add(g)
     await s.flush()
     p1 = GalleryPhoto(school_id=a.id, gallery_id=g.id, image_url="https://img/1.jpg", position=0)
@@ -76,14 +88,30 @@ async def env(owner_session):
     s.add(rb)
     await s.flush()
     eb, pb = f"gb-{suf}@example.com", "Stud3nt!b"
-    ub = User(school_id=b.id, email=eb, hashed_password=get_password_hash(pb), role_id=rb.id, is_active=True)
+    ub = User(
+        school_id=b.id,
+        email=eb,
+        hashed_password=get_password_hash(pb),
+        role_id=rb.id,
+        is_active=True,
+    )
     s.add(ub)
     await s.commit()
 
-    yield {"a_email": ea, "a_pw": pa, "b_email": eb, "b_pw": pb, "gallery_id": str(g.id), "a_id": a.id, "b_id": b.id}
+    yield {
+        "a_email": ea,
+        "a_pw": pa,
+        "b_email": eb,
+        "b_pw": pb,
+        "gallery_id": str(g.id),
+        "a_id": a.id,
+        "b_id": b.id,
+    }
 
     for tbl in ("gallery_photos", "galleries", "users", "roles"):
-        await s.execute(text(f"DELETE FROM {tbl} WHERE school_id IN (:a, :b)"), {"a": a.id, "b": b.id})
+        await s.execute(
+            text(f"DELETE FROM {tbl} WHERE school_id IN (:a, :b)"), {"a": a.id, "b": b.id}
+        )
     await s.execute(text("DELETE FROM schools WHERE id IN (:a, :b)"), {"a": a.id, "b": b.id})
     await s.commit()
 
@@ -111,7 +139,9 @@ async def test_galleries_list_and_detail(env, app_client):
     assert len(mine) == 1
     assert mine[0]["photo_count"] == 2
     assert mine[0]["cover_url"] == "https://img/1.jpg"  # falls back to first photo
-    detail = (await app_client.get(f"{API}/communication/galleries/{env['gallery_id']}", headers=ha)).json()["data"]
+    detail = (
+        await app_client.get(f"{API}/communication/galleries/{env['gallery_id']}", headers=ha)
+    ).json()["data"]
     assert len(detail["photos"]) == 2
     assert detail["photos"][0]["image_url"] == "https://img/1.jpg"
 
