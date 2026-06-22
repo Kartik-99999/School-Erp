@@ -15,6 +15,10 @@ export const getAttendance = async (studentId?: string) =>
   (await api.get(`/student-portal/attendance${sidQ(studentId)}`)).data;
 export const getSyllabus = async (studentId?: string) =>
   (await api.get(`/student-portal/syllabus${sidQ(studentId)}`)).data;
+export const getReportCards = async (studentId?: string) =>
+  (await api.get(`/student-portal/report-cards${sidQ(studentId)}`)).data;
+export const getReportCard = async (examId: string, studentId?: string) =>
+  (await api.get(`/student-portal/report-cards/${examId}${sidQ(studentId)}`)).data;
 
 export interface LeaveApplyPayload {
   leave_type: string;

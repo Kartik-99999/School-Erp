@@ -11,6 +11,7 @@ import {
   FolderOpen,
   CheckSquare,
   ListChecks,
+  GraduationCap,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -19,6 +20,7 @@ const nav: NavGroup[] = [
     items: [
       { name: "Attendance", href: "/parent/attendance", icon: CheckSquare },
       { name: "Syllabus", href: "/parent/syllabus", icon: ListChecks },
+      { name: "Report Cards", href: "/parent/exams", icon: GraduationCap },
     ],
   },
   {
