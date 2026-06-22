@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { CalendarPlus, CalendarClock } from "lucide-react";
+import { CalendarPlus, CalendarClock, Clock, CalendarDays, PlusCircle, CheckCircle2, Inbox } from "lucide-react";
 import { getMyAppointments, createSlot, Appointment } from "@/lib/api/appointments";
 
 const fmt = (iso?: string) => {
@@ -61,77 +61,110 @@ export default function TeacherAppointmentsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-ink">Appointments</h2>
-        <p className="text-ink-muted mt-1">Publish your availability and see who's booked with you.</p>
+    <div className="max-w-4xl mx-auto space-y-10 pb-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-border gap-4">
+        <div>
+          <h2 className="text-3xl font-extrabold text-ink tracking-tight">Appointments</h2>
+          <p className="text-ink-muted mt-2 text-base">Publish your availability and see who's booked with you.</p>
+        </div>
+        <div className="hidden sm:flex p-3 bg-primary-50 rounded-2xl shadow-sm border border-primary-100">
+          <CalendarDays className="w-8 h-8 text-primary-600" />
+        </div>
       </div>
 
-      <div className="bg-surface-card rounded-card border border-border shadow-sm p-6 space-y-4">
-        <h3 className="font-bold text-ink flex items-center gap-2">
-          <CalendarPlus className="w-5 h-5 text-primary-600" /> Publish a slot
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-ink-muted">Start</label>
+      <div className="bg-surface-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 space-y-6 transition-shadow hover:shadow-md">
+        <div className="flex items-center gap-3 border-b border-border pb-4">
+          <div className="p-2 bg-primary-50 rounded-xl border border-primary-100">
+            <CalendarPlus className="w-5 h-5 text-primary-600" />
+          </div>
+          <h3 className="text-xl font-bold text-ink tracking-tight">Publish a new slot</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-ink-muted flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary-500" /> Start Time
+            </label>
             <input
               type="datetime-local"
               value={start}
               onChange={(e) => setStart(e.target.value)}
-              className="mt-1 w-full px-3 py-2 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-ink outline-none transition-all focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium text-ink-muted">End</label>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-ink-muted flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary-500" /> End Time
+            </label>
             <input
               type="datetime-local"
               value={end}
               onChange={(e) => setEnd(e.target.value)}
-              className="mt-1 w-full px-3 py-2 bg-surface border border-border rounded-xl text-ink outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-ink outline-none transition-all focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm"
             />
           </div>
         </div>
-        <button
-          onClick={publish}
-          disabled={saving}
-          className="px-5 py-2.5 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 disabled:opacity-60"
-        >
-          {saving ? "Publishing…" : "Publish slot"}
-        </button>
+        <div className="pt-2">
+          <button
+            onClick={publish}
+            disabled={saving}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 active:scale-95 transition-all disabled:opacity-60 disabled:active:scale-100 shadow-sm shadow-primary-600/20"
+          >
+            <PlusCircle className="w-5 h-5" />
+            {saving ? "Publishing…" : "Publish Slot"}
+          </button>
+        </div>
       </div>
 
-      <section className="space-y-3">
-        <h3 className="font-bold text-ink">My slots &amp; bookings</h3>
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-1.5 h-6 bg-primary-500 rounded-full"></div>
+          <h3 className="text-xl font-bold text-ink tracking-tight">My slots &amp; bookings</h3>
+        </div>
         {loading ? (
-          <div className="py-12 text-center text-ink-muted">Loading…</div>
+          <div className="py-16 flex flex-col items-center justify-center space-y-4">
+            <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            <p className="text-ink-muted font-medium">Loading your schedule…</p>
+          </div>
         ) : error ? (
-          <div className="bg-surface-card rounded-card border border-border p-8 text-center text-red-600">
-            Couldn't load your appointments.
-            <button onClick={load} className="underline ml-1 font-medium">
-              Retry
+          <div className="bg-red-50 rounded-2xl border border-red-100 p-8 text-center flex flex-col items-center gap-3">
+            <p className="text-red-700 font-medium">Couldn't load your appointments.</p>
+            <button onClick={load} className="px-4 py-2 bg-red-100 text-red-800 rounded-lg font-medium hover:bg-red-200 transition-colors">
+              Try Again
             </button>
           </div>
         ) : mine.length === 0 ? (
-          <div className="bg-surface-card rounded-card border border-border p-8 text-center text-ink-muted">
-            No slots published yet.
+          <div className="bg-surface rounded-2xl border-2 border-dashed border-border p-12 text-center flex flex-col items-center gap-3">
+            <div className="p-4 bg-surface-card rounded-full shadow-sm border border-border">
+              <Inbox className="w-8 h-8 text-ink-lighter" />
+            </div>
+            <p className="text-ink-muted font-medium text-lg">No slots published yet.</p>
+            <p className="text-ink-lighter text-sm">Publish a slot above to allow students to book.</p>
           </div>
         ) : (
-          mine.map((a) => (
-            <div key={a.id} className="bg-surface-card rounded-card border border-border shadow-sm p-5 flex items-center gap-4">
-              <CalendarClock className="w-5 h-5 text-primary-600 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-ink">{fmt(a.start_time)}</p>
-                {a.note ? <p className="text-sm text-ink-muted mt-0.5">{a.note}</p> : null}
+          <div className="grid grid-cols-1 gap-4">
+            {mine.map((a) => (
+              <div key={a.id} className="group bg-surface-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all p-5 flex flex-col sm:flex-row sm:items-center gap-4 relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="p-3 bg-primary-50 rounded-xl text-primary-600 border border-primary-100 shrink-0">
+                  <CalendarClock className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-ink text-lg">{fmt(a.start_time)}</p>
+                  {a.note ? <p className="text-sm text-ink-muted mt-2 bg-surface p-3 rounded-xl border border-border">{a.note}</p> : null}
+                </div>
+                <div className="flex items-center pt-2 sm:pt-0">
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full border ${
+                      a.status === "Booked" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-surface text-ink-muted border-border"
+                    }`}
+                  >
+                    {a.status === "Booked" && <CheckCircle2 className="w-4 h-4" />}
+                    {a.status}
+                  </span>
+                </div>
               </div>
-              <span
-                className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                  a.status === "Booked" ? "bg-emerald-50 text-emerald-700" : "bg-surface text-ink-muted"
-                }`}
-              >
-                {a.status}
-              </span>
-            </div>
-          ))
+            ))
+          </div>
         )}
       </section>
     </div>
