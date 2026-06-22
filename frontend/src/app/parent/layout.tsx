@@ -9,9 +9,16 @@ import {
   MessageSquare,
   Trophy,
   FolderOpen,
+  CheckSquare,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
+  {
+    label: "Academics",
+    items: [
+      { name: "Attendance", href: "/parent/attendance", icon: CheckSquare },
+    ],
+  },
   {
     label: "Main Menu",
     items: [

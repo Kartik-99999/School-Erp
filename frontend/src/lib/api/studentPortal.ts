@@ -8,6 +8,12 @@ export const getMyLibrary = async () => (await api.get("/student-portal/library"
 export const getMyFacilities = async () => (await api.get("/student-portal/facilities")).data;
 export const getMyLeaves = async () => (await api.get("/student-portal/leaves")).data;
 
+// Parent-capable portal reads: a parent passes the selected child's id (?student_id);
+// a student omits it (resolves to self). Backend _resolve_student enforces ownership.
+const sidQ = (studentId?: string) => (studentId ? `?student_id=${studentId}` : "");
+export const getAttendance = async (studentId?: string) =>
+  (await api.get(`/student-portal/attendance${sidQ(studentId)}`)).data;
+
 export interface LeaveApplyPayload {
   leave_type: string;
   from_date: string;
