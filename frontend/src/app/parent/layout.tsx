@@ -10,6 +10,7 @@ import {
   Trophy,
   FolderOpen,
   CheckSquare,
+  ListChecks,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -17,6 +18,7 @@ const nav: NavGroup[] = [
     label: "Academics",
     items: [
       { name: "Attendance", href: "/parent/attendance", icon: CheckSquare },
+      { name: "Syllabus", href: "/parent/syllabus", icon: ListChecks },
     ],
   },
   {
