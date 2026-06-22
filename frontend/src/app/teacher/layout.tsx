@@ -10,6 +10,7 @@ import {
   Megaphone,
   FolderOpen,
   CalendarClock,
+  NotebookPen,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -20,6 +21,7 @@ const nav: NavGroup[] = [
       { name: "My Schedule", href: "/teacher/schedule", icon: Calendar },
       { name: "My Classes", href: "/teacher/classes", icon: Users },
       { name: "Assignments", href: "/teacher/assignments", icon: BookOpen },
+      { name: "Homework", href: "/teacher/homework", icon: NotebookPen },
       { name: "Attendance", href: "/teacher/attendance", icon: ClipboardList },
       { name: "Appointments", href: "/teacher/appointments", icon: CalendarClock },
       { name: "Feed & Resources", href: "/teacher/feed", icon: Megaphone },
