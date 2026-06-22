@@ -116,34 +116,43 @@ export default function TimelineFeed() {
           Nothing here yet.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="relative pl-6 sm:pl-12 space-y-8 before:absolute before:inset-y-2 before:left-[11px] sm:before:left-[23px] before:w-0.5 before:bg-border/60">
           {filtered.map((it) => {
             const k = KIND[it.kind];
             const inner = (
               <>
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide ${k.color}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-surface border border-border/50 ${k.color}`}>
                     <k.icon className="w-3.5 h-3.5" /> {k.label}
                   </span>
-                  {it.date ? <span className="text-xs text-ink-muted">{fmt(it.date)}</span> : null}
+                  {it.date ? <span className="text-xs font-medium text-ink-muted bg-surface/50 px-2 py-1 rounded-md">{fmt(it.date)}</span> : null}
                 </div>
-                <h3 className="font-bold text-ink">{it.title}</h3>
-                {it.subtitle ? <p className="text-sm text-ink-muted mt-1 line-clamp-2">{it.subtitle}</p> : null}
+                <h3 className="text-lg font-bold text-ink">{it.title}</h3>
+                {it.subtitle ? <p className="text-sm text-ink-muted mt-2 leading-relaxed">{it.subtitle}</p> : null}
               </>
             );
-            return it.url ? (
-              <a
-                key={it.id}
-                href={it.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block bg-surface-card rounded-card border border-border shadow-sm p-5 hover:shadow-md transition-shadow"
-              >
-                {inner}
-              </a>
-            ) : (
-              <div key={it.id} className="bg-surface-card rounded-card border border-border shadow-sm p-5">
-                {inner}
+            
+            const cardClasses = "block bg-surface-card rounded-2xl border border-border/50 shadow-sm p-6 sm:p-7 hover:shadow-md hover:border-primary-200 transition-all duration-300 relative group";
+
+            return (
+              <div key={it.id} className="relative">
+                {/* Timeline Dot */}
+                <div className="absolute -left-[24px] sm:-left-[48px] top-6 w-3 h-3 rounded-full bg-surface border-2 border-primary-500 shadow-[0_0_0_4px_var(--surface)] z-10 group-hover:bg-primary-500 transition-colors" />
+                
+                {it.url ? (
+                  <a
+                    href={it.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cardClasses}
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <div className={cardClasses}>
+                    {inner}
+                  </div>
+                )}
               </div>
             );
           })}

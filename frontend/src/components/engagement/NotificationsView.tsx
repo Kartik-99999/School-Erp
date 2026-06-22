@@ -68,7 +68,7 @@ export default function NotificationsView() {
           </p>
         </div>
         {unreadCount > 0 && (
-          <button onClick={markAll} className="text-sm font-medium text-primary-600 hover:text-primary-700">
+          <button onClick={markAll} className="px-4 py-2 text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-full transition-colors">
             Mark all read
           </button>
         )}
@@ -93,31 +93,31 @@ export default function NotificationsView() {
           {items.map((n) => (
             <div
               key={n.id}
-              className={`flex items-start gap-3 p-4 rounded-card border transition-colors ${
-                n.is_read ? "bg-surface-card border-border" : "bg-primary-50/40 border-primary-200"
+              className={`group flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 ${
+                n.is_read ? "bg-surface-card border-border/60 hover:border-border hover:shadow-sm" : "bg-primary-50/30 border-primary-200/60 hover:bg-primary-50/50 hover:border-primary-300 shadow-sm"
               }`}
             >
-              <div className="w-9 h-9 rounded-xl bg-surface flex items-center justify-center shrink-0">
-                <Bell className="w-4 h-4 text-primary-600" />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${n.is_read ? "bg-surface text-ink-muted" : "bg-primary-100 text-primary-700"}`}>
+                <Bell className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-bold text-ink">{n.title}</h4>
+                  <h4 className="font-bold text-ink text-base">{n.title}</h4>
                   {n.type ? (
-                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${typeColor(n.type)}`}>
+                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full ${typeColor(n.type)}`}>
                       {n.type}
                     </span>
                   ) : null}
-                  {!n.is_read ? <span className="w-2 h-2 rounded-full bg-primary-600" /> : null}
+                  {!n.is_read ? <span className="w-2.5 h-2.5 rounded-full bg-primary-600 shadow-[0_0_8px_rgba(var(--primary-600),0.5)]" /> : null}
                 </div>
-                {n.body ? <p className="text-sm text-ink-muted mt-0.5">{n.body}</p> : null}
-                <p className="text-xs text-ink-faint mt-1">{fmt(n.created_at)}</p>
+                {n.body ? <p className="text-sm text-ink-muted mt-1 leading-relaxed">{n.body}</p> : null}
+                <p className="text-xs font-medium text-ink-faint mt-2">{fmt(n.created_at)}</p>
               </div>
               {!n.is_read && (
                 <button
                   onClick={() => markRead(n.id)}
                   title="Mark read"
-                  className="text-ink-muted hover:text-primary-600 shrink-0"
+                  className="p-2 text-ink-muted hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
                 >
                   <Check className="w-5 h-5" />
                 </button>

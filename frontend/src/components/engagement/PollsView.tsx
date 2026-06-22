@@ -77,10 +77,12 @@ export default function PollsView() {
           {polls.map((poll) => {
             const voted = !!poll.my_option_id;
             return (
-              <div key={poll.id} className="bg-surface-card rounded-card border border-border shadow-sm p-6">
-                <div className="flex items-start gap-3 mb-4">
-                  <BarChart3 className="w-5 h-5 text-primary-600 mt-0.5 shrink-0" />
-                  <h3 className="font-bold text-ink text-lg">{poll.question}</h3>
+              <div key={poll.id} className="bg-surface-card rounded-3xl border border-border/50 shadow-md p-6 sm:p-8 transition-shadow hover:shadow-lg">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <h3 className="font-bold text-ink text-xl pt-1.5">{poll.question}</h3>
                 </div>
                 <div className="space-y-3">
                   {poll.options.map((o) => {
@@ -88,16 +90,16 @@ export default function PollsView() {
                     const mine = poll.my_option_id === o.id;
                     if (voted) {
                       return (
-                        <div key={o.id} className="rounded-xl border border-border overflow-hidden">
-                          <div className="relative px-4 py-3">
+                        <div key={o.id} className="rounded-2xl border border-border/60 overflow-hidden relative">
+                          <div className="relative px-5 py-4">
                             <div
-                              className={`absolute inset-y-0 left-0 ${mine ? "bg-primary-100" : "bg-surface"}`}
+                              className={`absolute inset-y-0 left-0 transition-all duration-1000 ease-out ${mine ? "bg-primary-100/80" : "bg-surface"}`}
                               style={{ width: `${pct}%` }}
                             />
-                            <div className="relative flex justify-between">
-                              <span className={`text-sm font-medium ${mine ? "text-primary-700" : "text-ink"}`}>
+                            <div className="relative flex justify-between items-center z-10">
+                              <span className={`text-sm font-medium ${mine ? "text-primary-800" : "text-ink"}`}>
                                 {o.text}
-                                {mine ? " ✓" : ""}
+                                {mine ? <span className="ml-2 inline-block px-2 py-0.5 rounded-full bg-primary-200/50 text-[10px] uppercase tracking-wider font-bold text-primary-700">Your Vote</span> : ""}
                               </span>
                               <span className="text-sm font-bold text-ink">{pct}%</span>
                             </div>
@@ -110,7 +112,7 @@ export default function PollsView() {
                         key={o.id}
                         onClick={() => vote(poll, o.id)}
                         disabled={busy === poll.id}
-                        className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-primary-400 hover:bg-primary-50 transition-colors text-sm font-medium text-ink disabled:opacity-60"
+                        className="w-full text-left px-5 py-4 rounded-2xl border border-border/60 hover:border-primary-400 hover:bg-primary-50 hover:shadow-sm transition-all text-sm font-medium text-ink disabled:opacity-60 focus:ring-2 focus:ring-primary-500/20"
                       >
                         {o.text}
                       </button>
