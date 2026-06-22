@@ -54,6 +54,17 @@ export const getLeaveApplications = async (status?: string) => {
   return (await api.get<{ success: boolean; data: any[] }>("/leaves/applications")).data;
 };
 
+// Self-service staff leave (the caller's own; backend resolves staff_id from the token).
+export const getMyLeaveApplications = async () =>
+  (await api.get<{ success: boolean; data: any[] }>("/leaves/applications/me")).data;
+
+export const applyLeave = async (data: {
+  leave_type_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+}) => (await api.post("/leaves/applications", data)).data;
+
 export const updateLeaveStatus = async (id: string, status: string) => {
   return (await api.put(`/leaves/applications/${id}/status?status=${status}`)).data;
 };

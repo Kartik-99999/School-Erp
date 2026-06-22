@@ -11,6 +11,7 @@ import {
   FolderOpen,
   CalendarClock,
   NotebookPen,
+  CalendarOff,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -22,6 +23,7 @@ const nav: NavGroup[] = [
       { name: "My Classes", href: "/teacher/classes", icon: Users },
       { name: "Assignments", href: "/teacher/assignments", icon: BookOpen },
       { name: "Homework", href: "/teacher/homework", icon: NotebookPen },
+      { name: "My Leaves", href: "/teacher/leaves", icon: CalendarOff },
       { name: "Attendance", href: "/teacher/attendance", icon: ClipboardList },
       { name: "Appointments", href: "/teacher/appointments", icon: CalendarClock },
       { name: "Feed & Resources", href: "/teacher/feed", icon: Megaphone },
