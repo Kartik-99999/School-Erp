@@ -163,7 +163,7 @@ export default function TeacherAppointmentsPage() {
                   </span>
                 </div>
               </div>
-            ))
+            ))}
           </div>
         )}
       </section>
