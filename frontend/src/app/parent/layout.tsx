@@ -13,6 +13,7 @@ import {
   ListChecks,
   GraduationCap,
   User,
+  BarChart3,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -23,6 +24,12 @@ const nav: NavGroup[] = [
       { name: "Syllabus", href: "/parent/syllabus", icon: ListChecks },
       { name: "Report Cards", href: "/parent/exams", icon: GraduationCap },
       { name: "Profile", href: "/parent/profile", icon: User },
+    ],
+  },
+  {
+    label: "Community",
+    items: [
+      { name: "Polls", href: "/parent/polls", icon: BarChart3 },
     ],
   },
   {

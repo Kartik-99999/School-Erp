@@ -16,6 +16,7 @@ import {
   Trophy,
   FolderOpen,
   User,
+  BarChart3,
 } from "lucide-react";
 
 const nav: NavGroup[] = [
@@ -42,7 +43,13 @@ const nav: NavGroup[] = [
       { name: "Facilities", href: "/student/facilities", icon: Bus },
     ],
   },
-  { label: "Updates", items: [{ name: "Noticeboard", href: "/student/notices", icon: Megaphone }] },
+  {
+    label: "Updates",
+    items: [
+      { name: "Noticeboard", href: "/student/notices", icon: Megaphone },
+      { name: "Polls", href: "/student/polls", icon: BarChart3 },
+    ],
+  },
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
