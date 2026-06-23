@@ -57,7 +57,6 @@ export default function LiveActivityStream() {
   return (
     <section id="c4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "80px 40px", background: "linear-gradient(180deg, rgba(255,255,255,0.012), transparent)" }}>
       <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.28em", color: "#EBCB87", textTransform: "uppercase" }}>04 / New section</div>
         <h2 style={{ margin: "14px 0 8px", fontFamily: DISPLAY, fontSize: 38, fontWeight: 700, letterSpacing: "-0.012em", lineHeight: 1.08 }}>Watch your school run, in real time.</h2>
         <p style={{ margin: 0, color: "#A8A595", fontSize: 15, lineHeight: 1.6, maxWidth: 580 }}>A live feed of events — fees received, attendance marked, notices sent — streaming as they happen. The motion alone says &quot;this thing is alive&quot;.</p>
 
