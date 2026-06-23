@@ -5,6 +5,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion, MotionConfig } from "framer-motion";
 import { UserPlus, CalendarCheck2, Receipt, GraduationCap, MessageSquare, ShieldCheck, KeyRound, Lock, MapPin, ArrowRight, Check, Mail } from "lucide-react";
+import FloatingShowcase from "./FloatingShowcase";
+import ModulesSpotlightGrid from "./ModulesSpotlightGrid";
+import LiveActivityStream from "./animated/LiveActivityStream";
+import IntegrationsMarquee from "./animated/IntegrationsMarquee";
+import StudentJourney from "./animated/StudentJourney";
 
 const ParticleHero = dynamic(() => import("./ParticleHero"), { ssr: false, loading: () => null });
 
@@ -175,36 +180,14 @@ export default function Landing() {
                 <Eyebrow>The modules</Eyebrow>
                 <h2 className="mt-4 font-display text-3xl font-bold leading-tight text-warm sm:text-4xl lg:text-5xl">Everything a school does, in one calm place.</h2>
               </Rise>
-              <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {modules.map((m, i) => (
-                  <motion.div key={m.name} initial={{ opacity: 0, y: 28, scale: 0.97 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.6, delay: i * 0.07, ease: EASE }}
-                    className="group rounded-2xl border border-white/8 bg-void-700/50 p-7 transition-colors duration-300 hover:border-gold/30 hover:bg-void-700">
-                    <div className="grid h-11 w-11 place-items-center rounded-xl border border-gold/25 bg-gold/10 text-gold transition group-hover:-translate-y-0.5 group-hover:bg-gold group-hover:text-void">
-                      <m.icon className="h-5 w-5" strokeWidth={1.75} />
-                    </div>
-                    <h3 className="mt-5 font-display text-lg font-semibold text-warm">{m.name}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-warm-400">{m.body}</p>
-                  </motion.div>
-                ))}
-              </div>
+              <ModulesSpotlightGrid modules={modules} />
             </section>
 
-            {/* See it in action */}
-            <section className="relative border-y border-white/5 bg-void-800/40">
-              <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 lg:grid-cols-2 lg:gap-16 lg:px-10 lg:py-28">
-                <Rise>
-                  <Eyebrow>See it in action</Eyebrow>
-                  <h2 className="mt-4 font-display text-3xl font-bold leading-tight text-warm sm:text-4xl">One screen, the whole school day.</h2>
-                  <p className="mt-5 max-w-md text-[15px] leading-relaxed text-warm-400">Every role opens to exactly what they need — the live timetable, attendance marked period-by-period, fees reconciling in the background, notices already on their way.</p>
-                  <ul className="mt-7 space-y-3">
-                    {["Live period highlighted, in real time", "Attendance and fees update as they happen", "Each school sees only its own data"].map((t) => (
-                      <li key={t} className="flex items-start gap-2.5 text-sm text-warm-400"><Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" /> {t}</li>
-                    ))}
-                  </ul>
-                </Rise>
-                <DarkPreview />
-              </div>
-            </section>
+            {/* See it in action — floating UI fragments (Claude design) */}
+            <FloatingShowcase />
+
+            {/* Student journey (Claude design) — placed above the security pillars */}
+            <StudentJourney />
 
             {/* Security */}
             <section id="trust" className="relative">
@@ -228,6 +211,12 @@ export default function Landing() {
                 </div>
               </div>
             </section>
+
+            {/* Live activity stream (Claude design) — added after Security */}
+            <LiveActivityStream />
+
+            {/* Integrations marquee (Claude design) — India-native credibility band */}
+            <IntegrationsMarquee />
 
             {/* Pricing */}
             <section id="pricing" className="relative border-t border-white/5 bg-void-800/40">
