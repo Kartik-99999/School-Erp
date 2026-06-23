@@ -17,6 +17,7 @@ export default function StudentJourney() {
   return (
     <section id="c6" style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "80px 40px", background: "linear-gradient(180deg, transparent, rgba(235,203,135,0.018))" }}>
       <div style={{ maxWidth: 1240, margin: "0 auto" }}>
+        <div style={{ fontFamily: "'" + MONO + "'", fontSize: 11, letterSpacing: "0.28em", color: "#EBCB87", textTransform: "uppercase" }}>Student lifecycle</div>
         <h2 style={{ margin: "14px 0 8px", fontFamily: "'" + DISPLAY + "'", fontSize: 38, fontWeight: 700, letterSpacing: "-0.012em", lineHeight: 1.08 }}>From enrolment to passout.</h2>
         <p style={{ margin: 0, color: "#A8A595", fontSize: 15, lineHeight: 1.6, maxWidth: 580 }}>
           A gold dot travels a soft arc through the five stations of a student&apos;s life on Erpcore. Each stop carries a glyph and a one-line promise.

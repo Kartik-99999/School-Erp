@@ -37,6 +37,7 @@ export default function IntegrationsMarquee() {
   return (
     <section id="c5" style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "80px 0" }}>
       <div style={{ maxWidth: 1240, margin: "0 auto", padding: "0 40px" }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.28em", color: "#EBCB87", textTransform: "uppercase" }}>Native integrations</div>
         <h2 style={{ margin: "14px 0 8px", fontFamily: DISPLAY, fontSize: 38, fontWeight: 700, letterSpacing: "-0.012em", lineHeight: 1.08 }}>Built into India&apos;s systems.</h2>
         <p style={{ margin: 0, color: "#A8A595", fontSize: 15, lineHeight: 1.6, maxWidth: 560 }}>An infinite, gently-drifting strip of the things Erpcore speaks to natively — these are integrations, not logos pretending to be customers.</p>
       </div>
