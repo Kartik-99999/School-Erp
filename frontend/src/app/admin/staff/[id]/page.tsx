@@ -9,6 +9,7 @@ import {
   getPayslipUrl,
 } from "@/lib/api/staff";
 import { User, Phone, Briefcase, Download, Wallet, AlertCircle } from "lucide-react";
+import api from "@/lib/axios";
 
 export default function StaffProfilePage() {
   const params = useParams();
@@ -30,6 +31,25 @@ export default function StaffProfilePage() {
 
   // Payslip form
   const [payslipMonth, setPayslipMonth] = useState("");
+
+  const [photoUploading, setPhotoUploading] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setPhotoUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", f);
+      const res = await api.post(`/staff/${id}/photo`, form);
+      setProfile((p: any) => ({ ...p, photo_url: res.data.data.photo_url }));
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || "Failed to upload photo");
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -81,9 +101,26 @@ export default function StaffProfilePage() {
         {/* Left Column - ID Card */}
         <div className="col-span-1 space-y-6">
           <div className="bg-surface-card p-6 rounded-xl shadow-sm border border-border text-center">
-            <div className="w-24 h-24 bg-surface text-ink-muted rounded-full mx-auto flex items-center justify-center mb-4">
-              <User className="w-12 h-12" />
-            </div>
+            <label
+              className="relative w-24 h-24 bg-surface text-ink-muted rounded-full mx-auto flex items-center justify-center mb-4 overflow-hidden cursor-pointer group"
+              title="Click to change photo"
+            >
+              {profile.photo_url ? (
+                <img src={profile.photo_url} alt="Staff" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-12 h-12" />
+              )}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-semibold text-center px-1">
+                {photoUploading ? "Uploading…" : "Change"}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+                disabled={photoUploading}
+              />
+            </label>
             <h2 className="text-2xl font-bold">
               {profile.first_name} {profile.last_name}
             </h2>
