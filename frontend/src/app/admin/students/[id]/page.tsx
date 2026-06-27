@@ -33,6 +33,24 @@ export default function StudentProfileDeepDive() {
   const [docUrl, setDocUrl] = useState("");
   const [docFile, setDocFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setPhotoUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", f);
+      await api.post(`/students/${id}/photo`, form);
+      await fetchProfile();
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || "Failed to upload photo");
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -140,7 +158,10 @@ export default function StudentProfileDeepDive() {
 
       {/* Main Profile Header */}
       <div className="bg-surface-card rounded-card p-8 shadow-sm border border-border flex flex-col md:flex-row gap-8 items-start">
-        <div className="w-32 h-32 rounded-card bg-surface flex-shrink-0 flex items-center justify-center overflow-hidden border border-border">
+        <label
+          className="relative w-32 h-32 rounded-card bg-surface flex-shrink-0 flex items-center justify-center overflow-hidden border border-border cursor-pointer group"
+          title="Click to change photo"
+        >
           {student.photo_url ? (
             <img src={student.photo_url} alt="Student" className="w-full h-full object-cover" />
           ) : (
@@ -149,7 +170,17 @@ export default function StudentProfileDeepDive() {
               {student.last_name[0]}
             </span>
           )}
-        </div>
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold text-center px-1">
+            {photoUploading ? "Uploading…" : "Change photo"}
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoUpload}
+            disabled={photoUploading}
+          />
+        </label>
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold text-ink">

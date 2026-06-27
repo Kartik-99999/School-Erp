@@ -671,3 +671,48 @@ async def delete_student_document(
     await db.delete(doc)
     await db.commit()
     return APIResponse(success=True, message="Document deleted")
+
+
+# --- Student profile photo upload ---
+PHOTO_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+PHOTO_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post(
+    "/{id}/photo",
+    response_model=APIResponse[StudentResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
+async def upload_student_photo(
+    id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+) -> Any:
+    """Upload/replace a student's profile photo. Stored on Cloudinary; the secure URL is
+    saved to ``photo_url`` and shown on the student's profile."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided.")
+    ext = ("." + file.filename.rsplit(".", 1)[-1]).lower() if "." in file.filename else ""
+    if ext not in PHOTO_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image type '{ext}'. Use PNG, JPG, WEBP or GIF.",
+        )
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(content) > PHOTO_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Image too large (max 5 MB).")
+
+    student = (
+        (await db.execute(select(Student).filter(Student.id == UUID(id)))).scalars().first()
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student.photo_url = upload_file(content, folder=f"school_erp/{school_id}/students/{id}")
+    db.add(student)
+    await db.commit()
+    await db.refresh(student)
+    return APIResponse(success=True, data=student, message="Photo updated.")

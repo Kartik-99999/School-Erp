@@ -219,3 +219,47 @@ async def get_daily_attendance(
     result = await db.execute(query)
     records = result.scalars().all()
     return APIResponse(success=True, data=records)
+
+
+# --- Staff profile photo upload ---
+STAFF_PHOTO_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+STAFF_PHOTO_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post(
+    "/{id}/photo",
+    response_model=APIResponse[StaffResponse],
+    dependencies=[Depends(deps.require_roles(["School Admin", "Super Admin"]))],
+)
+async def upload_staff_photo(
+    id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(deps.set_tenant_context),
+    school_id: str = Depends(deps.get_current_tenant_id),
+) -> Any:
+    """Upload/replace a staff member's profile photo (Cloudinary -> photo_url)."""
+    from app.models.staff import Staff
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided.")
+    ext = ("." + file.filename.rsplit(".", 1)[-1]).lower() if "." in file.filename else ""
+    if ext not in STAFF_PHOTO_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image type '{ext}'. Use PNG, JPG, WEBP or GIF.",
+        )
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(content) > STAFF_PHOTO_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Image too large (max 5 MB).")
+
+    staff = (await db.execute(select(Staff).filter(Staff.id == UUID(id)))).scalars().first()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+
+    staff.photo_url = upload_file(content, folder=f"school_{school_id}/staff/{id}")
+    db.add(staff)
+    await db.commit()
+    await db.refresh(staff)
+    return APIResponse(success=True, data=staff, message="Photo updated.")
