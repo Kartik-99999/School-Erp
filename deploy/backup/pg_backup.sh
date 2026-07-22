@@ -2,7 +2,7 @@
 # Nightly logical backup: pg_dump (custom format) -> AES-256 encrypt -> Object Storage (rclone).
 #
 # Oracle Always Free self-hosted Postgres has NO point-in-time recovery, so THESE NIGHTLY DUMPS
-# ARE THE DISASTER-RECOVERY PLAN. Restore (see DEPLOY_ORACLE.md):
+# ARE THE DISASTER-RECOVERY PLAN. Restore (see the deployment runbook, kept outside this repo):
 #   rclone copy "$BACKUP_RCLONE_REMOTE/<file>.enc" /tmp/ && \
 #   openssl enc -d -aes-256-cbc -pbkdf2 -in /tmp/<file>.enc -pass "pass:$BACKUP_ENCRYPTION_PASSPHRASE" \
 #     | docker compose exec -T postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean

@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # Optional non-owner role the running APP connects as so Postgres RLS
     # actually applies (superusers/owners bypass RLS). Leave unset to keep
     # connecting as POSTGRES_USER (RLS bypassed). Set both after running
-    # `enable_rls.py`. See PROJECT_HANDOFF.md §RLS.
+    # `enable_rls.py`. See SECURITY.md (security model) and enable_rls.py.
     APP_DB_USER: Optional[str] = None
     APP_DB_PASSWORD: Optional[str] = None
 

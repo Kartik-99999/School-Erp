@@ -561,7 +561,7 @@ CREATE TABLE hostel_allocations (
 -- staff, audit_logs), keyed on the `app.current_tenant` GUC with an
 -- `app.bypass_rls` escape for the platform Super Admin. Keeping the policy DDL
 -- in one place avoids the schema/DB drift this hardcoded block used to cause.
--- See PROJECT_HANDOFF.md (RLS section).
+-- See SECURITY.md (security model) and enable_rls.py.
 
 -- ==========================================
 -- AUDIT LOG + PASSWORD RESET (feature tables)
