@@ -6,6 +6,7 @@
 operations — admissions to alumni — with each school isolated on its own
 subdomain and its own data boundary.
 
+[![CI](https://github.com/Kartik-99999/School-Erp/actions/workflows/ci.yml/badge.svg)](https://github.com/Kartik-99999/School-Erp/actions/workflows/ci.yml)
 [![Status](https://img.shields.io/badge/status-live-brightgreen)](https://erpcore.tech)
 [![Backend](https://img.shields.io/badge/backend-FastAPI-009688)](#tech-stack)
 [![Frontend](https://img.shields.io/badge/frontend-Next.js%2014-000000)](#tech-stack)
