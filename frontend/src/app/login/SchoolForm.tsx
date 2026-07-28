@@ -1,6 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import Link from "next/link";
 import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
 import { BASE_DOMAIN } from "@/lib/config";
@@ -10,25 +9,34 @@ interface SchoolInfo {
   name?: string;
   logo_url?: string | null;
   subdomain?: string;
+  board_affiliation?: string | null;
+}
+
+/** Up to two initials from the school's real name — the crest fallback when no logo is set. */
+function crestInitials(name?: string): string {
+  const words = (name || "").trim().split(/\s+/).filter((w) => /[a-z0-9]/i.test(w));
+  if (words.length === 0) return "SCH";
+  return words
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
 }
 
 export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   const resetTwoFactor = () => {
     setTwoFactorRequired(false);
     setOtp("");
     setError("");
   };
-  useEffect(() => {
-    // Component mounted successfully
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +115,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
         // If a school user tries to login on the base domain, tell them they must use their subdomain
         await fetch("/api/auth/signout", { method: "POST" }); // clear the invalid session
         setError(
-          `Access Denied: Please log in from your school's specific subdomain (e.g., ${subdomain}.${currentHost})`
+          `This account belongs to a school. Sign in at ${subdomain}.${currentHost} instead.`
         );
         setLoading(false);
         return;
@@ -115,191 +123,216 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
 
       window.location.href = path;
     } catch (err: any) {
-      setError(`Crash error: ${err?.message || JSON.stringify(err)}`);
+      // Keep the technical detail in the console; show the person something they can act on.
+      console.error("[login]", err);
+      setError("We couldn't reach the sign-in service. Check your connection and try again.");
       setLoading(false);
     }
   };
 
+  const schoolName = school?.name || "School portal";
+  const host = school?.subdomain ? `${school.subdomain}.${BASE_DOMAIN}` : BASE_DOMAIN;
+  const showLogo = school?.logo_url && !logoFailed;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-4 font-sans">
-      <div className="max-w-5xl w-full flex flex-col md:flex-row bg-transparent overflow-hidden">
-        {/* Left Column - School Image & App Links */}
-        <div className="md:w-3/5 flex flex-col items-center justify-center p-4">
-          <div className="w-full bg-surface-card rounded-md shadow-sm border border-border overflow-hidden mb-4">
-            {/* Placeholder for School Image - simulating the DCM school image */}
-            <div className="relative w-full aspect-video bg-primary-50 flex items-center justify-center border-b-4 border-blue-800">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-              <div className="z-10 text-center text-white p-6">
-                <h2
-                  className="text-4xl font-extrabold text-red-600 drop-shadow-md bg-surface-card/90 px-4 py-2 inline-block rounded border border-red-200 mb-4"
-                  style={{ fontFamily: "serif" }}
-                >
-                  {school?.name || "School Portal"}
-                </h2>
-                <div className="text-2xl font-bold drop-shadow-lg">WELCOME</div>
-                <div className="text-lg drop-shadow-md">
-                  {school?.subdomain
-                    ? `${school.subdomain}.${BASE_DOMAIN}`
-                    : "Student & Parent Portal"}
-                </div>
+    <div className="min-h-screen bg-surface lg:grid lg:grid-cols-[minmax(0,44%)_minmax(0,56%)]">
+      {/* ── Institution panel ───────────────────────────────────────────────
+          The school itself is the largest element on the page. On a
+          multi-tenant login the most valuable thing to establish is *whose*
+          system this is, so every value here is real tenant data. */}
+      <aside className="relative isolate flex flex-col overflow-hidden bg-void px-6 py-7 lg:px-12 lg:py-14">
+        {/* One soft gold light source, top-left. No pattern, no blobs. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(120% 85% at 6% -5%, rgba(235,203,135,0.14) 0%, rgba(235,203,135,0.045) 34%, transparent 68%)",
+          }}
+        />
+
+        {/* my-auto centres the identity block and pushes the footer to the bottom edge. */}
+        <div className="flex items-center gap-4 lg:my-auto lg:block">
+          {/* Crest: the school's real logo, or its initials. */}
+          <div className="shrink-0">
+            {showLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={school!.logo_url as string}
+                alt=""
+                onError={() => setLogoFailed(true)}
+                className="h-12 w-12 rounded-full object-cover ring-1 ring-gold/40 lg:h-16 lg:w-16"
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full font-display text-base font-semibold tracking-tight text-gold ring-1 ring-gold/40 lg:h-16 lg:w-16 lg:text-xl">
+                {crestInitials(school?.name)}
               </div>
-            </div>
+            )}
           </div>
 
-          <div className="flex gap-4 mb-4">
-            {/* App Store Badge Placeholder */}
-            <div className="bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer hover:bg-gray-800 transition">
-              <span className="text-2xl">🍎</span>
-              <div className="flex flex-col text-left">
-                <span className="text-[10px] leading-tight">Download on the</span>
-                <span className="text-lg font-semibold leading-tight">App Store</span>
-              </div>
-            </div>
-            {/* Google Play Badge Placeholder */}
-            <div className="bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer hover:bg-gray-800 transition">
-              <span className="text-2xl">▶️</span>
-              <div className="flex flex-col text-left">
-                <span className="text-[10px] leading-tight">GET IT ON</span>
-                <span className="text-lg font-semibold leading-tight">Google Play</span>
-              </div>
-            </div>
-          </div>
+          <div className="min-w-0 lg:mt-8">
+            <h1 className="font-display text-xl font-semibold leading-tight tracking-tight text-warm lg:text-[2.25rem] lg:leading-[1.12]">
+              {schoolName}
+            </h1>
 
-          <div className="bg-surface-card px-6 py-2 rounded shadow-sm border border-border text-sm font-bold text-ink">
-            School Code For Mobile App : <span className="text-black">113212</span>
+            {/* Signature element: the institutional record line. Monospaced so the
+                address you're signing in to is legible character by character. */}
+            <div className="mt-1.5 lg:mt-5">
+              <div aria-hidden="true" className="hidden h-px w-14 bg-gold/45 lg:block" />
+              <p className="font-mono text-[10.5px] tracking-[0.14em] text-gold-600 lg:mt-4 lg:text-xs lg:tracking-[0.18em]">
+                {host}
+                {school?.board_affiliation ? (
+                  <span className="text-warm-400"> · {school.board_affiliation}</span>
+                ) : null}
+              </p>
+            </div>
+
+            {/* Only claim the school's name when we actually resolved it. */}
+            <p className="mt-7 hidden max-w-xs text-sm leading-relaxed text-warm-400 lg:block">
+              {school?.name
+                ? `The portal for students, parents, teachers and staff at ${school.name}.`
+                : "The portal for students, parents, teachers and staff."}
+            </p>
           </div>
         </div>
 
-        {/* Right Column - Login Form */}
-        <div className="md:w-2/5 p-4 flex items-center justify-center">
-          <div className="bg-surface-card w-full rounded-md shadow-sm border border-border p-8">
-            {/* School Logo (dynamic) */}
-            <div className="flex flex-col items-center mb-6">
-              {school?.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={school.logo_url}
-                  alt={school?.name || "School"}
-                  className="w-24 h-24 rounded-full border-2 border-yellow-400 object-cover shadow-inner"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full border-2 border-yellow-400 bg-primary-600 flex items-center justify-center text-white text-center shadow-inner overflow-hidden">
-                  <span className="text-xl font-bold px-2">
-                    {school?.name ? school.name.slice(0, 2).toUpperCase() : "SCH"}
-                  </span>
-                </div>
-              )}
-              {school?.name && (
-                <p className="mt-3 text-sm font-bold text-ink text-center">{school.name}</p>
-              )}
-            </div>
+        <p className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-warm-400 lg:block">
+          Powered by ERPCore
+        </p>
+      </aside>
 
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded">
-                {error}
+      {/* ── Sign-in ─────────────────────────────────────────────────────── */}
+      <main className="flex items-center justify-center px-6 py-12 lg:px-12">
+        <div className="w-full max-w-[400px] motion-safe:animate-fade-in">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">Sign in</h2>
+          <p className="mt-1.5 text-sm text-ink-muted">
+            {twoFactorRequired
+              ? "One more step to confirm it's you."
+              : "Use the email address your school gave you."}
+          </p>
+
+          {error && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mt-6 rounded-input border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text"
+            >
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            {!twoFactorRequired ? (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-[13px] font-medium text-ink">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    required
+                    type="email"
+                    autoComplete="username"
+                    inputMode="email"
+                    className="mt-1.5 w-full rounded-input border border-border-strong bg-surface-card px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-baseline justify-between">
+                    <label htmlFor="password" className="block text-[13px] font-medium text-ink">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="rounded-sm text-xs font-medium text-primary-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                  <input
+                    id="password"
+                    required
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    className="mt-1.5 w-full rounded-input border border-border-strong bg-surface-card px-3.5 py-2.5 text-sm text-ink focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label htmlFor="otp" className="block text-[13px] font-medium text-ink">
+                  Two-factor code
+                </label>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Enter the 6-digit code from your authenticator app, or a recovery code.
+                </p>
+                <input
+                  id="otp"
+                  required
+                  autoFocus
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  className="mt-2 w-full rounded-input border border-border-strong bg-surface-card px-3.5 py-2.5 text-center font-mono text-base tracking-[0.4em] text-ink placeholder:tracking-[0.4em] placeholder:text-ink-faint focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={resetTwoFactor}
+                  className="mt-2.5 rounded-sm text-xs font-medium text-primary-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                >
+                  Use a different account
+                </button>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!twoFactorRequired ? (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-ink mb-1">Username</label>
-                    <input
-                      required
-                      type="text"
-                      className="w-full border border-primary-500 rounded px-3 py-2 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-all text-sm"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
+            <button
+              type="submit"
+              disabled={loading}
+              aria-busy={loading}
+              className="w-full rounded-btn bg-primary-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading
+                ? twoFactorRequired
+                  ? "Verifying…"
+                  : "Signing in…"
+                : twoFactorRequired
+                  ? "Verify code"
+                  : "Sign in"}
+            </button>
+          </form>
 
-                  <div>
-                    <label className="block text-sm font-medium text-ink mb-1">Password</label>
-                    <input
-                      required
-                      type="password"
-                      className="w-full border border-border-strong rounded px-3 py-2 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none transition-all text-sm"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
+          {!twoFactorRequired && (
+            <Link
+              href="/forgot-password"
+              className="mt-5 inline-block rounded-sm text-sm text-primary-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+            >
+              Forgot your password?
+            </Link>
+          )}
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="checkbox"
-                      id="remember"
-                      className="rounded border-border-strong text-primary-700 focus:ring-blue-800"
-                    />
-                    <label htmlFor="remember" className="text-xs text-ink">
-                      Remember Password
-                    </label>
-                  </div>
-
-                  <div className="text-xs text-primary-700 pt-1">
-                    <a href="#" className="hover:underline">
-                      Privacy Policy
-                    </a>{" "}
-                    |{" "}
-                    <a href="#" className="hover:underline">
-                      Terms of Use
-                    </a>
-                    .
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label className="block text-sm font-medium text-ink mb-1">Two-factor code</label>
-                  <p className="text-xs text-ink-muted mb-2">
-                    Enter the 6-digit code from your authenticator app, or a recovery code.
-                  </p>
-                  <input
-                    required
-                    autoFocus
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    className="w-full border border-primary-500 rounded px-3 py-2 text-center tracking-widest focus:ring-1 focus:ring-blue-600 focus:outline-none transition-all text-sm"
-                    placeholder="123456"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={resetTwoFactor}
-                    className="mt-2 text-xs text-primary-700 hover:underline"
-                  >
-                    ← Use a different account
-                  </button>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full bg-[#0a2387] text-white font-bold py-2.5 rounded shadow-sm hover:bg-blue-900 transition-colors mt-2 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
-              >
-                {loading
-                  ? twoFactorRequired
-                    ? "Verifying..."
-                    : "Signing in..."
-                  : twoFactorRequired
-                    ? "Verify"
-                    : "Sign In"}
-              </button>
-            </form>
-
-            <div className="mt-3 text-left">
-              <Link
-                href="/forgot-password"
-                className="text-xs text-ink-muted hover:text-primary-700 hover:underline"
-              >
-                Forgot your password? Click here
+          <div className="mt-10 border-t border-border pt-5">
+            <p className="text-xs text-ink-faint">
+              <Link href="/privacy" className="hover:text-ink-muted hover:underline">
+                Privacy policy
               </Link>
-            </div>
+              <span className="px-1.5">·</span>
+              <Link href="/terms" className="hover:text-ink-muted hover:underline">
+                Terms of use
+              </Link>
+            </p>
+            <p className="mt-3 text-xs text-ink-faint lg:hidden">Powered by ERPCore</p>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

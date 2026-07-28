@@ -186,5 +186,8 @@ async def lookup_school(
             "logo_url": school.logo_url,
             "subdomain": school.subdomain,
             "status": school.status,
+            # Board (CBSE/ICSE/State) — public, non-sensitive; shown on the login page
+            # so a school's portal identifies the institution, not just the domain.
+            "board_affiliation": school.board_affiliation,
         },
     )
