@@ -5,6 +5,7 @@ import Link from "next/link";
 import { clearTokenCache } from "@/lib/axios";
 import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
 import { BASE_DOMAIN, getTenantSubdomain } from "@/lib/config";
+import GridMark from "@/components/brand/GridMark";
 
 export default function CoreTeamForm() {
   const [email, setEmail] = useState("");
@@ -62,14 +63,15 @@ export default function CoreTeamForm() {
       else if (role === "Parent") path = "/parent/dashboard";
       else if (role === "Accountant") path = "/accountant/dashboard";
 
-      const currentHost = window.location.host;
-      const isBaseDomain = !getTenantSubdomain(currentHost);
+      const isBaseDomain = !getTenantSubdomain(window.location.host);
 
       if (isBaseDomain && role !== "Super Admin") {
         // A school user logging in on the base domain — bounce them to their subdomain.
         await fetch("/api/auth/signout", { method: "POST" });
         setError(
-          `Access Denied: Please log in from your school's specific subdomain (e.g., ${subdomain}.${currentHost})`
+          subdomain
+            ? `This account belongs to a school. Sign in at ${subdomain}.${BASE_DOMAIN} instead.`
+            : `This account belongs to a school. Sign in at your school's own address instead.`
         );
         setLoading(false);
         return;
@@ -77,76 +79,84 @@ export default function CoreTeamForm() {
 
       window.location.href = path;
     } catch (err) {
-      setError("An unexpected error occurred. Please ensure the backend is running.");
+      setError("Couldn't reach the Erpcore server. Check your connection and try again.");
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-      <div className="max-w-md w-full bg-surface-card rounded-card shadow-xl overflow-hidden">
-        <div className="bg-slate-800 p-8 text-center border-b border-slate-700">
-          <h1 className="text-3xl font-bold text-white">Core Team Portal</h1>
-          <p className="text-ink-faint mt-2">Super Admin & Developer Access</p>
-        </div>
+  const field =
+    "mt-2 block w-full rounded-lg border border-white/[0.12] bg-void-800 px-3.5 py-3 text-[15px] text-warm placeholder:text-warm-600 outline-none transition focus:border-gold/70 focus:ring-2 focus:ring-gold/20";
 
-        <div className="p-8">
+  return (
+    <main className="flex min-h-screen flex-col bg-void px-6 font-body text-warm antialiased">
+      <div className="mx-auto w-full max-w-6xl py-6 lg:px-4">
+        <Link href="/" className="inline-flex items-center gap-3 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
+          <GridMark />
+          <span className="font-display text-[19px] font-semibold tracking-tight">Erpcore</span>
+        </Link>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center pb-24 pt-8">
+        <div className="w-full max-w-[24rem]">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-[-0.02em]">Erpcore team sign-in</h1>
+          <p className="mt-3 text-[15px] leading-[1.6] text-warm-400">
+            School staff, parents and students sign in at their school&apos;s own address, like{" "}
+            <span className="whitespace-nowrap text-warm">yourschool.{BASE_DOMAIN}</span>.
+          </p>
+
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
+            <p role="alert" className="mt-6 rounded-lg border border-[#6B2F2A] bg-[#22110F] px-4 py-3 text-sm leading-relaxed text-[#F2B8B0]">
               {error}
-            </div>
+            </p>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             {!twoFactorRequired ? (
               <>
-                <div>
-                  <label className="block text-sm font-bold text-ink mb-1">Super Admin Email</label>
+                <label className="block text-sm font-medium text-warm">
+                  Email
                   <input
                     required
-                    type="text"
-                    className="w-full border border-border-strong rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder={`e.g. admin@${BASE_DOMAIN}`}
+                    type="email"
+                    autoComplete="username"
+                    className={field}
+                    placeholder={`admin@${BASE_DOMAIN}`}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-ink mb-1">Password</label>
+                </label>
+                <label className="block text-sm font-medium text-warm">
+                  Password
                   <input
                     required
                     type="password"
-                    className="w-full border border-border-strong rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className={field}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                </div>
+                </label>
               </>
             ) : (
               <div>
-                <label className="block text-sm font-bold text-ink mb-1">Two-factor code</label>
-                <p className="text-xs text-ink-muted mb-2">
-                  Enter the 6-digit code from your authenticator app, or a recovery code.
-                </p>
-                <input
-                  required
-                  autoFocus
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  className="w-full border border-border-strong rounded-lg p-3 text-center tracking-widest focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                  placeholder="123456"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={resetTwoFactor}
-                  className="mt-2 text-xs text-primary-600 hover:underline"
-                >
-                  ← Use a different account
+                <label className="block text-sm font-medium text-warm">
+                  Two-step code
+                  <span className="mt-1 block text-[13px] font-normal text-warm-400">
+                    Enter the 6-digit code from your authenticator app, or a recovery code.
+                  </span>
+                  <input
+                    required
+                    autoFocus
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    className={`${field} font-mono tracking-[0.3em]`}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                  />
+                </label>
+                <button type="button" onClick={resetTwoFactor} className="mt-3 text-sm text-warm-400 underline-offset-4 hover:text-warm hover:underline">
+                  Use a different account
                 </button>
               </div>
             )}
@@ -154,32 +164,28 @@ export default function CoreTeamForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full bg-primary-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-primary-700 transform hover:-translate-y-0.5 active:scale-95 transition-all ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+              className="w-full rounded-full bg-gold py-3.5 text-sm font-semibold text-void transition hover:bg-gold-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading
                 ? twoFactorRequired
-                  ? "Verifying..."
-                  : "Authenticating..."
+                  ? "Checking code…"
+                  : "Signing in…"
                 : twoFactorRequired
-                  ? "Verify"
-                  : "Sign In"}
+                  ? "Verify code"
+                  : "Sign in"}
             </button>
           </form>
 
-          <div className="mt-6 flex items-center justify-between text-sm">
-            <Link href="/forgot-password" className="text-primary-600 hover:underline">
+          <div className="mt-7 flex items-center justify-between text-sm">
+            <Link href="/forgot-password" className="text-warm-400 underline-offset-4 hover:text-warm hover:underline">
               Forgot password?
             </Link>
-            <Link href="/signup" className="text-primary-600 hover:underline">
-              Create a school →
+            <Link href="/signup" className="text-gold underline-offset-4 hover:underline">
+              Create a school
             </Link>
-          </div>
-
-          <div className="mt-8 text-center text-ink-faint text-xs">
-            <p>© 2026 School ERP Multi-Tenant SaaS</p>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

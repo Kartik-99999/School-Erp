@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
 import { BASE_DOMAIN, getTenantSubdomain } from "@/lib/config";
+import GridMark from "@/components/brand/GridMark";
 
 interface SchoolInfo {
   id?: string;
@@ -15,7 +16,7 @@ interface SchoolInfo {
 /** Up to two initials from the school's real name — the crest fallback when no logo is set. */
 function crestInitials(name?: string): string {
   const words = (name || "").trim().split(/\s+/).filter((w) => /[a-z0-9]/i.test(w));
-  if (words.length === 0) return "SCH";
+  if (words.length === 0) return "";
   return words
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
@@ -133,25 +134,16 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
   const showLogo = school?.logo_url && !logoFailed;
 
   return (
-    <div className="min-h-screen bg-surface lg:grid lg:grid-cols-[minmax(0,44%)_minmax(0,56%)]">
+    <div className="min-h-screen bg-void font-body text-warm antialiased lg:grid lg:grid-cols-[minmax(0,44%)_minmax(0,56%)]">
       {/* ── Institution panel ───────────────────────────────────────────────
           The school itself is the largest element on the page. On a
           multi-tenant login the most valuable thing to establish is *whose*
           system this is, so every value here is real tenant data. */}
-      <aside className="relative isolate flex flex-col overflow-hidden bg-void px-6 py-7 lg:px-12 lg:py-14">
-        {/* One soft gold light source, top-left. No pattern, no blobs. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(120% 85% at 6% -5%, rgba(235,203,135,0.14) 0%, rgba(235,203,135,0.045) 34%, transparent 68%)",
-          }}
-        />
-
+      <aside className="relative flex flex-col border-b border-white/[0.07] bg-void-800 px-6 py-7 lg:border-b-0 lg:border-r lg:px-12 lg:py-14">
         {/* my-auto centres the identity block and pushes the footer to the bottom edge. */}
         <div className="flex items-center gap-4 lg:my-auto lg:block">
           {/* Crest: the school's real logo, or its initials. */}
+          {(showLogo || crestInitials(school?.name)) && (
           <div className="shrink-0">
             {showLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -167,26 +159,20 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
               </div>
             )}
           </div>
+          )}
 
           <div className="min-w-0 lg:mt-8">
             <h1 className="font-display text-xl font-semibold leading-tight tracking-tight text-warm lg:text-[2.25rem] lg:leading-[1.12]">
               {schoolName}
             </h1>
 
-            {/* Signature element: the institutional record line. Monospaced so the
-                address you're signing in to is legible character by character. */}
-            <div className="mt-1.5 lg:mt-5">
-              <div aria-hidden="true" className="hidden h-px w-14 bg-gold/45 lg:block" />
-              <p className="font-mono text-[10.5px] tracking-[0.14em] text-gold-600 lg:mt-4 lg:text-xs lg:tracking-[0.18em]">
-                {host}
-                {school?.board_affiliation ? (
-                  <span className="text-warm-400"> · {school.board_affiliation}</span>
-                ) : null}
-              </p>
-            </div>
+            <p className="mt-1 text-sm text-warm-400 lg:mt-4 lg:text-[15px]">
+              <span className="text-warm">{host}</span>
+              {school?.board_affiliation ? <span className="block lg:mt-1">Affiliated to {school.board_affiliation}</span> : null}
+            </p>
 
             {/* Only claim the school's name when we actually resolved it. */}
-            <p className="mt-7 hidden max-w-xs text-sm leading-relaxed text-warm-400 lg:block">
+            <p className="mt-8 hidden max-w-xs text-[15px] leading-relaxed text-warm-400 lg:block">
               {school?.name
                 ? `The portal for students, parents, teachers and staff at ${school.name}.`
                 : "The portal for students, parents, teachers and staff."}
@@ -194,16 +180,17 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
           </div>
         </div>
 
-        <p className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-warm-400 lg:block">
-          Powered by ERPCore
-        </p>
+        <a href={`https://${BASE_DOMAIN}`} className="hidden items-center gap-2.5 self-start text-sm text-warm-600 transition-colors hover:text-warm-400 lg:inline-flex">
+          <GridMark cell={4} gap={2} />
+          Runs on Erpcore
+        </a>
       </aside>
 
       {/* ── Sign-in ─────────────────────────────────────────────────────── */}
       <main className="flex items-center justify-center px-6 py-12 lg:px-12">
         <div className="w-full max-w-[400px] motion-safe:animate-fade-in">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">Sign in</h2>
-          <p className="mt-1.5 text-sm text-ink-muted">
+          <h2 className="font-display text-[2rem] font-semibold leading-tight tracking-[-0.02em] text-warm">Sign in</h2>
+          <p className="mt-2 text-[15px] text-warm-400">
             {twoFactorRequired
               ? "One more step to confirm it's you."
               : "Use the email address your school gave you."}
@@ -213,7 +200,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
             <div
               role="alert"
               aria-live="polite"
-              className="mt-6 rounded-input border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text"
+              className="mt-6 rounded-lg border border-[#6B2F2A] bg-[#22110F] px-4 py-3 text-sm leading-relaxed text-[#F2B8B0]"
             >
               {error}
             </div>
@@ -223,7 +210,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
             {!twoFactorRequired ? (
               <>
                 <div>
-                  <label htmlFor="email" className="block text-[13px] font-medium text-ink">
+                  <label htmlFor="email" className="block text-sm font-medium text-warm">
                     Email
                   </label>
                   <input
@@ -232,7 +219,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
                     type="email"
                     autoComplete="username"
                     inputMode="email"
-                    className="mt-1.5 w-full rounded-input border border-border-strong bg-surface-card px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+                    className="mt-2 w-full rounded-lg border border-white/[0.12] bg-void-800 px-3.5 py-3 text-[15px] text-warm placeholder:text-warm-600 outline-none transition focus:border-gold/70 focus:ring-2 focus:ring-gold/20"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -240,13 +227,13 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
 
                 <div>
                   <div className="flex items-baseline justify-between">
-                    <label htmlFor="password" className="block text-[13px] font-medium text-ink">
+                    <label htmlFor="password" className="block text-sm font-medium text-warm">
                       Password
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="rounded-sm text-xs font-medium text-primary-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                      className="rounded-sm text-[13px] text-warm-400 hover:text-warm focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
                     >
                       {showPassword ? "Hide" : "Show"}
                     </button>
@@ -256,7 +243,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
                     required
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
-                    className="mt-1.5 w-full rounded-input border border-border-strong bg-surface-card px-3.5 py-2.5 text-sm text-ink focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+                    className="mt-2 w-full rounded-lg border border-white/[0.12] bg-void-800 px-3.5 py-3 text-[15px] text-warm placeholder:text-warm-600 outline-none transition focus:border-gold/70 focus:ring-2 focus:ring-gold/20"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -264,10 +251,10 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
               </>
             ) : (
               <div>
-                <label htmlFor="otp" className="block text-[13px] font-medium text-ink">
+                <label htmlFor="otp" className="block text-sm font-medium text-warm">
                   Two-factor code
                 </label>
-                <p className="mt-1 text-xs text-ink-muted">
+                <p className="mt-1 text-[13px] text-warm-400">
                   Enter the 6-digit code from your authenticator app, or a recovery code.
                 </p>
                 <input
@@ -278,14 +265,14 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   placeholder="123456"
-                  className="mt-2 w-full rounded-input border border-border-strong bg-surface-card px-3.5 py-2.5 text-center font-mono text-base tracking-[0.4em] text-ink placeholder:tracking-[0.4em] placeholder:text-ink-faint focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+                  className="mt-2 w-full rounded-lg border border-white/[0.12] bg-void-800 px-3.5 py-3 text-center font-mono text-base tracking-[0.4em] text-warm placeholder:tracking-[0.4em] placeholder:text-warm-600 outline-none transition focus:border-gold/70 focus:ring-2 focus:ring-gold/20"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={resetTwoFactor}
-                  className="mt-2.5 rounded-sm text-xs font-medium text-primary-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                  className="mt-3 rounded-sm text-sm text-warm-400 underline-offset-4 hover:text-warm hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
                 >
                   Use a different account
                 </button>
@@ -296,7 +283,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
               type="submit"
               disabled={loading}
               aria-busy={loading}
-              className="w-full rounded-btn bg-primary-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-full bg-gold py-3.5 text-sm font-semibold text-void transition hover:bg-gold-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 focus-visible:ring-offset-2 focus-visible:ring-offset-void disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading
                 ? twoFactorRequired
@@ -311,23 +298,24 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
           {!twoFactorRequired && (
             <Link
               href="/forgot-password"
-              className="mt-5 inline-block rounded-sm text-sm text-primary-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+              className="mt-6 inline-block rounded-sm text-sm text-warm-400 underline-offset-4 hover:text-warm hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
             >
               Forgot your password?
             </Link>
           )}
 
-          <div className="mt-10 border-t border-border pt-5">
-            <p className="text-xs text-ink-faint">
-              <Link href="/privacy" className="hover:text-ink-muted hover:underline">
+          <div className="mt-10 border-t border-white/[0.07] pt-5">
+            <p className="flex gap-5 text-[13px] text-warm-600">
+              <Link href="/privacy" className="hover:text-warm-400">
                 Privacy policy
               </Link>
-              <span className="px-1.5">·</span>
-              <Link href="/terms" className="hover:text-ink-muted hover:underline">
+              <Link href="/terms" className="hover:text-warm-400">
                 Terms of use
               </Link>
+              <a href={`https://${BASE_DOMAIN}`} className="ml-auto hover:text-warm-400 lg:hidden">
+                Runs on Erpcore
+              </a>
             </p>
-            <p className="mt-3 text-xs text-ink-faint lg:hidden">Powered by ERPCore</p>
           </div>
         </div>
       </main>

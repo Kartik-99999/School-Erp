@@ -1,38 +1,35 @@
-import { Building2, AlertTriangle } from "lucide-react";
 import { BASE_DOMAIN } from "@/lib/config";
+import GridMark from "@/components/brand/GridMark";
 
 export default function InvalidSubdomain({ subdomain }: { subdomain?: string }) {
+  const address = subdomain ? `${subdomain}.${BASE_DOMAIN}` : null;
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-4 font-sans">
-      <div className="bg-surface-card w-full max-w-md rounded-card border border-border shadow-card p-8 text-center">
-        <div className="w-14 h-14 rounded-full bg-danger-bg text-danger-text flex items-center justify-center mx-auto mb-5">
-          <AlertTriangle className="w-7 h-7" />
-        </div>
-
-        <h1 className="text-xl font-bold text-ink">School not found</h1>
-        <p className="text-sm text-ink-muted mt-2">
-          {subdomain ? (
-            <>
-              No school is registered at <span className="font-semibold text-ink">{subdomain}</span>
-              . Please check the web address your school gave you.
-            </>
-          ) : (
-            <>
-              This school portal address isn&apos;t recognised. Please check the link and try again.
-            </>
-          )}
-        </p>
-
-        <div className="mt-6 rounded-input border border-border bg-surface px-4 py-3 text-left">
-          <p className="text-xs font-semibold text-ink-muted mb-1 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5" /> Looking for your school?
+    <main className="flex min-h-screen flex-col bg-void px-6 font-body text-warm antialiased">
+      <div className="mx-auto w-full max-w-6xl py-6 lg:px-4">
+        <a href={`https://${BASE_DOMAIN}`} className="inline-flex items-center gap-3">
+          <GridMark />
+          <span className="font-display text-[19px] font-semibold tracking-tight">Erpcore</span>
+        </a>
+      </div>
+      <div className="flex flex-1 items-center justify-center pb-24 pt-8">
+        <div className="w-full max-w-[26rem]">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-[-0.02em]">No school at this address</h1>
+          <p className="mt-4 text-[15.5px] leading-[1.65] text-warm-400">
+            {address ? (
+              <>
+                There&apos;s no school registered at <span className="whitespace-nowrap text-warm">{address}</span>. Check the
+                address your school gave you for typos.
+              </>
+            ) : (
+              <>This school portal address isn&apos;t recognised. Check the link your school gave you.</>
+            )}
           </p>
-          <p className="text-xs text-ink-muted">
-            Your portal looks like <span className="font-mono">your-school.{BASE_DOMAIN}</span>.
-            Contact your school office for the correct address.
+          <p className="mt-4 text-[15.5px] leading-[1.65] text-warm-400">
+            School portals look like <span className="whitespace-nowrap text-warm">yourschool.{BASE_DOMAIN}</span>. If you
+            can&apos;t find yours, ask the school office.
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
