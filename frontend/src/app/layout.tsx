@@ -1,27 +1,13 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
+// Fonts are self-hosted from npm (@fontsource-variable/*) instead of next/font/google,
+// so the build never fetches from Google Fonts (which broke Vercel builds).
+// The --font-* CSS variables these feed are defined in globals.css.
+import "@fontsource-variable/plus-jakarta-sans";
+import "@fontsource-variable/bricolage-grotesque";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 import AuthProvider from "@/components/providers/AuthProvider";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-sans",
-  display: "swap",
-});
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-display",
-  display: "swap",
-});
-const body = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-mono",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Erpcore — the operating system for your school",
@@ -35,10 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${jakarta.variable} ${display.variable} ${body.variable} ${mono.variable}`}
-    >
+    <html lang="en">
       <body className="font-sans antialiased bg-surface text-ink">
         <AuthProvider>{children}</AuthProvider>
       </body>

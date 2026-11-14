@@ -4,6 +4,12 @@
 
 @layer base {
   :root {
+    /* Self-hosted variable fonts (imported in app/layout.tsx) */
+    --font-sans: "Plus Jakarta Sans Variable";
+    --font-display: "Bricolage Grotesque Variable";
+    --font-body: "Inter Variable";
+    --font-mono: "JetBrains Mono Variable";
+
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
