@@ -8,7 +8,7 @@ export function H2({ children }: { children: ReactNode }) {
 export default function DocPage({ title, updated, children }: { title: string; updated?: string; children: ReactNode }) {
   return (
     <div className="min-h-screen bg-void font-body text-warm antialiased">
-      <header className="border-b border-white/8">
+      <header className="border-b border-white/[0.08]">
         <div className="mx-auto flex h-16 max-w-3xl items-center px-6">
           <Link href="/" className="flex items-center gap-3">
             <span className="grid grid-cols-3 gap-[3px]" aria-hidden>
@@ -26,7 +26,7 @@ export default function DocPage({ title, updated, children }: { title: string; u
         {updated && <p className="mt-3 font-mono text-xs uppercase tracking-[0.2em] text-warm-400">Last updated &middot; {updated}</p>}
         <div className="mt-8 space-y-4 text-[15px] leading-relaxed text-warm-400">{children}</div>
       </main>
-      <footer className="border-t border-white/8">
+      <footer className="border-t border-white/[0.08]">
         <div className="mx-auto flex max-w-3xl flex-col gap-2 px-6 py-8 text-sm text-warm-400/70 sm:flex-row sm:items-center">
           <span>&copy; 2026 Erpcore &middot; Built in India</span>
           <a href="mailto:kartik@erpcore.tech" className="text-gold transition hover:underline sm:ml-auto">kartik@erpcore.tech</a>

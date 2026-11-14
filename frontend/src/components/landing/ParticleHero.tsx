@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
+
+// Self-hosted via @fontsource-variable/bricolage-grotesque (imported in app/layout.tsx).
+const WORDMARK_FONT = "800 240px 'Bricolage Grotesque Variable', system-ui, sans-serif";
 
 function buildSprite() {
   const s = 64;
@@ -27,7 +30,7 @@ function sampleText(text: string, worldWidth = 6.6, gap = 4): [number, number, n
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = "800 240px 'Bricolage Grotesque', system-ui, sans-serif";
+  ctx.font = WORDMARK_FONT;
   ctx.fillText(text, W / 2, H / 2 + 6);
   const d = ctx.getImageData(0, 0, W, H).data;
   const raw: [number, number][] = [];
@@ -79,8 +82,13 @@ function Particles() {
     const arr = ref.current.geometry.attributes.position.array as Float32Array;
     const form = 2.9;
     const { width, height } = state.viewport;
-    const px = pointer.current.x * width / 2;
-    const py = pointer.current.y * height / 2;
+    // Fit the wordmark (sampled 6.6 units wide) to narrow screens instead of cropping it.
+    const fit = Math.min(1, (width * 0.88) / 6.6);
+    ref.current.scale.setScalar(fit);
+    (ref.current.material as THREE.PointsMaterial).size = 0.055 * Math.max(0.55, fit);
+    // Cursor in the wordmark's local (unscaled) space, so the displacement stays under the pointer.
+    const px = (pointer.current.x * width) / 2 / fit;
+    const py = (pointer.current.y * height) / 2 / fit;
     const repR2 = 1.35 * 1.35;
     const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
     const vh = typeof window !== "undefined" ? window.innerHeight : 800;
@@ -166,9 +174,19 @@ function AmbientDust() {
 }
 
 export default function ParticleHero() {
+  // The wordmark is sampled from canvas text once, so wait for the brand font first —
+  // otherwise the particles settle into a system-font "Erpcore". Give up after 2.5s.
+  const [fontReady, setFontReady] = useState(false);
+  useEffect(() => {
+    let done = false;
+    const go = () => { if (!done) { done = true; setFontReady(true); } };
+    document.fonts?.load(WORDMARK_FONT).then(go, go) ?? go();
+    const t = window.setTimeout(go, 2500);
+    return () => { done = true; window.clearTimeout(t); };
+  }, []);
   return (
     <Canvas flat dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ position: [0, 0, 9], fov: 42 }} style={{ width: "100%", height: "100%" }}>
-      <Particles />
+      {fontReady && <Particles />}
       <AmbientDust />
       <EffectComposer>
         <Bloom intensity={0.7} luminanceThreshold={0.12} luminanceSmoothing={0.42} mipmapBlur radius={0.62} />
