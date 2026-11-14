@@ -4,7 +4,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { clearTokenCache } from "@/lib/axios";
 import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
-import { BASE_DOMAIN } from "@/lib/config";
+import { BASE_DOMAIN, getTenantSubdomain } from "@/lib/config";
 
 export default function CoreTeamForm() {
   const [email, setEmail] = useState("");
@@ -63,10 +63,7 @@ export default function CoreTeamForm() {
       else if (role === "Accountant") path = "/accountant/dashboard";
 
       const currentHost = window.location.host;
-      const isBaseDomain =
-        currentHost.startsWith("localhost:") ||
-        currentHost === "localhost" ||
-        currentHost.split(".").length === 2;
+      const isBaseDomain = !getTenantSubdomain(currentHost);
 
       if (isBaseDomain && role !== "Super Admin") {
         // A school user logging in on the base domain — bounce them to their subdomain.

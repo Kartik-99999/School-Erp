@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { parseAuthError, prettyAuthError, TWO_FACTOR_REQUIRED } from "@/lib/authError";
-import { BASE_DOMAIN } from "@/lib/config";
+import { BASE_DOMAIN, getTenantSubdomain } from "@/lib/config";
 
 interface SchoolInfo {
   id?: string;
@@ -99,9 +99,7 @@ export default function SchoolForm({ school }: { school?: SchoolInfo | null }) {
       else if (role === "Accountant") path = "/accountant/dashboard";
 
       const currentHost = window.location.host;
-      const hostname = window.location.hostname;
-      const isBaseDomain =
-        hostname === "localhost" || hostname === "127.0.0.1" || hostname === BASE_DOMAIN;
+      const isBaseDomain = !getTenantSubdomain(currentHost);
 
       if (isBaseDomain && role !== "Super Admin" && role !== "super_admin") {
         // If a school user tries to login on the base domain, tell them they must use their subdomain

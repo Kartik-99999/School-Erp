@@ -1,6 +1,6 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/dist/server/web/spec-extension/response";
-import { BASE_DOMAIN } from "@/lib/config";
+import { getTenantSubdomain } from "@/lib/config";
 
 export default withAuth(
   function middleware(req) {
@@ -13,10 +13,7 @@ export default withAuth(
 
     const role = token.role as string;
 
-    const host = req.headers.get("host") || "";
-    const hostname = host.split(":")[0];
-    const isBaseDomain =
-      hostname === "localhost" || hostname === "127.0.0.1" || hostname === BASE_DOMAIN;
+    const isBaseDomain = !getTenantSubdomain(req.headers.get("host") || "");
 
     if (isBaseDomain && role !== "Super Admin" && role !== "Core Team") {
       return NextResponse.redirect(new URL("/unauthorized?reason=subdomain_required", req.url));

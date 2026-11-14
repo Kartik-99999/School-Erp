@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import { getTenantSubdomain } from "@/lib/config";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -16,11 +17,7 @@ export default function ForgotPasswordPage() {
     setError("");
     try {
       const subdomain =
-        typeof window !== "undefined" &&
-        window.location.hostname.split(".").length > 1 &&
-        !window.location.hostname.startsWith("localhost")
-          ? window.location.hostname.split(".")[0]
-          : undefined;
+        (typeof window !== "undefined" && getTenantSubdomain(window.location.host)) || undefined;
       const res = await fetch(`${API}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
